@@ -1,0 +1,15 @@
+{
+    "tickers": [
+        "GOOGL", 
+        "MSFT", 
+        "NVDA", 
+        "KO", 
+        "XOM",
+        "GE",
+        "WMT",
+        "CAT",
+        "IBM",
+        "UNH",
+        "JNJ"
+    ]   
+}

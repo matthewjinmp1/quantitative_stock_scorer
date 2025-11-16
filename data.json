@@ -1,0 +1,6734 @@
+[
+  {
+    "symbol": "GOOGL",
+    "company_name": "GOOGL",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2003-06",
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0.897
+      },
+      {
+        "period": "2003-12",
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2004-03",
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0.5872
+      },
+      {
+        "period": "2004-06",
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0.2638
+      },
+      {
+        "period": "2004-09",
+        "total_return": null,
+        "forward_return": 7446.579231390064,
+        "roa": 0.0925
+      },
+      {
+        "period": "2004-12",
+        "total_return": 48.75115633672525,
+        "forward_return": 4973.291137520317,
+        "roa": 0.1287
+      },
+      {
+        "period": "2005-03",
+        "total_return": -6.364013266998331,
+        "forward_return": 5318.09972269161,
+        "roa": 0.1962
+      },
+      {
+        "period": "2005-06",
+        "total_return": 62.96214301527561,
+        "forward_return": 3224.7597401709018,
+        "roa": 0.2315
+      },
+      {
+        "period": "2005-09",
+        "total_return": 7.580491781008012,
+        "forward_return": 2990.4857238790255,
+        "roa": 0.186
+      },
+      {
+        "period": "2005-12",
+        "total_return": 31.102411920697058,
+        "forward_return": 2257.3065350990164,
+        "roa": 0.1485
+      },
+      {
+        "period": "2006-03",
+        "total_return": -6.000770564438445,
+        "forward_return": 2407.7934673017703,
+        "roa": 0.1565
+      },
+      {
+        "period": "2006-06",
+        "total_return": 7.521262424428732,
+        "forward_return": 2232.3698129608306,
+        "roa": 0.1608
+      },
+      {
+        "period": "2006-09",
+        "total_return": -4.1551510530830065,
+        "forward_return": 2333.4847814853356,
+        "roa": 0.1607
+      },
+      {
+        "period": "2006-12",
+        "total_return": 15.571243909714616,
+        "forward_return": 2005.6144237630556,
+        "roa": 0.1801
+      },
+      {
+        "period": "2007-03",
+        "total_return": -1.3593736556826936,
+        "forward_return": 2034.6320494895763,
+        "roa": 0.1812
+      },
+      {
+        "period": "2007-06",
+        "total_return": 14.23462712603576,
+        "forward_return": 1768.6383482780789,
+        "roa": 0.1781
+      },
+      {
+        "period": "2007-09",
+        "total_return": 8.383599297549063,
+        "forward_return": 1624.0969670586835,
+        "roa": 0.1799
+      },
+      {
+        "period": "2007-12",
+        "total_return": 21.902078196548068,
+        "forward_return": 1314.3294294612806,
+        "roa": 0.1727
+      },
+      {
+        "period": "2008-03",
+        "total_return": -36.30374479889043,
+        "forward_return": 2120.4279121210297,
+        "roa": 0.1703
+      },
+      {
+        "period": "2008-06",
+        "total_return": 19.515514425694064,
+        "forward_return": 1757.8574696271173,
+        "roa": 0.1701
+      },
+      {
+        "period": "2008-09",
+        "total_return": -23.91254839444318,
+        "forward_return": 2341.7396435596124,
+        "roa": 0.1683
+      },
+      {
+        "period": "2008-12",
+        "total_return": -23.186670657487777,
+        "forward_return": 3078.7967849588254,
+        "roa": 0.1351
+      },
+      {
+        "period": "2009-03",
+        "total_return": 13.131575529289533,
+        "forward_return": 2709.822783857402,
+        "roa": 0.133
+      },
+      {
+        "period": "2009-06",
+        "total_return": 21.125143513203213,
+        "forward_return": 2219.768383639619,
+        "roa": 0.1334
+      },
+      {
+        "period": "2009-09",
+        "total_return": 17.611374407582925,
+        "forward_return": 1872.401390022404,
+        "roa": 0.1353
+      },
+      {
+        "period": "2009-12",
+        "total_return": 25.040296582849784,
+        "forward_return": 1477.4125973185946,
+        "roa": 0.1667
+      },
+      {
+        "period": "2010-03",
+        "total_return": -8.527231711247182,
+        "forward_return": 1624.461418221392,
+        "roa": 0.1692
+      },
+      {
+        "period": "2010-06",
+        "total_return": -21.540304396843293,
+        "forward_return": 2097.894606861068,
+        "roa": 0.1629
+      },
+      {
+        "period": "2010-09",
+        "total_return": 18.158958239784464,
+        "forward_return": 1760.1167779431469,
+        "roa": 0.1565
+      },
+      {
+        "period": "2010-12",
+        "total_return": 12.97408223759216,
+        "forward_return": 1546.498684566603,
+        "roa": 0.1529
+      },
+      {
+        "period": "2011-03",
+        "total_return": -1.2177072120559804,
+        "forward_return": 1566.7953720219305,
+        "roa": 0.1417
+      },
+      {
+        "period": "2011-06",
+        "total_return": -13.696111148947757,
+        "forward_return": 1831.3096943969379,
+        "roa": 0.1444
+      },
+      {
+        "period": "2011-09",
+        "total_return": 1.7045454545454488,
+        "forward_return": 1798.9413754964298,
+        "roa": 0.1429
+      },
+      {
+        "period": "2011-12",
+        "total_return": 25.411235257603977,
+        "forward_return": 1414.1716542348563,
+        "roa": 0.1374
+      },
+      {
+        "period": "2012-03",
+        "total_return": -0.7176885479180823,
+        "forward_return": 1425.1172460520975,
+        "roa": 0.1446
+      },
+      {
+        "period": "2012-06",
+        "total_return": -9.534492428491314,
+        "forward_return": 1585.854959523179,
+        "roa": 0.1361
+      },
+      {
+        "period": "2012-09",
+        "total_return": 30.061307432665156,
+        "forward_return": 1196.2002249561992,
+        "roa": 0.12
+      },
+      {
+        "period": "2012-12",
+        "total_return": -6.244372649753712,
+        "forward_return": 1282.5305867923391,
+        "roa": 0.117
+      },
+      {
+        "period": "2013-03",
+        "total_return": 12.269800022596298,
+        "forward_return": 1131.4358683404441,
+        "roa": 0.1175
+      },
+      {
+        "period": "2013-06",
+        "total_return": 10.853376270504176,
+        "forward_return": 1010.8690684670685,
+        "roa": 0.1176
+      },
+      {
+        "period": "2013-09",
+        "total_return": -0.5083745631156023,
+        "forward_return": 1016.5453007618053,
+        "roa": 0.1205
+      },
+      {
+        "period": "2013-12",
+        "total_return": 27.948355308180123,
+        "forward_return": 772.6531091958639,
+        "roa": 0.1179
+      },
+      {
+        "period": "2014-03",
+        "total_return": -0.5562488857193879,
+        "forward_return": 777.5343844310653,
+        "roa": 0.1128
+      },
+      {
+        "period": "2014-06",
+        "total_return": 4.82627559252752,
+        "forward_return": 737.1320830305452,
+        "roa": 0.1088
+      },
+      {
+        "period": "2014-09",
+        "total_return": 0.6328031469129547,
+        "forward_return": 731.867996172603,
+        "roa": 0.1029
+      },
+      {
+        "period": "2014-12",
+        "total_return": -9.806254248810339,
+        "forward_return": 822.3122836780851,
+        "roa": 0.1115
+      },
+      {
+        "period": "2015-03",
+        "total_return": 4.5223289994347065,
+        "forward_return": 782.4069387920674,
+        "roa": 0.1087
+      },
+      {
+        "period": "2015-06",
+        "total_return": -2.650081124932394,
+        "forward_return": 806.4280165702958,
+        "roa": 0.1091
+      },
+      {
+        "period": "2015-09",
+        "total_return": 18.21851851851852,
+        "forward_return": 666.7394482094675,
+        "roa": 0.1137
+      },
+      {
+        "period": "2015-12",
+        "total_return": 21.87411886337292,
+        "forward_return": 529.1240957147113,
+        "roa": 0.112
+      },
+      {
+        "period": "2016-03",
+        "total_return": -1.9433947713426394,
+        "forward_return": 541.5927761803117,
+        "roa": 0.1146
+      },
+      {
+        "period": "2016-06",
+        "total_return": -7.780836282605855,
+        "forward_return": 595.7260837307899,
+        "roa": 0.1183
+      },
+      {
+        "period": "2016-09",
+        "total_return": 14.28774483327175,
+        "forward_return": 508.74950743471834,
+        "roa": 0.1213
+      },
+      {
+        "period": "2016-12",
+        "total_return": -1.4426784070840617,
+        "forward_return": 517.6603600786915,
+        "roa": 0.1189
+      },
+      {
+        "period": "2017-03",
+        "total_return": 6.983317769982089,
+        "forward_return": 477.3426857135644,
+        "roa": 0.1216
+      },
+      {
+        "period": "2017-06",
+        "total_return": 9.657938192970043,
+        "forward_return": 426.4942011745544,
+        "roa": 0.1101
+      },
+      {
+        "period": "2017-09",
+        "total_return": 4.737113845624297,
+        "forward_return": 402.6816014336357,
+        "roa": 0.1141
+      },
+      {
+        "period": "2017-12",
+        "total_return": 8.183050568952064,
+        "forward_return": 364.6583718890828,
+        "roa": 0.0654
+      },
+      {
+        "period": "2018-03",
+        "total_return": -1.5435731915701583,
+        "forward_return": 371.94315998607675,
+        "roa": 0.0823
+      },
+      {
+        "period": "2018-06",
+        "total_return": 8.876332992652875,
+        "forward_return": 333.46717051714467,
+        "roa": 0.0779
+      },
+      {
+        "period": "2018-09",
+        "total_return": 6.896918172157276,
+        "forward_return": 305.500156533088,
+        "roa": 0.0866
+      },
+      {
+        "period": "2018-12",
+        "total_return": -13.430758524704247,
+        "forward_return": 368.4113544518065,
+        "roa": 0.1353
+      },
+      {
+        "period": "2019-03",
+        "total_return": 12.62632062471291,
+        "forward_return": 315.8986565961082,
+        "roa": 0.117
+      },
+      {
+        "period": "2019-06",
+        "total_return": -7.995581612711359,
+        "forward_return": 352.04204742146277,
+        "roa": 0.1382
+      },
+      {
+        "period": "2019-09",
+        "total_return": 12.776135943849281,
+        "forward_return": 300.8312961232617,
+        "roa": 0.1254
+      },
+      {
+        "period": "2019-12",
+        "total_return": 9.684393271860714,
+        "forward_return": 265.4405920172914,
+        "roa": 0.1274
+      },
+      {
+        "period": "2020-03",
+        "total_return": -13.247722860982531,
+        "forward_return": 321.2461091155977,
+        "roa": 0.1256
+      },
+      {
+        "period": "2020-06",
+        "total_return": 22.040345622913023,
+        "forward_return": 245.16954779625672,
+        "roa": 0.1142
+      },
+      {
+        "period": "2020-09",
+        "total_return": 3.3524674555378406,
+        "forward_return": 233.97320479527815,
+        "roa": 0.1236
+      },
+      {
+        "period": "2020-12",
+        "total_return": 19.585152838427952,
+        "forward_return": 179.27647945268842,
+        "roa": 0.1301
+      },
+      {
+        "period": "2021-03",
+        "total_return": 17.680755888259995,
+        "forward_return": 137.31703399140855,
+        "roa": 0.1588
+      },
+      {
+        "period": "2021-06",
+        "total_return": 18.389155014254406,
+        "forward_return": 100.45504502742239,
+        "roa": 0.1899
+      },
+      {
+        "period": "2021-09",
+        "total_return": 9.489720697845838,
+        "forward_return": 83.08115478768062,
+        "roa": 0.2068
+      },
+      {
+        "period": "2021-12",
+        "total_return": 8.3605134803555,
+        "forward_return": 68.9555991453208,
+        "roa": 0.2151
+      },
+      {
+        "period": "2022-03",
+        "total_return": -3.9930411730593924,
+        "forward_return": 75.98265918398192,
+        "roa": 0.2081
+      },
+      {
+        "period": "2022-06",
+        "total_return": -21.64768314781259,
+        "forward_return": 124.6042826225233,
+        "roa": 0.2022
+      },
+      {
+        "period": "2022-09",
+        "total_return": -12.217908831438184,
+        "forward_return": 155.86572344378465,
+        "roa": 0.1877
+      },
+      {
+        "period": "2022-12",
+        "total_return": -7.757449032932567,
+        "forward_return": 177.3836160874759,
+        "roa": 0.1657
+      },
+      {
+        "period": "2023-03",
+        "total_return": 17.56772072991046,
+        "forward_return": 135.93518217871397,
+        "roa": 0.1594
+      },
+      {
+        "period": "2023-06",
+        "total_return": 15.395738937626529,
+        "forward_return": 104.45744734668332,
+        "roa": 0.1619
+      },
+      {
+        "period": "2023-09",
+        "total_return": 9.3233082706767,
+        "forward_return": 87.02091125934584,
+        "roa": 0.1711
+      },
+      {
+        "period": "2023-12",
+        "total_return": 6.7476692648632,
+        "forward_return": 75.1990582532608,
+        "roa": 0.1846
+      },
+      {
+        "period": "2024-03",
+        "total_return": 8.046388431526958,
+        "forward_return": 62.151702427602146,
+        "roa": 0.2035
+      },
+      {
+        "period": "2024-06",
+        "total_return": 20.817597561783607,
+        "forward_return": 34.21199038880175,
+        "roa": 0.2132
+      },
+      {
+        "period": "2024-09",
+        "total_return": -8.838869063958283,
+        "forward_return": 47.225016858297124,
+        "roa": 0.2231
+      },
+      {
+        "period": "2024-12",
+        "total_return": 14.259873379559854,
+        "forward_return": 28.851023989174536,
+        "roa": 0.2274
+      },
+      {
+        "period": "2025-03",
+        "total_return": -18.20390913893292,
+        "forward_return": 57.52711728978781,
+        "roa": 0.2398
+      },
+      {
+        "period": "2025-06",
+        "total_return": 14.097258147956548,
+        "forward_return": 38.06389377518016,
+        "roa": 0.2364
+      },
+      {
+        "period": "2025-09",
+        "total_return": 38.06389377518016,
+        "forward_return": null,
+        "roa": 0.2392
+      }
+    ]
+  },
+  {
+    "symbol": "MSFT",
+    "company_name": "MSFT",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-09",
+        "total_return": null,
+        "forward_return": 3372.177391902468,
+        "roa": 0.1245
+      },
+      {
+        "period": "2002-12",
+        "total_return": 18.198445358939185,
+        "forward_return": 2837.582961737214,
+        "roa": 0.1145
+      },
+      {
+        "period": "2003-03",
+        "total_return": -6.0348162475822065,
+        "forward_return": 3026.2461737713843,
+        "roa": 0.1031
+      },
+      {
+        "period": "2003-06",
+        "total_return": 5.906650144568359,
+        "forward_return": 2851.8884503512204,
+        "roa": 0.0964
+      },
+      {
+        "period": "2003-09",
+        "total_return": 8.424336973478939,
+        "forward_return": 2622.533088741197,
+        "roa": 0.0976
+      },
+      {
+        "period": "2003-12",
+        "total_return": -0.9712230215827327,
+        "forward_return": 2649.2342850346986,
+        "roa": 0.0915
+      },
+      {
+        "period": "2004-03",
+        "total_return": -8.91487029594447,
+        "forward_return": 2918.3129715764035,
+        "roa": 0.0792
+      },
+      {
+        "period": "2004-06",
+        "total_return": 15.523465703971123,
+        "forward_return": 2512.7271660208226,
+        "roa": 0.0887
+      },
+      {
+        "period": "2004-09",
+        "total_return": -3.229166666666672,
+        "forward_return": 2599.9118184929953,
+        "roa": 0.0856
+      },
+      {
+        "period": "2004-12",
+        "total_return": -3.562432529686939,
+        "forward_return": 2699.647367011951,
+        "roa": 0.1255
+      },
+      {
+        "period": "2005-03",
+        "total_return": -9.244011976047894,
+        "forward_return": 2984.8073256313132,
+        "roa": 0.1713
+      },
+      {
+        "period": "2005-06",
+        "total_return": 3.103020273065776,
+        "forward_return": 2891.96601366408,
+        "roa": 0.1787
+      },
+      {
+        "period": "2005-09",
+        "total_return": 3.9049919484702116,
+        "forward_return": 2779.520952321418,
+        "roa": 0.1808
+      },
+      {
+        "period": "2005-12",
+        "total_return": 1.9432568985619827,
+        "forward_return": 2724.631113352269,
+        "roa": 0.1882
+      },
+      {
+        "period": "2006-03",
+        "total_return": 4.397705544933088,
+        "forward_return": 2605.64482103157,
+        "roa": 0.2008
+      },
+      {
+        "period": "2006-06",
+        "total_return": -14.038956266078648,
+        "forward_return": 3047.524394197051,
+        "roa": 0.1846
+      },
+      {
+        "period": "2006-09",
+        "total_return": 17.768240343347642,
+        "forward_return": 2572.642798279564,
+        "roa": 0.1917
+      },
+      {
+        "period": "2006-12",
+        "total_return": 9.54296160877513,
+        "forward_return": 2339.8124343439963,
+        "roa": 0.1808
+      },
+      {
+        "period": "2007-03",
+        "total_return": -6.329537843268581,
+        "forward_return": 2504.6764136400325,
+        "roa": 0.2127
+      },
+      {
+        "period": "2007-06",
+        "total_return": 6.099748833871539,
+        "forward_return": 2354.9317432582934,
+        "roa": 0.2213
+      },
+      {
+        "period": "2007-09",
+        "total_return": 0.30539531727180863,
+        "forward_return": 2347.45732320101,
+        "roa": 0.2309
+      },
+      {
+        "period": "2007-12",
+        "total_return": 21.215207060420912,
+        "forward_return": 1919.1008888687145,
+        "roa": 0.255
+      },
+      {
+        "period": "2008-03",
+        "total_return": -19.971910112359556,
+        "forward_return": 2422.9902296850214,
+        "roa": 0.2378
+      },
+      {
+        "period": "2008-06",
+        "total_return": -2.6779422128259247,
+        "forward_return": 2492.413566924726,
+        "roa": 0.2463
+      },
+      {
+        "period": "2008-09",
+        "total_return": -2.5808796801163223,
+        "forward_return": 2561.0931800783274,
+        "roa": 0.2576
+      },
+      {
+        "period": "2008-12",
+        "total_return": -26.67665792431622,
+        "forward_return": 3529.2578935253237,
+        "roa": 0.2632
+      },
+      {
+        "period": "2009-03",
+        "total_return": -4.835390946502058,
+        "forward_return": 3713.663429736879,
+        "roa": 0.235
+      },
+      {
+        "period": "2009-06",
+        "total_return": 30.1034295046271,
+        "forward_return": 2831.255113149224,
+        "roa": 0.1985
+      },
+      {
+        "period": "2009-09",
+        "total_return": 8.750525872949092,
+        "forward_return": 2595.393966714007,
+        "roa": 0.1726
+      },
+      {
+        "period": "2009-12",
+        "total_return": 19.012441679626757,
+        "forward_return": 2164.8001575917756,
+        "roa": 0.1986
+      },
+      {
+        "period": "2010-03",
+        "total_return": -3.4842519685039384,
+        "forward_return": 2246.560228547057,
+        "roa": 0.207
+      },
+      {
+        "period": "2010-06",
+        "total_return": -20.991532368205405,
+        "forward_return": 2870.0110619570514,
+        "roa": 0.2193
+      },
+      {
+        "period": "2010-09",
+        "total_return": 6.996957844415457,
+        "forward_return": 2675.7901923489744,
+        "roa": 0.2318
+      },
+      {
+        "period": "2010-12",
+        "total_return": 14.61821151490405,
+        "forward_return": 2321.770638070053,
+        "roa": 0.2237
+      },
+      {
+        "period": "2011-03",
+        "total_return": -8.455750627015405,
+        "forward_return": 2545.464520882003,
+        "roa": 0.2269
+      },
+      {
+        "period": "2011-06",
+        "total_return": 3.032690035447024,
+        "forward_return": 2467.5972547857064,
+        "roa": 0.2221
+      },
+      {
+        "period": "2011-09",
+        "total_return": -3.653846153846151,
+        "forward_return": 2564.97120257199,
+        "roa": 0.2172
+      },
+      {
+        "period": "2011-12",
+        "total_return": 5.102450783447169,
+        "forward_return": 2435.593777982295,
+        "roa": 0.2136
+      },
+      {
+        "period": "2012-03",
+        "total_return": 25.01926040061634,
+        "forward_return": 1928.1625166051563,
+        "roa": 0.2027
+      },
+      {
+        "period": "2012-06",
+        "total_return": -4.54193148349094,
+        "forward_return": 2024.6632664208937,
+        "roa": 0.1419
+      },
+      {
+        "period": "2012-09",
+        "total_return": -2.059496567505715,
+        "forward_return": 2069.3407650138556,
+        "roa": 0.1291
+      },
+      {
+        "period": "2012-12",
+        "total_return": -9.475806451612904,
+        "forward_return": 2296.4209787235495,
+        "roa": 0.1233
+      },
+      {
+        "period": "2013-03",
+        "total_return": 7.955821789591912,
+        "forward_return": 2119.816346166324,
+        "roa": 0.1248
+      },
+      {
+        "period": "2013-06",
+        "total_return": 21.569655654605842,
+        "forward_return": 1725.962518535951,
+        "roa": 0.1581
+      },
+      {
+        "period": "2013-09",
+        "total_return": -2.996092053842815,
+        "forward_return": 1782.3597494128444,
+        "roa": 0.159
+      },
+      {
+        "period": "2013-12",
+        "total_return": 13.251201923076911,
+        "forward_return": 1562.1101740636625,
+        "roa": 0.1542
+      },
+      {
+        "period": "2014-03",
+        "total_return": 10.31809676557072,
+        "forward_return": 1406.6523288519911,
+        "roa": 0.1448
+      },
+      {
+        "period": "2014-06",
+        "total_return": 2.4152232251768746,
+        "forward_return": 1371.1214616399022,
+        "roa": 0.1343
+      },
+      {
+        "period": "2014-09",
+        "total_return": 11.846522781774572,
+        "forward_return": 1215.3037081986267,
+        "roa": 0.1249
+      },
+      {
+        "period": "2014-12",
+        "total_return": 0.8628127696289978,
+        "forward_return": 1204.0521794715207,
+        "roa": 0.12
+      },
+      {
+        "period": "2015-03",
+        "total_return": -11.80839612486545,
+        "forward_return": 1378.6579698877608,
+        "roa": 0.1137
+      },
+      {
+        "period": "2015-06",
+        "total_return": 9.35924240560816,
+        "forward_return": 1252.1106560006049,
+        "roa": 0.0694
+      },
+      {
+        "period": "2015-09",
+        "total_return": 0.9513023782559443,
+        "forward_return": 1239.3692049007575,
+        "roa": 0.0722
+      },
+      {
+        "period": "2015-12",
+        "total_return": 26.16357885223678,
+        "forward_return": 961.6131985835875,
+        "roa": 0.0663
+      },
+      {
+        "period": "2016-03",
+        "total_return": 0.19826964671953856,
+        "forward_return": 959.5125068792486,
+        "roa": 0.0579
+      },
+      {
+        "period": "2016-06",
+        "total_return": -6.699257649827983,
+        "forward_return": 1035.5885067910124,
+        "roa": 0.1094
+      },
+      {
+        "period": "2016-09",
+        "total_return": 13.269493844049245,
+        "forward_return": 902.5545875171867,
+        "roa": 0.1049
+      },
+      {
+        "period": "2016-12",
+        "total_return": 8.559027777777775,
+        "forward_return": 823.5110225650077,
+        "roa": 0.1031
+      },
+      {
+        "period": "2017-03",
+        "total_return": 6.6140971998712565,
+        "forward_return": 766.2184896934276,
+        "roa": 0.108
+      },
+      {
+        "period": "2017-06",
+        "total_return": 5.2535681749165,
+        "forward_return": 722.9825408426017,
+        "roa": 0.1072
+      },
+      {
+        "period": "2017-09",
+        "total_return": 8.631945451907713,
+        "forward_return": 657.5879612751143,
+        "roa": 0.1057
+      },
+      {
+        "period": "2017-12",
+        "total_return": 15.398040005369865,
+        "forward_return": 556.4998515051562,
+        "roa": 0.0547
+      },
+      {
+        "period": "2018-03",
+        "total_return": 7.189618891746538,
+        "forward_return": 512.4658882948094,
+        "roa": 0.0628
+      },
+      {
+        "period": "2018-06",
+        "total_return": 8.502246083050293,
+        "forward_return": 464.4730043892481,
+        "roa": 0.0657
+      },
+      {
+        "period": "2018-09",
+        "total_return": 16.408072203630468,
+        "forward_return": 384.9088157751002,
+        "roa": 0.0728
+      },
+      {
+        "period": "2018-12",
+        "total_return": -10.789542712249725,
+        "forward_return": 443.55602528862335,
+        "roa": 0.1298
+      },
+      {
+        "period": "2019-03",
+        "total_return": 16.569853303140697,
+        "forward_return": 366.29210716693797,
+        "roa": 0.1337
+      },
+      {
+        "period": "2019-06",
+        "total_return": 13.973206715278966,
+        "forward_return": 309.1243201850072,
+        "roa": 0.1427
+      },
+      {
+        "period": "2019-09",
+        "total_return": 4.1280979396834825,
+        "forward_return": 292.90482423100997,
+        "roa": 0.1453
+      },
+      {
+        "period": "2019-12",
+        "total_return": 13.795583686974025,
+        "forward_return": 245.27247147991466,
+        "roa": 0.1578
+      },
+      {
+        "period": "2020-03",
+        "total_return": 0.32974001268232045,
+        "forward_return": 244.1377117455604,
+        "roa": 0.1628
+      },
+      {
+        "period": "2020-06",
+        "total_return": 29.364022573077154,
+        "forward_return": 166.02273561117693,
+        "roa": 0.1509
+      },
+      {
+        "period": "2020-09",
+        "total_return": 3.6017886098963303,
+        "forward_return": 156.77426922894432,
+        "roa": 0.1577
+      },
+      {
+        "period": "2020-12",
+        "total_return": 6.014358389197915,
+        "forward_return": 142.20706810890601,
+        "roa": 0.1695
+      },
+      {
+        "period": "2021-03",
+        "total_return": 6.2539339987411315,
+        "forward_return": 127.95115342437643,
+        "roa": 0.1827
+      },
+      {
+        "period": "2021-06",
+        "total_return": 15.137634134962024,
+        "forward_return": 97.98144641149787,
+        "roa": 0.1906
+      },
+      {
+        "period": "2021-09",
+        "total_return": 4.274640088593592,
+        "forward_return": 89.86538456837573,
+        "roa": 0.2028
+      },
+      {
+        "period": "2021-12",
+        "total_return": 19.51617480136208,
+        "forward_return": 58.86166444327327,
+        "roa": 0.2106
+      },
+      {
+        "period": "2022-03",
+        "total_return": -8.14402949571836,
+        "forward_return": 72.9464765013488,
+        "roa": 0.2115
+      },
+      {
+        "period": "2022-06",
+        "total_return": -16.496383510103474,
+        "forward_return": 107.1125584390399,
+        "roa": 0.205
+      },
+      {
+        "period": "2022-09",
+        "total_return": -9.076042518397376,
+        "forward_return": 127.78656382279297,
+        "roa": 0.1926
+      },
+      {
+        "period": "2022-12",
+        "total_return": 3.263203091455555,
+        "forward_return": 120.58831897849689,
+        "roa": 0.1862
+      },
+      {
+        "period": "2023-03",
+        "total_return": 20.498707363856234,
+        "forward_return": 83.06280938965708,
+        "roa": 0.1853
+      },
+      {
+        "period": "2023-06",
+        "total_return": 18.35587929240375,
+        "forward_return": 54.671496240074276,
+        "roa": 0.1827
+      },
+      {
+        "period": "2023-09",
+        "total_return": -7.079931872907741,
+        "forward_return": 66.45650326958543,
+        "roa": 0.1797
+      },
+      {
+        "period": "2023-12",
+        "total_return": 19.3317498020586,
+        "forward_return": 39.49054090440714,
+        "roa": 0.1801
+      },
+      {
+        "period": "2024-03",
+        "total_return": 12.081161578555474,
+        "forward_return": 24.454938671063815,
+        "roa": 0.1805
+      },
+      {
+        "period": "2024-06",
+        "total_return": 6.412816124738534,
+        "forward_return": 16.954839842952808,
+        "roa": 0.1769
+      },
+      {
+        "period": "2024-09",
+        "total_return": -3.557444904351712,
+        "forward_return": 21.268914668385904,
+        "roa": 0.1748
+      },
+      {
+        "period": "2024-12",
+        "total_return": -1.8521961422263564,
+        "forward_return": 23.55744082070055,
+        "roa": 0.1755
+      },
+      {
+        "period": "2025-03",
+        "total_return": -10.742586002372482,
+        "forward_return": 38.42821037139248,
+        "roa": 0.1762
+      },
+      {
+        "period": "2025-06",
+        "total_return": 32.725964996403754,
+        "forward_return": 4.296254598821903,
+        "roa": 0.1723
+      },
+      {
+        "period": "2025-09",
+        "total_return": 4.296254598821901,
+        "forward_return": null,
+        "roa": 0.1671
+      }
+    ]
+  },
+  {
+    "symbol": "NVDA",
+    "company_name": "NVDA",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-04",
+        "total_return": null,
+        "forward_return": 66540.5045043577,
+        "roa": 0.1505
+      },
+      {
+        "period": "2002-07",
+        "total_return": -68.27586206896552,
+        "forward_return": 209962.4598506926,
+        "roa": 0.128
+      },
+      {
+        "period": "2002-10",
+        "total_return": 7.60869565217392,
+        "forward_return": 195109.55864912865,
+        "roa": 0.0714
+      },
+      {
+        "period": "2003-01",
+        "total_return": -13.131313131313144,
+        "forward_return": 224617.98030539215,
+        "roa": 0.0559
+      },
+      {
+        "period": "2003-04",
+        "total_return": 38.37209302325582,
+        "forward_return": 162301.229464401,
+        "roa": 0.0165
+      },
+      {
+        "period": "2003-07",
+        "total_return": 33.61344537815127,
+        "forward_return": 121445.57425323104,
+        "roa": 0.0266
+      },
+      {
+        "period": "2003-10",
+        "total_return": -7.547169811320761,
+        "forward_return": 131367.66194737237,
+        "roa": 0.0624
+      },
+      {
+        "period": "2004-01",
+        "total_return": 25.850340136054427,
+        "forward_return": 104363.49354737143,
+        "roa": 0.052
+      },
+      {
+        "period": "2004-04",
+        "total_return": -7.5675675675675595,
+        "forward_return": 112916.06027054803,
+        "roa": 0.0532
+      },
+      {
+        "period": "2004-07",
+        "total_return": -24.561403508771935,
+        "forward_return": 149711.98687026143,
+        "roa": 0.0387
+      },
+      {
+        "period": "2004-10",
+        "total_return": -6.201550387596905,
+        "forward_return": 159616.91162201425,
+        "roa": 0.0506
+      },
+      {
+        "period": "2005-01",
+        "total_return": 57.851239669421496,
+        "forward_return": 101081.91783384142,
+        "roa": 0.0559
+      },
+      {
+        "period": "2005-04",
+        "total_return": -4.188481675392674,
+        "forward_return": 105505.17107247937,
+        "roa": 0.0807
+      },
+      {
+        "period": "2005-07",
+        "total_return": 23.49726775956285,
+        "forward_return": 85412.15179762708,
+        "roa": 0.1191
+      },
+      {
+        "period": "2005-10",
+        "total_return": 23.89380530973452,
+        "forward_return": 68920.52252237043,
+        "roa": 0.1352
+      },
+      {
+        "period": "2006-01",
+        "total_return": 33.928571428571416,
+        "forward_return": 51435.32348336998,
+        "roa": 0.1596
+      },
+      {
+        "period": "2006-04",
+        "total_return": 29.866666666666664,
+        "forward_return": 39583.25730238956,
+        "roa": 0.1585
+      },
+      {
+        "period": "2006-07",
+        "total_return": -24.229979466119094,
+        "forward_return": 52273.29622293696,
+        "roa": 0.1561
+      },
+      {
+        "period": "2006-10",
+        "total_return": 57.45257452574525,
+        "forward_return": 33162.90242041951,
+        "roa": 0.1617
+      },
+      {
+        "period": "2007-01",
+        "total_return": -12.04819277108433,
+        "forward_return": 37719.464395819385,
+        "roa": 0.1718
+      },
+      {
+        "period": "2007-04",
+        "total_return": 7.24070450097848,
+        "forward_return": 35165.96041288998,
+        "roa": 0.1786
+      },
+      {
+        "period": "2007-07",
+        "total_return": 39.23357664233576,
+        "forward_return": 25228.632118301077,
+        "roa": 0.197
+      },
+      {
+        "period": "2007-10",
+        "total_return": 15.98951507208388,
+        "forward_return": 21737.00147600423,
+        "roa": 0.2162
+      },
+      {
+        "period": "2008-01",
+        "total_return": -30.508474576271187,
+        "forward_return": 31323.97773376216,
+        "roa": 0.2208
+      },
+      {
+        "period": "2008-04",
+        "total_return": -16.422764227642272,
+        "forward_return": 37498.72822230296,
+        "roa": 0.2229
+      },
+      {
+        "period": "2008-07",
+        "total_return": -44.357976653696504,
+        "forward_return": 67472.53953239066,
+        "roa": 0.1412
+      },
+      {
+        "period": "2008-10",
+        "total_return": -23.426573426573423,
+        "forward_return": 88145.41692357864,
+        "roa": 0.0984
+      },
+      {
+        "period": "2009-01",
+        "total_return": -9.132420091324196,
+        "forward_return": 97014.30304655142,
+        "roa": -0.0085
+      },
+      {
+        "period": "2009-04",
+        "total_return": 44.22110552763817,
+        "forward_return": 67237.09514377607,
+        "roa": -0.125
+      },
+      {
+        "period": "2009-07",
+        "total_return": 12.543554006968652,
+        "forward_return": 59732.031907937206,
+        "roa": -0.1212
+      },
+      {
+        "period": "2009-10",
+        "total_return": -7.4303405572755485,
+        "forward_return": 64534.60303098234,
+        "roa": -0.1025
+      },
+      {
+        "period": "2010-01",
+        "total_return": 28.762541806020074,
+        "forward_return": 50096.74365263304,
+        "roa": -0.0192
+      },
+      {
+        "period": "2010-04",
+        "total_return": 2.0779220779220795,
+        "forward_return": 49074.92698794844,
+        "roa": 0.0733
+      },
+      {
+        "period": "2010-07",
+        "total_return": -41.475826972010175,
+        "forward_return": 83924.98394027709,
+        "roa": 0.0624
+      },
+      {
+        "period": "2010-10",
+        "total_return": 30.869565217391294,
+        "forward_return": 64105.1372301121,
+        "roa": 0.1139
+      },
+      {
+        "period": "2011-01",
+        "total_return": 98.67109634551495,
+        "forward_return": 32217.30151549117,
+        "roa": 0.1126
+      },
+      {
+        "period": "2011-04",
+        "total_return": -16.387959866220733,
+        "forward_return": 38551.492612527465,
+        "roa": 0.0543
+      },
+      {
+        "period": "2011-07",
+        "total_return": -30.800000000000004,
+        "forward_return": 55754.75811058882,
+        "roa": 0.1131
+      },
+      {
+        "period": "2011-10",
+        "total_return": 6.936416184971105,
+        "forward_return": 52131.74677368578,
+        "roa": 0.1279
+      },
+      {
+        "period": "2012-01",
+        "total_return": -0.2702702702702705,
+        "forward_return": 52273.29622293696,
+        "roa": 0.1092
+      },
+      {
+        "period": "2012-04",
+        "total_return": -11.924119241192408,
+        "forward_return": 59363.83478850381,
+        "roa": 0.0899
+      },
+      {
+        "period": "2012-07",
+        "total_return": 4.307692307692312,
+        "forward_return": 56908.101198418095,
+        "roa": 0.0816
+      },
+      {
+        "period": "2012-10",
+        "total_return": -11.799410029498535,
+        "forward_return": 64534.60303098236,
+        "roa": 0.0843
+      },
+      {
+        "period": "2013-01",
+        "total_return": 3.3444816053511732,
+        "forward_return": 62442.86830506061,
+        "roa": 0.09
+      },
+      {
+        "period": "2013-04",
+        "total_return": 12.703583061889246,
+        "forward_return": 55393.23864061742,
+        "roa": 0.0913
+      },
+      {
+        "period": "2013-07",
+        "total_return": 5.523255813953494,
+        "forward_return": 52488.63386328478,
+        "roa": 0.094
+      },
+      {
+        "period": "2013-10",
+        "total_return": 5.817174515235463,
+        "forward_return": 49597.635666612034,
+        "roa": 0.0828
+      },
+      {
+        "period": "2014-01",
+        "total_return": 3.947368421052635,
+        "forward_return": 47710.383679272345,
+        "roa": 0.0678
+      },
+      {
+        "period": "2014-04",
+        "total_return": 18.06615776081425,
+        "forward_return": 40394.57065938369,
+        "roa": 0.0707
+      },
+      {
+        "period": "2014-07",
+        "total_return": -4.761904761904765,
+        "forward_return": 42419.299192352904,
+        "roa": 0.0769
+      },
+      {
+        "period": "2014-10",
+        "total_return": 12.100456621004565,
+        "forward_return": 37829.6396053983,
+        "roa": 0.0846
+      },
+      {
+        "period": "2015-01",
+        "total_return": -1.4314928425357891,
+        "forward_return": 38380.48499385843,
+        "roa": 0.0897
+      },
+      {
+        "period": "2015-04",
+        "total_return": 16.041666666666682,
+        "forward_return": 33060.92064102703,
+        "roa": 0.0868
+      },
+      {
+        "period": "2015-07",
+        "total_return": -9.729729729729737,
+        "forward_return": 36635.15160832334,
+        "roa": 0.0738
+      },
+      {
+        "period": "2015-10",
+        "total_return": 42.484969939879754,
+        "forward_return": 25681.773069695304,
+        "roa": 0.0847
+      },
+      {
+        "period": "2016-01",
+        "total_return": 3.6671368124118504,
+        "forward_return": 24769.764770631242,
+        "roa": 0.0844
+      },
+      {
+        "period": "2016-04",
+        "total_return": 21.72131147540984,
+        "forward_return": 20331.7259395085,
+        "roa": 0.095
+      },
+      {
+        "period": "2016-07",
+        "total_return": 61.14864864864864,
+        "forward_return": 12578.806872315545,
+        "roa": 0.1267
+      },
+      {
+        "period": "2016-10",
+        "total_return": 24.789915966386555,
+        "forward_return": 10060.121332023908,
+        "roa": 0.1427
+      },
+      {
+        "period": "2017-01",
+        "total_return": 53.681843732433954,
+        "forward_return": 6511.139667033844,
+        "roa": 0.1711
+      },
+      {
+        "period": "2017-04",
+        "total_return": -4.322344322344318,
+        "forward_return": 6809.805241578248,
+        "roa": 0.204
+      },
+      {
+        "period": "2017-07",
+        "total_return": 55.94325153374231,
+        "forward_return": 4330.974199664636,
+        "roa": 0.243
+      },
+      {
+        "period": "2017-10",
+        "total_return": 27.344326852079753,
+        "forward_return": 3379.5222599995013,
+        "roa": 0.2685
+      },
+      {
+        "period": "2018-01",
+        "total_return": 18.93617021276595,
+        "forward_return": 2825.5374994629087,
+        "roa": 0.2892
+      },
+      {
+        "period": "2018-04",
+        "total_return": -8.429617575264432,
+        "forward_return": 3094.851241194167,
+        "roa": 0.3333
+      },
+      {
+        "period": "2018-07",
+        "total_return": 8.945402809887954,
+        "forward_return": 2832.5250619057774,
+        "roa": 0.3534
+      },
+      {
+        "period": "2018-10",
+        "total_return": -13.835347925514538,
+        "forward_return": 3303.3968585757666,
+        "roa": 0.3537
+      },
+      {
+        "period": "2019-01",
+        "total_return": -31.739707835325365,
+        "forward_return": 4885.910183866834,
+        "roa": 0.3073
+      },
+      {
+        "period": "2019-04",
+        "total_return": 26.01558152476351,
+        "forward_return": 3856.582292077147,
+        "roa": 0.2409
+      },
+      {
+        "period": "2019-07",
+        "total_return": -6.696132596685091,
+        "forward_return": 4140.534076657767,
+        "roa": 0.1904
+      },
+      {
+        "period": "2019-10",
+        "total_return": 19.25082977714556,
+        "forward_return": 3455.9786750183825,
+        "roa": 0.1576
+      },
+      {
+        "period": "2020-01",
+        "total_return": 17.68802228412256,
+        "forward_return": 2921.529809068872,
+        "roa": 0.1688
+      },
+      {
+        "period": "2020-04",
+        "total_return": 23.684655726611417,
+        "forward_return": 2342.930201259213,
+        "roa": 0.1636
+      },
+      {
+        "period": "2020-07",
+        "total_return": 45.32639934309566,
+        "forward_return": 1580.995477973545,
+        "roa": 0.1399
+      },
+      {
+        "period": "2020-10",
+        "total_return": 18.11587376354216,
+        "forward_return": 1323.1749081742842,
+        "roa": 0.1469
+      },
+      {
+        "period": "2021-01",
+        "total_return": 3.6700175522578546,
+        "forward_return": 1272.7931583081788,
+        "roa": 0.1556
+      },
+      {
+        "period": "2021-04",
+        "total_return": 15.581216320246341,
+        "forward_return": 1087.7303267898794,
+        "roa": 0.1787
+      },
+      {
+        "period": "2021-07",
+        "total_return": 29.933377748167878,
+        "forward_return": 814.1071735177197,
+        "roa": 0.2038
+      },
+      {
+        "period": "2021-10",
+        "total_return": 31.14005846453665,
+        "forward_return": 597.04648924258,
+        "roa": 0.207
+      },
+      {
+        "period": "2022-01",
+        "total_return": -4.212461375992489,
+        "forward_return": 627.7005957723578,
+        "roa": 0.2299
+      },
+      {
+        "period": "2022-04",
+        "total_return": -24.238340276076126,
+        "forward_return": 860.513006742599,
+        "roa": 0.2116
+      },
+      {
+        "period": "2022-07",
+        "total_return": -2.048848870437269,
+        "forward_return": 880.6041028268282,
+        "roa": 0.1745
+      },
+      {
+        "period": "2022-10",
+        "total_return": -25.667565930738316,
+        "forward_return": 1219.2143040992278,
+        "roa": 0.1418
+      },
+      {
+        "period": "2023-01",
+        "total_return": 44.78032155293768,
+        "forward_return": 811.1834329065697,
+        "roa": 0.1069
+      },
+      {
+        "period": "2023-04",
+        "total_return": 42.05353943798946,
+        "forward_return": 541.4366277049565,
+        "roa": 0.1119
+      },
+      {
+        "period": "2023-07",
+        "total_return": 68.41327615409566,
+        "forward_return": 280.87058357445136,
+        "roa": 0.2196
+      },
+      {
+        "period": "2023-10",
+        "total_return": -12.722292366624577,
+        "forward_return": 336.38930707754366,
+        "roa": 0.3642
+      },
+      {
+        "period": "2024-01",
+        "total_return": 50.88523786169691,
+        "forward_return": 189.21935191403082,
+        "roa": 0.4964
+      },
+      {
+        "period": "2024-04",
+        "total_return": 40.43590618752743,
+        "forward_return": 105.94402084594324,
+        "roa": 0.5965
+      },
+      {
+        "period": "2024-07",
+        "total_return": 35.44825351265016,
+        "forward_return": 52.04627265770475,
+        "roa": 0.6532
+      },
+      {
+        "period": "2024-10",
+        "total_return": 13.459237737138945,
+        "forward_return": 34.009601765493755,
+        "roa": 0.696
+      },
+      {
+        "period": "2025-01",
+        "total_return": -9.55106959927689,
+        "forward_return": 48.16051574272947,
+        "roa": 0.702
+      },
+      {
+        "period": "2025-04",
+        "total_return": -9.277921212625962,
+        "forward_return": 63.312522952625784,
+        "roa": 0.6482
+      },
+      {
+        "period": "2025-07",
+        "total_return": 63.312522952625784,
+        "forward_return": null,
+        "roa": 0.6511
+      }
+    ]
+  },
+  {
+    "symbol": "KO",
+    "company_name": "KO",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-03",
+        "total_return": null,
+        "forward_return": 396.0799640477837,
+        "roa": 0.1293
+      },
+      {
+        "period": "2002-06",
+        "total_return": 7.149666348903712,
+        "forward_return": 362.97854295918603,
+        "roa": 0.1287
+      },
+      {
+        "period": "2002-09",
+        "total_return": -13.999999999999998,
+        "forward_return": 438.3471429757975,
+        "roa": 0.1253
+      },
+      {
+        "period": "2002-12",
+        "total_return": -8.173477898248535,
+        "forward_return": 486.2654172824534,
+        "roa": 0.1281
+      },
+      {
+        "period": "2003-03",
+        "total_return": -7.1624087591241015,
+        "forward_return": 531.4957222030166,
+        "roa": 0.1634
+      },
+      {
+        "period": "2003-06",
+        "total_return": 15.68675889328064,
+        "forward_return": 445.8668980307092,
+        "roa": 0.1554
+      },
+      {
+        "period": "2003-09",
+        "total_return": -7.358935850675817,
+        "forward_return": 489.2277933582985,
+        "roa": 0.1571
+      },
+      {
+        "period": "2003-12",
+        "total_return": 18.645251396648042,
+        "forward_return": 396.62989999357507,
+        "roa": 0.1587
+      },
+      {
+        "period": "2004-03",
+        "total_return": -0.39408866995074454,
+        "forward_return": 398.5948056315319,
+        "roa": 0.1641
+      },
+      {
+        "period": "2004-06",
+        "total_return": 0.854870775347912,
+        "forward_return": 394.36859300741287,
+        "roa": 0.1647
+      },
+      {
+        "period": "2004-09",
+        "total_return": -20.16640253565769,
+        "forward_return": 519.2487983874494,
+        "roa": 0.1546
+      },
+      {
+        "period": "2004-12",
+        "total_return": 4.594257178526851,
+        "forward_return": 492.0485647032066,
+        "roa": 0.1595
+      },
+      {
+        "period": "2005-03",
+        "total_return": 0.7444764649375628,
+        "forward_return": 487.67347399860614,
+        "roa": 0.1497
+      },
+      {
+        "period": "2005-06",
+        "total_return": 0.8639308855291535,
+        "forward_return": 482.6398682255982,
+        "roa": 0.1586
+      },
+      {
+        "period": "2005-09",
+        "total_return": 4.119760479041911,
+        "forward_return": 459.58625485205323,
+        "roa": 0.1749
+      },
+      {
+        "period": "2005-12",
+        "total_return": -6.0199120166705145,
+        "forward_return": 495.4306564932291,
+        "roa": 0.1642
+      },
+      {
+        "period": "2006-03",
+        "total_return": 4.639047382783416,
+        "forward_return": 469.0329483936006,
+        "roa": 0.168
+      },
+      {
+        "period": "2006-06",
+        "total_return": 3.4869835204203627,
+        "forward_return": 449.85944032402597,
+        "roa": 0.1691
+      },
+      {
+        "period": "2006-09",
+        "total_return": 4.579265457926537,
+        "forward_return": 425.7824654976573,
+        "roa": 0.1708
+      },
+      {
+        "period": "2006-12",
+        "total_return": 8.683974932855865,
+        "forward_return": 383.77184016547267,
+        "roa": 0.1658
+      },
+      {
+        "period": "2007-03",
+        "total_return": 0.18652849740932648,
+        "forward_return": 382.8711478689291,
+        "roa": 0.166
+      },
+      {
+        "period": "2007-06",
+        "total_return": 9.687500000000004,
+        "forward_return": 340.2244083135532,
+        "roa": 0.1436
+      },
+      {
+        "period": "2007-09",
+        "total_return": 10.51424201873446,
+        "forward_return": 298.34178859854705,
+        "roa": 0.1333
+      },
+      {
+        "period": "2007-12",
+        "total_return": 7.3777623107708346,
+        "forward_return": 270.97233172514154,
+        "roa": 0.1408
+      },
+      {
+        "period": "2008-03",
+        "total_return": -0.1955352778230406,
+        "forward_return": 271.69913466076633,
+        "roa": 0.1377
+      },
+      {
+        "period": "2008-06",
+        "total_return": -13.980614424182686,
+        "forward_return": 332.11089241407274,
+        "roa": 0.1222
+      },
+      {
+        "period": "2008-09",
+        "total_return": 2.462485571373616,
+        "forward_return": 321.72595170265674,
+        "roa": 0.1256
+      },
+      {
+        "period": "2008-12",
+        "total_return": -13.672465960665656,
+        "forward_return": 388.518473735739,
+        "roa": 0.1309
+      },
+      {
+        "period": "2009-03",
+        "total_return": -2.0101612546940584,
+        "forward_return": 398.53993025286104,
+        "roa": 0.1352
+      },
+      {
+        "period": "2009-06",
+        "total_return": 10.125142207053466,
+        "forward_return": 352.7030978225879,
+        "roa": 0.1406
+      },
+      {
+        "period": "2009-09",
+        "total_return": 12.75265680350073,
+        "forward_return": 301.5010472094986,
+        "roa": 0.1347
+      },
+      {
+        "period": "2009-12",
+        "total_return": 6.908752327746735,
+        "forward_return": 275.55489000435637,
+        "roa": 0.1424
+      },
+      {
+        "period": "2010-03",
+        "total_return": -2.736842105263158,
+        "forward_return": 286.1224518443054,
+        "roa": 0.1475
+      },
+      {
+        "period": "2010-06",
+        "total_return": -8.072727272727278,
+        "forward_return": 320.0303570300001,
+        "roa": 0.1548
+      },
+      {
+        "period": "2010-09",
+        "total_return": 17.637669592976867,
+        "forward_return": 257.0542994291658,
+        "roa": 0.1478
+      },
+      {
+        "period": "2010-12",
+        "total_return": 13.140806561859181,
+        "forward_return": 215.58401453851047,
+        "roa": 0.1856
+      },
+      {
+        "period": "2011-03",
+        "total_return": 1.5812680553443932,
+        "forward_return": 210.67146589130124,
+        "roa": 0.1621
+      },
+      {
+        "period": "2011-06",
+        "total_return": 2.140488393126323,
+        "forward_return": 204.16093635225678,
+        "roa": 0.1601
+      },
+      {
+        "period": "2011-09",
+        "total_return": 1.0997176400653825,
+        "forward_return": 200.85240933622435,
+        "roa": 0.1566
+      },
+      {
+        "period": "2011-12",
+        "total_return": 4.262877442273529,
+        "forward_return": 188.55179975518644,
+        "roa": 0.1061
+      },
+      {
+        "period": "2012-03",
+        "total_return": 6.502786908675155,
+        "forward_return": 170.9335672151152,
+        "roa": 0.1066
+      },
+      {
+        "period": "2012-06",
+        "total_return": 5.99378462369949,
+        "forward_return": 155.61269293004958,
+        "roa": 0.1032
+      },
+      {
+        "period": "2012-09",
+        "total_return": -2.327663384064456,
+        "forward_return": 161.70428781197563,
+        "roa": 0.1025
+      },
+      {
+        "period": "2012-12",
+        "total_return": -3.7569206432902713,
+        "forward_return": 171.92011057959832,
+        "roa": 0.1043
+      },
+      {
+        "period": "2013-03",
+        "total_return": 12.331034482758616,
+        "forward_return": 142.07033419721134,
+        "roa": 0.0998
+      },
+      {
+        "period": "2013-06",
+        "total_return": -0.12363996043520838,
+        "forward_return": 142.37000036977523,
+        "roa": 0.0966
+      },
+      {
+        "period": "2013-09",
+        "total_return": -4.86163051608077,
+        "forward_return": 154.75525982263326,
+        "roa": 0.0976
+      },
+      {
+        "period": "2013-12",
+        "total_return": 9.794086589229144,
+        "forward_return": 132.03003707817618,
+        "roa": 0.0956
+      },
+      {
+        "period": "2014-03",
+        "total_return": -5.676591624304056,
+        "forward_return": 145.9941186115607,
+        "roa": 0.0932
+      },
+      {
+        "period": "2014-06",
+        "total_return": 10.35954474909468,
+        "forward_return": 122.90244053727727,
+        "roa": 0.0896
+      },
+      {
+        "period": "2014-09",
+        "total_return": 1.4282341831916834,
+        "forward_return": 119.76370024808719,
+        "roa": 0.0838
+      },
+      {
+        "period": "2014-12",
+        "total_return": -0.31645569620252634,
+        "forward_return": 120.46136278855727,
+        "roa": 0.0753
+      },
+      {
+        "period": "2015-03",
+        "total_return": -3.173851255329232,
+        "forward_return": 127.68783603064796,
+        "roa": 0.0768
+      },
+      {
+        "period": "2015-06",
+        "total_return": -2.441430332922319,
+        "forward_return": 133.38578743788602,
+        "roa": 0.0818
+      },
+      {
+        "period": "2015-09",
+        "total_return": 3.109864899311753,
+        "forward_return": 126.34671053617481,
+        "roa": 0.0738
+      },
+      {
+        "period": "2015-12",
+        "total_return": 7.901296111665014,
+        "forward_return": 109.77200338903529,
+        "roa": 0.0803
+      },
+      {
+        "period": "2016-03",
+        "total_return": 8.798882681564244,
+        "forward_return": 92.80713020096175,
+        "roa": 0.0802
+      },
+      {
+        "period": "2016-06",
+        "total_return": -1.5305022634188452,
+        "forward_return": 95.80391352939176,
+        "roa": 0.0821
+      },
+      {
+        "period": "2016-09",
+        "total_return": -5.868078535186407,
+        "forward_return": 108.01011015437842,
+        "roa": 0.0767
+      },
+      {
+        "period": "2016-12",
+        "total_return": -1.205103969754252,
+        "forward_return": 110.54742553774929,
+        "roa": 0.072
+      },
+      {
+        "period": "2017-03",
+        "total_return": 3.2561505065122938,
+        "forward_return": 103.90787813116287,
+        "roa": 0.0697
+      },
+      {
+        "period": "2017-06",
+        "total_return": 6.55042412818097,
+        "forward_return": 91.37218814432882,
+        "roa": 0.0455
+      },
+      {
+        "period": "2017-09",
+        "total_return": 1.1817168338907393,
+        "forward_return": 89.13712292360401,
+        "roa": 0.05
+      },
+      {
+        "period": "2017-12",
+        "total_return": 2.754943345923139,
+        "forward_return": 84.06620330359817,
+        "roa": 0.0139
+      },
+      {
+        "period": "2018-03",
+        "total_return": -4.48997384481256,
+        "forward_return": 92.71924709194627,
+        "roa": 0.0158
+      },
+      {
+        "period": "2018-06",
+        "total_return": 1.8880957863228176,
+        "forward_return": 89.14795256956447,
+        "roa": 0.026
+      },
+      {
+        "period": "2018-09",
+        "total_return": 6.201550387596896,
+        "forward_return": 78.10281665309356,
+        "roa": 0.0318
+      },
+      {
+        "period": "2018-12",
+        "total_return": 3.3557046979865857,
+        "forward_return": 72.32025767085028,
+        "roa": 0.0756
+      },
+      {
+        "period": "2019-03",
+        "total_return": -0.19007391763463985,
+        "forward_return": 72.64841728131105,
+        "roa": 0.0786
+      },
+      {
+        "period": "2019-06",
+        "total_return": 9.517712334613748,
+        "forward_return": 57.6442874864037,
+        "roa": 0.0788
+      },
+      {
+        "period": "2019-09",
+        "total_return": 7.698350353495671,
+        "forward_return": 46.37576803077448,
+        "roa": 0.0873
+      },
+      {
+        "period": "2019-12",
+        "total_return": 2.4063188831741433,
+        "forward_return": 42.936265678840584,
+        "roa": 0.1026
+      },
+      {
+        "period": "2020-03",
+        "total_return": -19.31345980126468,
+        "forward_return": 77.15007401083363,
+        "roa": 0.111
+      },
+      {
+        "period": "2020-06",
+        "total_return": 1.8983050847457619,
+        "forward_return": 73.84987303125723,
+        "roa": 0.0973
+      },
+      {
+        "period": "2020-09",
+        "total_return": 11.414503133393012,
+        "forward_return": 56.038817337014336,
+        "roa": 0.0868
+      },
+      {
+        "period": "2020-12",
+        "total_return": 11.910066842211881,
+        "forward_return": 39.432333247572814,
+        "roa": 0.0839
+      },
+      {
+        "period": "2021-03",
+        "total_return": -3.118161925601755,
+        "forward_return": 43.91999162990578,
+        "roa": 0.0814
+      },
+      {
+        "period": "2021-06",
+        "total_return": 3.452855245683928,
+        "forward_return": 39.116500253297914,
+        "roa": 0.0896
+      },
+      {
+        "period": "2021-09",
+        "total_return": -2.2546664202550373,
+        "forward_return": 42.32546471366888,
+        "roa": 0.0974
+      },
+      {
+        "period": "2021-12",
+        "total_return": 13.645892891175915,
+        "forward_return": 25.2359069851787,
+        "roa": 0.1056
+      },
+      {
+        "period": "2022-03",
+        "total_return": 5.455159601418678,
+        "forward_return": 18.757496037675068,
+        "roa": 0.1094
+      },
+      {
+        "period": "2022-06",
+        "total_return": 2.177419354838704,
+        "forward_return": 16.226752238924334,
+        "roa": 0.1022
+      },
+      {
+        "period": "2022-09",
+        "total_return": -10.252742012398654,
+        "forward_return": 29.50451617695228,
+        "roa": 0.1069
+      },
+      {
+        "period": "2022-12",
+        "total_return": 14.334166369153865,
+        "forward_return": 13.268430854533477,
+        "roa": 0.103
+      },
+      {
+        "period": "2023-03",
+        "total_return": -1.7607294450558062,
+        "forward_return": 15.298525950662125,
+        "roa": 0.1037
+      },
+      {
+        "period": "2023-06",
+        "total_return": -2.1763662743833665,
+        "forward_return": 17.86367113908321,
+        "roa": 0.1073
+      },
+      {
+        "period": "2023-09",
+        "total_return": -6.276984390567922,
+        "forward_return": 25.75744642089994,
+        "roa": 0.1098
+      },
+      {
+        "period": "2023-12",
+        "total_return": 6.091461236155776,
+        "forward_return": 18.53682186634076,
+        "roa": 0.1097
+      },
+      {
+        "period": "2024-03",
+        "total_return": 4.641099609706431,
+        "forward_return": 13.279411539503144,
+        "roa": 0.1094
+      },
+      {
+        "period": "2024-06",
+        "total_return": 4.83000980712651,
+        "forward_return": 8.060098198905479,
+        "roa": 0.1061
+      },
+      {
+        "period": "2024-09",
+        "total_return": 13.66064414768264,
+        "forward_return": -4.927427598861954,
+        "roa": 0.1003
+      },
+      {
+        "period": "2024-12",
+        "total_return": -12.68438630670749,
+        "forward_return": 8.883816284098842,
+        "roa": 0.1028
+      },
+      {
+        "period": "2025-03",
+        "total_return": 15.852875040154203,
+        "forward_return": -6.015438765451364,
+        "roa": 0.1066
+      },
+      {
+        "period": "2025-06",
+        "total_return": -0.5026528902541252,
+        "forward_return": -5.540636042402838,
+        "roa": 0.1182
+      },
+      {
+        "period": "2025-09",
+        "total_return": -5.540636042402837,
+        "forward_return": null,
+        "roa": 0.1238
+      }
+    ]
+  },
+  {
+    "symbol": "XOM",
+    "company_name": "XOM",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-03",
+        "total_return": null,
+        "forward_return": 425.7574037220834,
+        "roa": 0.087
+      },
+      {
+        "period": "2002-06",
+        "total_return": -5.886379192334007,
+        "forward_return": 458.641139518519,
+        "roa": 0.0729
+      },
+      {
+        "period": "2002-09",
+        "total_return": -21.67235494880547,
+        "forward_return": 613.2106922829023,
+        "roa": 0.0675
+      },
+      {
+        "period": "2002-12",
+        "total_return": 10.438871473354236,
+        "forward_return": 545.7967948857391,
+        "roa": 0.0758
+      },
+      {
+        "period": "2003-03",
+        "total_return": 0.5142857142857225,
+        "forward_return": 542.4925474986039,
+        "roa": 0.1041
+      },
+      {
+        "period": "2003-06",
+        "total_return": 3.4620886981401826,
+        "forward_return": 520.9932117001165,
+        "roa": 0.1095
+      },
+      {
+        "period": "2003-09",
+        "total_return": 2.6176552492342102,
+        "forward_return": 505.1524079281186,
+        "roa": 0.1141
+      },
+      {
+        "period": "2003-12",
+        "total_return": 12.70491803278688,
+        "forward_return": 436.9352273980395,
+        "roa": 0.126
+      },
+      {
+        "period": "2004-03",
+        "total_return": 2.0487804878048865,
+        "forward_return": 426.1554570583087,
+        "roa": 0.1123
+      },
+      {
+        "period": "2004-06",
+        "total_return": 7.429670593892745,
+        "forward_return": 389.76735584277174,
+        "roa": 0.1192
+      },
+      {
+        "period": "2004-09",
+        "total_return": 9.434811979283948,
+        "forward_return": 347.5425570571504,
+        "roa": 0.1278
+      },
+      {
+        "period": "2004-12",
+        "total_return": 6.621146285950755,
+        "forward_return": 319.75027717003843,
+        "roa": 0.1323
+      },
+      {
+        "period": "2005-03",
+        "total_return": 16.796722590714015,
+        "forward_return": 259.3853216591979,
+        "roa": 0.1399
+      },
+      {
+        "period": "2005-06",
+        "total_return": -3.087248322147655,
+        "forward_return": 270.8338845375377,
+        "roa": 0.1468
+      },
+      {
+        "period": "2005-09",
+        "total_return": 11.066643466156256,
+        "forward_return": 233.88411944810133,
+        "roa": 0.1644
+      },
+      {
+        "period": "2005-12",
+        "total_return": -11.142587346553348,
+        "forward_return": 275.75269128112546,
+        "roa": 0.1728
+      },
+      {
+        "period": "2006-03",
+        "total_return": 8.919351967242296,
+        "forward_return": 244.98248887317465,
+        "roa": 0.1728
+      },
+      {
+        "period": "2006-06",
+        "total_return": 1.3309234308248474,
+        "forward_return": 240.45134218941803,
+        "roa": 0.1802
+      },
+      {
+        "period": "2006-09",
+        "total_return": 9.894050529747341,
+        "forward_return": 209.79961203382953,
+        "roa": 0.1796
+      },
+      {
+        "period": "2006-12",
+        "total_return": 14.679582712369601,
+        "forward_return": 170.14365129915467,
+        "roa": 0.1783
+      },
+      {
+        "period": "2007-03",
+        "total_return": -1.1222758710687624,
+        "forward_return": 173.2098191771709,
+        "roa": 0.1825
+      },
+      {
+        "period": "2007-06",
+        "total_return": 11.636845593108008,
+        "forward_return": 144.73086616309556,
+        "roa": 0.1783
+      },
+      {
+        "period": "2007-09",
+        "total_return": 10.765379113018607,
+        "forward_return": 120.94527019438661,
+        "roa": 0.1686
+      },
+      {
+        "period": "2007-12",
+        "total_return": 1.5989628349178862,
+        "forward_return": 117.46803710327981,
+        "roa": 0.1696
+      },
+      {
+        "period": "2008-03",
+        "total_return": -9.349983989753442,
+        "forward_return": 139.8985093159811,
+        "roa": 0.1687
+      },
+      {
+        "period": "2008-06",
+        "total_return": 4.67013478363679,
+        "forward_return": 129.1948030943824,
+        "roa": 0.1662
+      },
+      {
+        "period": "2008-09",
+        "total_return": -11.426302053784182,
+        "forward_return": 158.76169608900733,
+        "roa": 0.1876
+      },
+      {
+        "period": "2008-12",
+        "total_return": 3.3092969353592605,
+        "forward_return": 150.4728071578252,
+        "roa": 0.1867
+      },
+      {
+        "period": "2009-03",
+        "total_return": -14.192659401227614,
+        "forward_return": 191.9013751154627,
+        "roa": 0.1725
+      },
+      {
+        "period": "2009-06",
+        "total_return": 3.2745961820851726,
+        "forward_return": 182.6458644300161,
+        "roa": 0.1393
+      },
+      {
+        "period": "2009-09",
+        "total_return": -1.2587612644829027,
+        "forward_return": 186.24905667539332,
+        "roa": 0.0927
+      },
+      {
+        "period": "2009-12",
+        "total_return": -2.508155790947373e-15,
+        "forward_return": 186.24905667539332,
+        "roa": 0.0833
+      },
+      {
+        "period": "2010-03",
+        "total_return": -1.1585276433494556,
+        "forward_return": 189.60420140497132,
+        "roa": 0.0883
+      },
+      {
+        "period": "2010-06",
+        "total_return": -14.13854882054345,
+        "forward_return": 237.29246061737086,
+        "roa": 0.0923
+      },
+      {
+        "period": "2010-09",
+        "total_return": 9.041527948133869,
+        "forward_return": 209.32477466548846,
+        "roa": 0.0922
+      },
+      {
+        "period": "2010-12",
+        "total_return": 19.04838970707235,
+        "forward_return": 159.83112869195935,
+        "roa": 0.1011
+      },
+      {
+        "period": "2011-03",
+        "total_return": 15.659190371991233,
+        "forward_return": 124.65238417826731,
+        "roa": 0.1119
+      },
+      {
+        "period": "2011-06",
+        "total_return": -2.7100915250208018,
+        "forward_return": 130.91026366423495,
+        "roa": 0.1174
+      },
+      {
+        "period": "2011-09",
+        "total_return": -10.174490046694519,
+        "forward_return": 157.06535235287885,
+        "roa": 0.1259
+      },
+      {
+        "period": "2011-12",
+        "total_return": 17.348203221809186,
+        "forward_return": 119.0620267674478,
+        "roa": 0.1255
+      },
+      {
+        "period": "2012-03",
+        "total_return": 2.878716375648889,
+        "forward_return": 112.93230950468907,
+        "roa": 0.1178
+      },
+      {
+        "period": "2012-06",
+        "total_return": -0.6802721088435498,
+        "forward_return": 114.39074998074858,
+        "roa": 0.1336
+      },
+      {
+        "period": "2012-09",
+        "total_return": 7.537688442211067,
+        "forward_return": 99.36336096340628,
+        "roa": 0.1333
+      },
+      {
+        "period": "2012-12",
+        "total_return": -4.7348277747403005,
+        "forward_return": 109.27203122249207,
+        "roa": 0.1341
+      },
+      {
+        "period": "2013-03",
+        "total_return": 4.771808203350667,
+        "forward_return": 99.74078410130892,
+        "roa": 0.1334
+      },
+      {
+        "period": "2013-06",
+        "total_return": 0.9654866274553267,
+        "forward_return": 97.83075462045446,
+        "roa": 0.1053
+      },
+      {
+        "period": "2013-09",
+        "total_return": -4.0730492529053555,
+        "forward_return": 106.23062974452588,
+        "roa": 0.0991
+      },
+      {
+        "period": "2013-12",
+        "total_return": 18.351929335192928,
+        "forward_return": 74.25202183265253,
+        "roa": 0.0938
+      },
+      {
+        "period": "2014-03",
+        "total_return": -2.855731225296439,
+        "forward_return": 79.37447471736783,
+        "roa": 0.0919
+      },
+      {
+        "period": "2014-06",
+        "total_return": 3.7776412776412776,
+        "forward_return": 72.8450102633175,
+        "roa": 0.0958
+      },
+      {
+        "period": "2014-09",
+        "total_return": -5.899880810488687,
+        "forward_return": 83.6820311727972,
+        "roa": 0.0964
+      },
+      {
+        "period": "2014-12",
+        "total_return": -0.9675704412546459,
+        "forward_return": 85.47664839812731,
+        "roa": 0.0926
+      },
+      {
+        "period": "2015-03",
+        "total_return": -7.312060573282859,
+        "forward_return": 100.1087191551741,
+        "roa": 0.0819
+      },
+      {
+        "period": "2015-06",
+        "total_return": -1.2588235294117613,
+        "forward_return": 102.6598490192994,
+        "roa": 0.0687
+      },
+      {
+        "period": "2015-09",
+        "total_return": -9.759615384615394,
+        "forward_return": 124.57777621744427,
+        "roa": 0.0578
+      },
+      {
+        "period": "2015-12",
+        "total_return": 5.823806321452602,
+        "forward_return": 112.21857729749598,
+        "roa": 0.0476
+      },
+      {
+        "period": "2016-03",
+        "total_return": 8.171905067350867,
+        "forward_return": 96.1864101083942,
+        "roa": 0.0383
+      },
+      {
+        "period": "2016-06",
+        "total_return": 13.039837301112561,
+        "forward_return": 73.5551065822911,
+        "roa": 0.0307
+      },
+      {
+        "period": "2016-09",
+        "total_return": -6.091316407083416,
+        "forward_return": 84.8126285473584,
+        "roa": 0.0262
+      },
+      {
+        "period": "2016-12",
+        "total_return": 4.273602199816687,
+        "forward_return": 77.23817404256053,
+        "roa": 0.0234
+      },
+      {
+        "period": "2017-03",
+        "total_return": -8.309328606248615,
+        "forward_return": 93.30011586613728,
+        "roa": 0.0297
+      },
+      {
+        "period": "2017-06",
+        "total_return": -0.6218753810510926,
+        "forward_return": 94.5097239531523,
+        "roa": 0.034
+      },
+      {
+        "period": "2017-09",
+        "total_return": 2.502167719559024,
+        "forward_return": 89.7615711750814,
+        "roa": 0.0375
+      },
+      {
+        "period": "2017-12",
+        "total_return": 2.964137594535248,
+        "forward_return": 84.2987040034732,
+        "roa": 0.0564
+      },
+      {
+        "period": "2018-03",
+        "total_return": -9.875657580105214,
+        "forward_return": 104.49381272022413,
+        "roa": 0.0583
+      },
+      {
+        "period": "2018-06",
+        "total_return": 11.98230800160837,
+        "forward_return": 82.6126076248465,
+        "roa": 0.06
+      },
+      {
+        "period": "2018-09",
+        "total_return": 3.7592167291188106,
+        "forward_return": 75.9965171109454,
+        "roa": 0.066
+      },
+      {
+        "period": "2018-12",
+        "total_return": -18.830863326276166,
+        "forward_return": 116.82689298322813,
+        "roa": 0.0594
+      },
+      {
+        "period": "2019-03",
+        "total_return": 19.6949699369409,
+        "forward_return": 81.14954462786486,
+        "roa": 0.0527
+      },
+      {
+        "period": "2019-06",
+        "total_return": -4.0841584158415865,
+        "forward_return": 88.86300910879334,
+        "roa": 0.0494
+      },
+      {
+        "period": "2019-09",
+        "total_return": -6.720605506981594,
+        "forward_return": 102.47023486299432,
+        "roa": 0.0406
+      },
+      {
+        "period": "2019-12",
+        "total_return": 0.056649199830054814,
+        "forward_return": 102.35560203363093,
+        "roa": 0.0397
+      },
+      {
+        "period": "2020-03",
+        "total_return": -44.339352249928346,
+        "forward_return": 263.5523663724709,
+        "roa": 0.0316
+      },
+      {
+        "period": "2020-06",
+        "total_return": 20.06847511193047,
+        "forward_return": 202.78752689543143,
+        "roa": 0.0199
+      },
+      {
+        "period": "2020-09",
+        "total_return": -21.28801431127013,
+        "forward_return": 284.6777898512412,
+        "roa": 0.0092
+      },
+      {
+        "period": "2020-12",
+        "total_return": 22.604136323914947,
+        "forward_return": 213.75596401979357,
+        "roa": -0.0649
+      },
+      {
+        "period": "2021-03",
+        "total_return": 37.55458515283843,
+        "forward_return": 128.09560558899278,
+        "roa": -0.0573
+      },
+      {
+        "period": "2021-06",
+        "total_return": 14.544151889665052,
+        "forward_return": 99.13334886682514,
+        "roa": -0.0397
+      },
+      {
+        "period": "2021-09",
+        "total_return": -5.374128091312616,
+        "forward_return": 110.44281532114809,
+        "roa": -0.0175
+      },
+      {
+        "period": "2021-12",
+        "total_return": 5.525331519891189,
+        "forward_return": 99.42397933284886,
+        "roa": 0.0682
+      },
+      {
+        "period": "2022-03",
+        "total_return": 36.41117829710738,
+        "forward_return": 46.19328256112402,
+        "roa": 0.0743
+      },
+      {
+        "period": "2022-06",
+        "total_return": 4.75844533236469,
+        "forward_return": 39.55274164035174,
+        "roa": 0.1078
+      },
+      {
+        "period": "2022-09",
+        "total_return": 2.977580569827185,
+        "forward_return": 35.51759603220012,
+        "roa": 0.1405
+      },
+      {
+        "period": "2022-12",
+        "total_return": 27.373725804604277,
+        "forward_return": 6.3936814096879,
+        "roa": 0.1508
+      },
+      {
+        "period": "2023-03",
+        "total_return": 0.2447869446962824,
+        "forward_return": 6.133879528701954,
+        "roa": 0.167
+      },
+      {
+        "period": "2023-06",
+        "total_return": -1.367864307860657,
+        "forward_return": 7.605780594651051,
+        "roa": 0.1411
+      },
+      {
+        "period": "2023-09",
+        "total_return": 10.480186480186479,
+        "forward_return": -2.6017388068501504,
+        "roa": 0.1118
+      },
+      {
+        "period": "2023-12",
+        "total_return": -14.160571525769686,
+        "forward_return": 13.465645012291276,
+        "roa": 0.0962
+      },
+      {
+        "period": "2024-03",
+        "total_return": 17.213442688537697,
+        "forward_return": -3.1974128481194413,
+        "roa": 0.0869
+      },
+      {
+        "period": "2024-06",
+        "total_return": -0.14624913971093462,
+        "forward_return": -3.055632544717909,
+        "roa": 0.0814
+      },
+      {
+        "period": "2024-09",
+        "total_return": 2.649409312022233,
+        "forward_return": -5.557793167029885,
+        "roa": 0.073
+      },
+      {
+        "period": "2024-12",
+        "total_return": -7.387817778536091,
+        "forward_return": 1.9760085202722593,
+        "roa": 0.0735
+      },
+      {
+        "period": "2025-03",
+        "total_return": 11.480896160639597,
+        "forward_return": -8.526023711426902,
+        "roa": 0.0732
+      },
+      {
+        "period": "2025-06",
+        "total_return": -8.526023711426896,
+        "forward_return": null,
+        "roa": 0.0689
+      }
+    ]
+  },
+  {
+    "symbol": "GE",
+    "company_name": "GE",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-03",
+        "total_return": null,
+        "forward_return": 336.4442673001329,
+        "roa": 0.0273
+      },
+      {
+        "period": "2002-06",
+        "total_return": -21.62640183005077,
+        "forward_return": 456.87664914111076,
+        "roa": 0.0271
+      },
+      {
+        "period": "2002-09",
+        "total_return": -14.110725100518593,
+        "forward_return": 548.3657590459803,
+        "roa": 0.0272
+      },
+      {
+        "period": "2002-12",
+        "total_return": 0.071203939951338,
+        "forward_return": 547.9044255678574,
+        "roa": 0.0249
+      },
+      {
+        "period": "2003-03",
+        "total_return": 6.027373750375427,
+        "forward_return": 511.07278493311037,
+        "roa": 0.0252
+      },
+      {
+        "period": "2003-06",
+        "total_return": 13.716107146076261,
+        "forward_return": 437.36695730196345,
+        "roa": 0.0233
+      },
+      {
+        "period": "2003-09",
+        "total_return": 5.047428929461296,
+        "forward_return": 411.5469867071206,
+        "roa": 0.0218
+      },
+      {
+        "period": "2003-12",
+        "total_return": 5.046051617063624,
+        "forward_return": 386.9740259937818,
+        "roa": 0.0239
+      },
+      {
+        "period": "2004-03",
+        "total_return": -0.40535527602603,
+        "forward_return": 388.95603507942366,
+        "roa": 0.0238
+      },
+      {
+        "period": "2004-06",
+        "total_return": 7.255038887063215,
+        "forward_return": 355.8816444925086,
+        "roa": 0.0228
+      },
+      {
+        "period": "2004-09",
+        "total_return": 4.674289473175071,
+        "forward_return": 335.52399236427334,
+        "roa": 0.0228
+      },
+      {
+        "period": "2004-12",
+        "total_return": 9.790366438718422,
+        "forward_return": 296.6868920210501,
+        "roa": 0.0235
+      },
+      {
+        "period": "2005-03",
+        "total_return": -0.19807308095235054,
+        "forward_return": 297.4741813780958,
+        "roa": 0.0236
+      },
+      {
+        "period": "2005-06",
+        "total_return": -2.890304038197437,
+        "forward_return": 309.3043206874414,
+        "roa": 0.0249
+      },
+      {
+        "period": "2005-09",
+        "total_return": -1.7668803405918132,
+        "forward_return": 316.6663159091076,
+        "roa": 0.0274
+      },
+      {
+        "period": "2005-12",
+        "total_return": 5.340110091287639,
+        "forward_return": 295.5438394245315,
+        "roa": 0.025
+      },
+      {
+        "period": "2006-03",
+        "total_return": 0.4220717283479578,
+        "forward_return": 293.8813774869318,
+        "roa": 0.0255
+      },
+      {
+        "period": "2006-06",
+        "total_return": -4.031792949318714,
+        "forward_return": 310.42902601996167,
+        "roa": 0.0261
+      },
+      {
+        "period": "2006-09",
+        "total_return": 8.367513835971613,
+        "forward_return": 278.7380659495426,
+        "roa": 0.0263
+      },
+      {
+        "period": "2006-12",
+        "total_return": 6.7367112584349425,
+        "forward_return": 254.83392872441794,
+        "roa": 0.03
+      },
+      {
+        "period": "2007-03",
+        "total_return": -3.7140402401154446,
+        "forward_return": 268.5209449116918,
+        "roa": 0.0295
+      },
+      {
+        "period": "2007-06",
+        "total_return": 9.58180432200535,
+        "forward_return": 236.29756983084116,
+        "roa": 0.0292
+      },
+      {
+        "period": "2007-09",
+        "total_return": 9.373260117247623,
+        "forward_return": 207.4769550348339,
+        "roa": 0.0292
+      },
+      {
+        "period": "2007-12",
+        "total_return": -9.207405089484887,
+        "forward_return": 238.65862666209955,
+        "roa": 0.0285
+      },
+      {
+        "period": "2008-03",
+        "total_return": 1.2361127551279198,
+        "forward_return": 234.52353853338326,
+        "roa": 0.0269
+      },
+      {
+        "period": "2008-06",
+        "total_return": -26.484270906257766,
+        "forward_return": 355.0366876003116,
+        "roa": 0.0257
+      },
+      {
+        "period": "2008-09",
+        "total_return": -2.5169492852333706,
+        "forward_return": 366.7854404061883,
+        "roa": 0.0243
+      },
+      {
+        "period": "2008-12",
+        "total_return": -34.43817140422324,
+        "forward_return": 611.9774576212125,
+        "roa": 0.0213
+      },
+      {
+        "period": "2009-03",
+        "total_return": -34.39398434174718,
+        "forward_return": 985.231972217247,
+        "roa": 0.0204
+      },
+      {
+        "period": "2009-06",
+        "total_return": 17.577761703007145,
+        "forward_return": 822.9908415491556,
+        "roa": 0.0176
+      },
+      {
+        "period": "2009-09",
+        "total_return": 41.52968443572829,
+        "forward_return": 552.1535360084167,
+        "roa": 0.0149
+      },
+      {
+        "period": "2009-12",
+        "total_return": -6.83854219688487,
+        "forward_return": 600.0250440334028,
+        "roa": 0.014
+      },
+      {
+        "period": "2010-03",
+        "total_return": 21.394834967545933,
+        "forward_return": 476.6514236133278,
+        "roa": 0.013
+      },
+      {
+        "period": "2010-06",
+        "total_return": -19.85029046405364,
+        "forward_return": 619.4678894684016,
+        "roa": 0.0138
+      },
+      {
+        "period": "2010-09",
+        "total_return": 14.081608995537003,
+        "forward_return": 530.6607136795794,
+        "roa": 0.0134
+      },
+      {
+        "period": "2010-12",
+        "total_return": 13.993827954224002,
+        "forward_return": 453.2411052402165,
+        "roa": 0.0154
+      },
+      {
+        "period": "2011-03",
+        "total_return": 10.90217403722025,
+        "forward_return": 398.85505856227957,
+        "roa": 0.0177
+      },
+      {
+        "period": "2011-06",
+        "total_return": -4.684438701071332,
+        "forward_return": 423.3721039503406,
+        "roa": 0.0187
+      },
+      {
+        "period": "2011-09",
+        "total_return": -17.970108906393683,
+        "forward_return": 538.0260865555798,
+        "roa": 0.0202
+      },
+      {
+        "period": "2011-12",
+        "total_return": 19.53981960708942,
+        "forward_return": 433.7351927187797,
+        "roa": 0.0194
+      },
+      {
+        "period": "2012-03",
+        "total_return": 13.64771215904054,
+        "forward_return": 369.6400680480586,
+        "roa": 0.0192
+      },
+      {
+        "period": "2012-06",
+        "total_return": 5.252363303210748,
+        "forward_return": 346.20382223163995,
+        "roa": 0.0186
+      },
+      {
+        "period": "2012-09",
+        "total_return": 10.33618416435226,
+        "forward_return": 304.40389126290006,
+        "roa": 0.0191
+      },
+      {
+        "period": "2012-12",
+        "total_return": -6.174668310545985,
+        "forward_return": 331.01781148124087,
+        "roa": 0.0197
+      },
+      {
+        "period": "2013-03",
+        "total_return": 11.66094271066647,
+        "forward_return": 286.0058862283524,
+        "roa": 0.0208
+      },
+      {
+        "period": "2013-06",
+        "total_return": 1.676472448915032,
+        "forward_return": 279.64130435612054,
+        "roa": 0.0212
+      },
+      {
+        "period": "2013-09",
+        "total_return": 4.388019894759612,
+        "forward_return": 263.6828294461963,
+        "roa": 0.0209
+      },
+      {
+        "period": "2013-12",
+        "total_return": 18.86840309969037,
+        "forward_return": 205.9541644058175,
+        "roa": 0.0198
+      },
+      {
+        "period": "2014-03",
+        "total_return": -6.322914414783776,
+        "forward_return": 226.60512706439494,
+        "roa": 0.0191
+      },
+      {
+        "period": "2014-06",
+        "total_return": 2.9272426455752427,
+        "forward_return": 217.31650306522164,
+        "roa": 0.0198
+      },
+      {
+        "period": "2014-09",
+        "total_return": -1.112330248385973,
+        "forward_return": 220.88581302629262,
+        "roa": 0.0204
+      },
+      {
+        "period": "2014-12",
+        "total_return": 0.1345697438281446,
+        "forward_return": 220.4545781214291,
+        "roa": 0.0233
+      },
+      {
+        "period": "2015-03",
+        "total_return": -0.2985000578809039,
+        "forward_return": 221.41399909476416,
+        "roa": -0.0021
+      },
+      {
+        "period": "2015-06",
+        "total_return": 8.64347254857374,
+        "forward_return": 195.84289930631792,
+        "roa": -0.0101
+      },
+      {
+        "period": "2015-09",
+        "total_return": -3.6340044039005965,
+        "forward_return": 206.99926615845857,
+        "roa": -0.0122
+      },
+      {
+        "period": "2015-12",
+        "total_return": 25.037489954349258,
+        "forward_return": 145.5257749260185,
+        "roa": -0.0114
+      },
+      {
+        "period": "2016-03",
+        "total_return": 3.2888602687165784,
+        "forward_return": 137.70789443049154,
+        "roa": 0.016
+      },
+      {
+        "period": "2016-06",
+        "total_return": 0.23399192859301915,
+        "forward_return": 137.1529756091481,
+        "roa": 0.0276
+      },
+      {
+        "period": "2016-09",
+        "total_return": -4.686774017974474,
+        "forward_return": 148.81434152052628,
+        "roa": 0.029
+      },
+      {
+        "period": "2016-12",
+        "total_return": 8.03910917979359,
+        "forward_return": 130.30025275982345,
+        "roa": 0.0199
+      },
+      {
+        "period": "2017-03",
+        "total_return": -4.426943854846501,
+        "forward_return": 140.96776021272174,
+        "roa": 0.02
+      },
+      {
+        "period": "2017-06",
+        "total_return": -8.01581848013575,
+        "forward_return": 161.96652101609902,
+        "roa": 0.015
+      },
+      {
+        "period": "2017-09",
+        "total_return": -8.992310429656674,
+        "forward_return": 187.85097419006007,
+        "roa": 0.0127
+      },
+      {
+        "period": "2017-12",
+        "total_return": -27.003508408081426,
+        "forward_return": 294.33535490893075,
+        "roa": -0.0227
+      },
+      {
+        "period": "2018-03",
+        "total_return": -21.601427322692274,
+        "forward_return": 402.9879262369152,
+        "roa": -0.0262
+      },
+      {
+        "period": "2018-06",
+        "total_return": 2.4522189326182318,
+        "forward_return": 390.94878712946695,
+        "roa": -0.0279
+      },
+      {
+        "period": "2018-09",
+        "total_return": -15.572272971520698,
+        "forward_return": 481.50184117104004,
+        "roa": -0.1037
+      },
+      {
+        "period": "2018-12",
+        "total_return": -32.80093278057448,
+        "forward_return": 765.3421323130253,
+        "roa": -0.0717
+      },
+      {
+        "period": "2019-03",
+        "total_return": 37.50862568660466,
+        "forward_return": 529.3002551601547,
+        "roa": -0.0562
+      },
+      {
+        "period": "2019-06",
+        "total_return": 5.265591700510679,
+        "forward_return": 497.82142008051994,
+        "roa": -0.0583
+      },
+      {
+        "period": "2019-09",
+        "total_return": -14.704363295521935,
+        "forward_return": 600.8815962670858,
+        "roa": -0.0172
+      },
+      {
+        "period": "2019-12",
+        "total_return": 25.012356773758714,
+        "forward_return": 460.64985442639613,
+        "roa": -0.0188
+      },
+      {
+        "period": "2020-03",
+        "total_return": -28.709752893112327,
+        "forward_return": 686.4327550805043,
+        "roa": -0.0089
+      },
+      {
+        "period": "2020-06",
+        "total_return": -13.776529812046235,
+        "forward_return": 812.0866434234241,
+        "roa": -0.0172
+      },
+      {
+        "period": "2020-09",
+        "total_return": -8.548742831936485,
+        "forward_return": 897.3472991708004,
+        "roa": 0.0148
+      },
+      {
+        "period": "2020-12",
+        "total_return": 73.61209620220517,
+        "forward_return": 474.468784714859,
+        "roa": 0.0223
+      },
+      {
+        "period": "2021-03",
+        "total_return": 21.721745922523283,
+        "forward_return": 371.9524686086188,
+        "roa": -0.0131
+      },
+      {
+        "period": "2021-06",
+        "total_return": 2.6357253216257988,
+        "forward_return": 359.83254576287004,
+        "roa": -0.0101
+      },
+      {
+        "period": "2021-09",
+        "total_return": -4.199122571402977,
+        "forward_return": 379.98782276873794,
+        "roa": -0.0001
+      },
+      {
+        "period": "2021-12",
+        "total_return": -8.183094198378049,
+        "forward_return": 422.7662798894481,
+        "roa": -0.029
+      },
+      {
+        "period": "2022-03",
+        "total_return": -3.007160716411816,
+        "forward_return": 438.9740972124563,
+        "roa": -0.0238
+      },
+      {
+        "period": "2022-06",
+        "total_return": -30.27482658705769,
+        "forward_return": 672.9978583494102,
+        "roa": -0.0234
+      },
+      {
+        "period": "2022-09",
+        "total_return": -2.564037854889581,
+        "forward_return": 693.3393803801023,
+        "roa": -0.0301
+      },
+      {
+        "period": "2022-12",
+        "total_return": 35.54984557086869,
+        "forward_return": 485.2750160200852,
+        "roa": 0.0018
+      },
+      {
+        "period": "2023-03",
+        "total_return": 46.365972461933794,
+        "forward_return": 299.87095782956027,
+        "roa": 0.0508
+      },
+      {
+        "period": "2023-06",
+        "total_return": 15.01101726037458,
+        "forward_return": 247.68056778794374,
+        "roa": 0.0604
+      },
+      {
+        "period": "2023-09",
+        "total_return": 0.7282356835485018,
+        "forward_return": 245.16693897054813,
+        "roa": 0.063
+      },
+      {
+        "period": "2023-12",
+        "total_return": 15.540962037950706,
+        "forward_return": 198.7398866015797,
+        "roa": 0.0574
+      },
+      {
+        "period": "2024-03",
+        "total_return": 37.530577960290415,
+        "forward_return": 117.21706622060125,
+        "roa": 0.0208
+      },
+      {
+        "period": "2024-06",
+        "total_return": 13.757312970119495,
+        "forward_return": 90.94778221217078,
+        "roa": 0.033
+      },
+      {
+        "period": "2024-09",
+        "total_return": 18.97842360193748,
+        "forward_return": 60.489420208675,
+        "roa": 0.0499
+      },
+      {
+        "period": "2024-12",
+        "total_return": -11.406299713649389,
+        "forward_return": 81.15218089993377,
+        "roa": 0.0524
+      },
+      {
+        "period": "2025-03",
+        "total_return": 20.21703939085078,
+        "forward_return": 50.687607861453074,
+        "roa": 0.0565
+      },
+      {
+        "period": "2025-06",
+        "total_return": 28.778416187859097,
+        "forward_return": 17.01309297175493,
+        "roa": 0.0622
+      },
+      {
+        "period": "2025-09",
+        "total_return": 17.01309297175493,
+        "forward_return": null,
+        "roa": 0.0636
+      }
+    ]
+  },
+  {
+    "symbol": "WMT",
+    "company_name": "WMT",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-04",
+        "total_return": null,
+        "forward_return": 705.3352464251084,
+        "roa": 0.0811
+      },
+      {
+        "period": "2002-07",
+        "total_return": -11.611170784103122,
+        "forward_return": 811.1278580894109,
+        "roa": 0.0833
+      },
+      {
+        "period": "2002-10",
+        "total_return": 8.775025862593571,
+        "forward_return": 737.625963187876,
+        "roa": 0.082
+      },
+      {
+        "period": "2003-01",
+        "total_return": -10.599439775910373,
+        "forward_return": 836.9359219766632,
+        "roa": 0.0835
+      },
+      {
+        "period": "2003-04",
+        "total_return": 18.012929140777,
+        "forward_return": 693.9265034757312,
+        "roa": 0.0855
+      },
+      {
+        "period": "2003-07",
+        "total_return": -0.5646407073989199,
+        "forward_return": 698.434791329614,
+        "roa": 0.0881
+      },
+      {
+        "period": "2003-10",
+        "total_return": 5.596394269463959,
+        "forward_return": 656.1193702240861,
+        "roa": 0.0868
+      },
+      {
+        "period": "2004-01",
+        "total_return": -8.498727735368954,
+        "forward_return": 726.3484774695935,
+        "roa": 0.0861
+      },
+      {
+        "period": "2004-04",
+        "total_return": 6.0891364902507,
+        "forward_return": 678.9190343212312,
+        "roa": 0.0878
+      },
+      {
+        "period": "2004-07",
+        "total_return": -6.773684210526307,
+        "forward_return": 735.5141225147285,
+        "roa": 0.0879
+      },
+      {
+        "period": "2004-10",
+        "total_return": 1.958121109224659,
+        "forward_return": 719.4679476484945,
+        "roa": 0.0861
+      },
+      {
+        "period": "2005-01",
+        "total_return": -2.5760863517498485,
+        "forward_return": 741.1363462642133,
+        "roa": 0.0861
+      },
+      {
+        "period": "2005-04",
+        "total_return": -9.755539016430982,
+        "forward_return": 832.0642365157021,
+        "roa": 0.0871
+      },
+      {
+        "period": "2005-07",
+        "total_return": 5.008591612040987,
+        "forward_return": 787.6075968709843,
+        "roa": 0.0867
+      },
+      {
+        "period": "2005-10",
+        "total_return": -3.829787234042551,
+        "forward_return": 822.954802056111,
+        "roa": 0.0842
+      },
+      {
+        "period": "2006-01",
+        "total_return": -2.2194039315155383,
+        "forward_return": 843.9038410132864,
+        "roa": 0.0831
+      },
+      {
+        "period": "2006-04",
+        "total_return": -1.9778789850357803,
+        "forward_return": 862.949823202854,
+        "roa": 0.0817
+      },
+      {
+        "period": "2006-07",
+        "total_return": -0.8061292471685516,
+        "forward_return": 870.7755286637679,
+        "roa": 0.0747
+      },
+      {
+        "period": "2006-10",
+        "total_return": 11.123845479673697,
+        "forward_return": 773.5978533440317,
+        "roa": 0.0739
+      },
+      {
+        "period": "2007-01",
+        "total_return": -2.8854933950203896,
+        "forward_return": 799.5544372144686,
+        "roa": 0.0745
+      },
+      {
+        "period": "2007-04",
+        "total_return": 0.9372837642322484,
+        "forward_return": 791.2013516389383,
+        "roa": 0.0748
+      },
+      {
+        "period": "2007-07",
+        "total_return": -3.649909221811811,
+        "forward_return": 824.9616107686005,
+        "roa": 0.0791
+      },
+      {
+        "period": "2007-10",
+        "total_return": -1.1359926878631579,
+        "forward_return": 835.5898429731665,
+        "roa": 0.078
+      },
+      {
+        "period": "2008-01",
+        "total_return": 12.714001327140013,
+        "forward_return": 730.0564543509714,
+        "roa": 0.0774
+      },
+      {
+        "period": "2008-04",
+        "total_return": 14.740140720156102,
+        "forward_return": 623.4229007749143,
+        "roa": 0.0781
+      },
+      {
+        "period": "2008-07",
+        "total_return": 1.5108397578516966,
+        "forward_return": 612.6558134092853,
+        "roa": 0.0802
+      },
+      {
+        "period": "2008-10",
+        "total_return": -4.390992835209814,
+        "forward_return": 645.3856436151084,
+        "roa": 0.0818
+      },
+      {
+        "period": "2009-01",
+        "total_return": -15.142718916303824,
+        "forward_return": 778.3991592659215,
+        "roa": 0.0807
+      },
+      {
+        "period": "2009-04",
+        "total_return": 7.538040364168841,
+        "forward_return": 716.8264516363648,
+        "roa": 0.0822
+      },
+      {
+        "period": "2009-07",
+        "total_return": -0.4880952380952489,
+        "forward_return": 720.8328979238499,
+        "roa": 0.0809
+      },
+      {
+        "period": "2009-10",
+        "total_return": 0.14434353761953345,
+        "forward_return": 719.649786426032,
+        "roa": 0.0784
+      },
+      {
+        "period": "2010-01",
+        "total_return": 8.097826086956522,
+        "forward_return": 658.2481684383604,
+        "roa": 0.0838
+      },
+      {
+        "period": "2010-04",
+        "total_return": 0.9601347557551954,
+        "forward_return": 651.0371992596179,
+        "roa": 0.0851
+      },
+      {
+        "period": "2010-07",
+        "total_return": -4.00447427293065,
+        "forward_return": 682.3668796761813,
+        "roa": 0.0842
+      },
+      {
+        "period": "2010-10",
+        "total_return": 6.417394362069976,
+        "forward_return": 635.1870287429605,
+        "roa": 0.0829
+      },
+      {
+        "period": "2011-01",
+        "total_return": 4.064905576784642,
+        "forward_return": 606.4697024113476,
+        "roa": 0.0891
+      },
+      {
+        "period": "2011-04",
+        "total_return": -1.2894596040663433,
+        "forward_return": 615.6983434369388,
+        "roa": 0.0898
+      },
+      {
+        "period": "2011-07",
+        "total_return": -3.464833306051189,
+        "forward_return": 641.3861372467096,
+        "roa": 0.0879
+      },
+      {
+        "period": "2011-10",
+        "total_return": 8.303927148548661,
+        "forward_return": 584.5422476969201,
+        "roa": 0.0853
+      },
+      {
+        "period": "2012-01",
+        "total_return": 8.822129370074572,
+        "forward_return": 529.0469150525231,
+        "roa": 0.0808
+      },
+      {
+        "period": "2012-04",
+        "total_return": -3.339363418569398,
+        "forward_return": 550.7787836909077,
+        "roa": 0.0821
+      },
+      {
+        "period": "2012-07",
+        "total_return": 27.020420634516462,
+        "forward_return": 412.3418584508021,
+        "roa": 0.0827
+      },
+      {
+        "period": "2012-10",
+        "total_return": 1.3301088270858634,
+        "forward_return": 405.6166073255534,
+        "roa": 0.0824
+      },
+      {
+        "period": "2013-01",
+        "total_return": -6.226256648138525,
+        "forward_return": 439.18782513390636,
+        "roa": 0.0831
+      },
+      {
+        "period": "2013-04",
+        "total_return": 11.781103915598061,
+        "forward_return": 382.36044040236675,
+        "roa": 0.084
+      },
+      {
+        "period": "2013-07",
+        "total_return": 0.8877909445323674,
+        "forward_return": 378.1157718752774,
+        "roa": 0.0848
+      },
+      {
+        "period": "2013-10",
+        "total_return": -0.9237875288683681,
+        "forward_return": 382.5737277901986,
+        "roa": 0.0837
+      },
+      {
+        "period": "2014-01",
+        "total_return": -2.083414767619113,
+        "forward_return": 392.8416637946764,
+        "roa": 0.0772
+      },
+      {
+        "period": "2014-04",
+        "total_return": 7.379584622182941,
+        "forward_return": 358.97147537751135,
+        "roa": 0.0776
+      },
+      {
+        "period": "2014-07",
+        "total_return": -7.086940158073012,
+        "forward_return": 393.97950746467694,
+        "roa": 0.0779
+      },
+      {
+        "period": "2014-10",
+        "total_return": 4.3054592897622905,
+        "forward_return": 373.5893124178607,
+        "roa": 0.0768
+      },
+      {
+        "period": "2015-01",
+        "total_return": 12.052078826259702,
+        "forward_return": 322.65107205389376,
+        "roa": 0.0795
+      },
+      {
+        "period": "2015-04",
+        "total_return": -7.57934126451796,
+        "forward_return": 357.31233453287456,
+        "roa": 0.0797
+      },
+      {
+        "period": "2015-07",
+        "total_return": -7.153015336126383,
+        "forward_return": 392.5440887374478,
+        "roa": 0.0775
+      },
+      {
+        "period": "2015-10",
+        "total_return": -19.797440920268414,
+        "forward_return": 514.1251530986641,
+        "roa": 0.0747
+      },
+      {
+        "period": "2016-01",
+        "total_return": 16.787211740041943,
+        "forward_return": 425.84965763687615,
+        "roa": 0.0726
+      },
+      {
+        "period": "2016-04",
+        "total_return": 1.52350813743218,
+        "forward_return": 417.9585174746271,
+        "roa": 0.0724
+      },
+      {
+        "period": "2016-07",
+        "total_return": 9.869896814715123,
+        "forward_return": 371.4289650677598,
+        "roa": 0.0742
+      },
+      {
+        "period": "2016-10",
+        "total_return": -3.354849319574068,
+        "forward_return": 387.79370899490027,
+        "roa": 0.0714
+      },
+      {
+        "period": "2017-01",
+        "total_return": -3.9674378748928874,
+        "forward_return": 407.94615722053055,
+        "roa": 0.0672
+      },
+      {
+        "period": "2017-04",
+        "total_return": 13.408549467343905,
+        "forward_return": 347.8905334793951,
+        "roa": 0.0682
+      },
+      {
+        "period": "2017-07",
+        "total_return": 7.07501995211493,
+        "forward_return": 318.29600749053935,
+        "roa": 0.0634
+      },
+      {
+        "period": "2017-10",
+        "total_return": 9.788845966320373,
+        "forward_return": 281.0004593898899,
+        "roa": 0.0556
+      },
+      {
+        "period": "2018-01",
+        "total_return": 22.678074425316975,
+        "forward_return": 210.5693182540394,
+        "roa": 0.0476
+      },
+      {
+        "period": "2018-04",
+        "total_return": -16.52829763881463,
+        "forward_return": 272.0653939824944,
+        "roa": 0.0437
+      },
+      {
+        "period": "2018-07",
+        "total_return": 1.454878420999085,
+        "forward_return": 266.7299195200498,
+        "roa": 0.0252
+      },
+      {
+        "period": "2018-10",
+        "total_return": 12.967757119322199,
+        "forward_return": 224.63238084181086,
+        "roa": 0.0238
+      },
+      {
+        "period": "2019-01",
+        "total_return": -3.9219792383402585,
+        "forward_return": 237.8841261177982,
+        "roa": 0.0299
+      },
+      {
+        "period": "2019-04",
+        "total_return": 7.870268916507528,
+        "forward_return": 213.23193082917328,
+        "roa": 0.0369
+      },
+      {
+        "period": "2019-07",
+        "total_return": 7.847141190198361,
+        "forward_return": 190.44064346291748,
+        "roa": 0.0547
+      },
+      {
+        "period": "2019-10",
+        "total_return": 6.715951403799647,
+        "forward_return": 172.16235215289151,
+        "roa": 0.0607
+      },
+      {
+        "period": "2020-01",
+        "total_return": -1.9111213446926254,
+        "forward_return": 177.4650458685462,
+        "roa": 0.0624
+      },
+      {
+        "period": "2020-04",
+        "total_return": 6.6399392081335495,
+        "forward_return": 160.1886759584571,
+        "roa": 0.064
+      },
+      {
+        "period": "2020-07",
+        "total_return": 6.900807068637854,
+        "forward_return": 143.39262077918443,
+        "roa": 0.0761
+      },
+      {
+        "period": "2020-10",
+        "total_return": 7.6437994111237275,
+        "forward_return": 126.10928089744908,
+        "roa": 0.0808
+      },
+      {
+        "period": "2021-01",
+        "total_return": 1.6432432432432396,
+        "forward_return": 122.45382347387834,
+        "roa": 0.0536
+      },
+      {
+        "period": "2021-04",
+        "total_return": -0.021353833013021236,
+        "forward_return": 122.5013360376276,
+        "roa": 0.05
+      },
+      {
+        "period": "2021-07",
+        "total_return": 2.279306130325713,
+        "forward_return": 117.5428681087387,
+        "roa": 0.0423
+      },
+      {
+        "period": "2021-10",
+        "total_return": 5.20445314308563,
+        "forward_return": 106.78104548755621,
+        "roa": 0.0331
+      },
+      {
+        "period": "2022-01",
+        "total_return": -6.06541249221997,
+        "forward_return": 120.1330212584686,
+        "roa": 0.0558
+      },
+      {
+        "period": "2022-04",
+        "total_return": 9.829839280732996,
+        "forward_return": 100.43097822968923,
+        "roa": 0.0529
+      },
+      {
+        "period": "2022-07",
+        "total_return": -13.320391395572281,
+        "forward_return": 131.23198345804587,
+        "roa": 0.0562
+      },
+      {
+        "period": "2022-10",
+        "total_return": 8.208192289342742,
+        "forward_return": 113.69175343004008,
+        "roa": 0.0362
+      },
+      {
+        "period": "2023-01",
+        "total_return": 1.477562548742708,
+        "forward_return": 110.58029781450213,
+        "roa": 0.0475
+      },
+      {
+        "period": "2023-04",
+        "total_return": 5.329774589736639,
+        "forward_return": 99.92475882030519,
+        "roa": 0.0462
+      },
+      {
+        "period": "2023-07",
+        "total_return": 6.2675118732984885,
+        "forward_return": 88.1334711766595,
+        "roa": 0.0561
+      },
+      {
+        "period": "2023-10",
+        "total_return": 2.576613432919849,
+        "forward_return": 83.40776214033397,
+        "roa": 0.0633
+      },
+      {
+        "period": "2024-01",
+        "total_return": 1.4742059849458409,
+        "forward_return": 80.74323455907933,
+        "roa": 0.0606
+      },
+      {
+        "period": "2024-04",
+        "total_return": 8.12410362543798,
+        "forward_return": 67.16275881019791,
+        "roa": 0.0748
+      },
+      {
+        "period": "2024-07",
+        "total_return": 16.003369839932603,
+        "forward_return": 44.10164035825656,
+        "roa": 0.0611
+      },
+      {
+        "period": "2024-10",
+        "total_return": 19.694055944055947,
+        "forward_return": 20.391642861203138,
+        "roa": 0.0759
+      },
+      {
+        "period": "2025-01",
+        "total_return": 20.034167175106763,
+        "forward_return": 0.2978116102350157,
+        "roa": 0.0741
+      },
+      {
+        "period": "2025-04",
+        "total_return": -0.687652811735938,
+        "forward_return": 0.9922879177377979,
+        "roa": 0.0719
+      },
+      {
+        "period": "2025-07",
+        "total_return": 0.9922879177377932,
+        "forward_return": null,
+        "roa": 0.08
+      }
+    ]
+  },
+  {
+    "symbol": "CAT",
+    "company_name": "CAT",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-03",
+        "total_return": null,
+        "forward_return": 2885.408604672029,
+        "roa": 0.0233
+      },
+      {
+        "period": "2002-06",
+        "total_return": -13.28056288478452,
+        "forward_return": 3342.6060684706863,
+        "roa": 0.0204
+      },
+      {
+        "period": "2002-09",
+        "total_return": -23.248212461695616,
+        "forward_return": 4385.375753304232,
+        "roa": 0.0202
+      },
+      {
+        "period": "2002-12",
+        "total_return": 23.777538957549705,
+        "forward_return": 3523.7396470150547,
+        "roa": 0.0245
+      },
+      {
+        "period": "2003-03",
+        "total_return": 8.37707786526685,
+        "forward_return": 3243.6402958936096,
+        "roa": 0.0255
+      },
+      {
+        "period": "2003-06",
+        "total_return": 13.84146341463413,
+        "forward_return": 2837.102348829951,
+        "roa": 0.0308
+      },
+      {
+        "period": "2003-09",
+        "total_return": 24.30830039525693,
+        "forward_return": 2262.756420521392,
+        "roa": 0.0304
+      },
+      {
+        "period": "2003-12",
+        "total_return": 21.135967460778605,
+        "forward_return": 1850.4994842150452,
+        "roa": 0.0306
+      },
+      {
+        "period": "2004-03",
+        "total_return": -4.31221392435558,
+        "forward_return": 1938.3996372045954,
+        "roa": 0.0372
+      },
+      {
+        "period": "2004-06",
+        "total_return": 0.9358796003541223,
+        "forward_return": 1919.4995528601364,
+        "roa": 0.0406
+      },
+      {
+        "period": "2004-09",
+        "total_return": 1.7875125881168241,
+        "forward_return": 1884.0346831462912,
+        "roa": 0.0463
+      },
+      {
+        "period": "2004-12",
+        "total_return": 21.715351149782474,
+        "forward_return": 1530.0611750318544,
+        "roa": 0.0487
+      },
+      {
+        "period": "2005-03",
+        "total_return": -5.804532868423759,
+        "forward_return": 1630.5091472766035,
+        "roa": 0.0502
+      },
+      {
+        "period": "2005-06",
+        "total_return": 4.680664916885394,
+        "forward_return": 1553.1315966043944,
+        "roa": 0.0536
+      },
+      {
+        "period": "2005-09",
+        "total_return": 23.80652607281502,
+        "forward_return": 1235.2540040030915,
+        "roa": 0.0564
+      },
+      {
+        "period": "2005-12",
+        "total_return": -1.2425531914893564,
+        "forward_return": 1252.0539940569051,
+        "roa": 0.0611
+      },
+      {
+        "period": "2006-03",
+        "total_return": 24.736022156828803,
+        "forward_return": 983.932268063661,
+        "roa": 0.0651
+      },
+      {
+        "period": "2006-06",
+        "total_return": 4.066286032585993,
+        "forward_return": 941.5786989114347,
+        "roa": 0.0694
+      },
+      {
+        "period": "2006-09",
+        "total_return": -11.251342642320093,
+        "forward_return": 1073.6275566554261,
+        "roa": 0.0697
+      },
+      {
+        "period": "2006-12",
+        "total_return": -6.337386018237081,
+        "forward_return": 1153.0373718631677,
+        "roa": 0.0693
+      },
+      {
+        "period": "2007-03",
+        "total_return": 9.783140388064574,
+        "forward_return": 1041.3750485128187,
+        "roa": 0.0677
+      },
+      {
+        "period": "2007-06",
+        "total_return": 17.26092794271221,
+        "forward_return": 873.3634796668484,
+        "roa": 0.0622
+      },
+      {
+        "period": "2007-09",
+        "total_return": 0.6257982120051209,
+        "forward_return": 867.3100705408584,
+        "roa": 0.0636
+      },
+      {
+        "period": "2007-12",
+        "total_return": -7.025372944026525,
+        "forward_return": 940.4022056022968,
+        "roa": 0.0638
+      },
+      {
+        "period": "2008-03",
+        "total_return": 8.393054024255795,
+        "forward_return": 859.8421365353158,
+        "roa": 0.0637
+      },
+      {
+        "period": "2008-06",
+        "total_return": -5.249712606974087,
+        "forward_return": 913.0229289478294,
+        "roa": 0.0662
+      },
+      {
+        "period": "2008-09",
+        "total_return": -18.694120834462197,
+        "forward_return": 1145.9405633943475,
+        "roa": 0.062
+      },
+      {
+        "period": "2008-12",
+        "total_return": -24.345637583892614,
+        "forward_return": 1546.8852867221794,
+        "roa": 0.0538
+      },
+      {
+        "period": "2009-03",
+        "total_return": -36.467427803895234,
+        "forward_return": 2492.19047772656,
+        "roa": 0.0381
+      },
+      {
+        "period": "2009-06",
+        "total_return": 19.670958512160222,
+        "forward_return": 2066.098199558715,
+        "roa": 0.0282
+      },
+      {
+        "period": "2009-09",
+        "total_return": 56.62832929782083,
+        "forward_return": 1282.954290114395,
+        "roa": 0.0215
+      },
+      {
+        "period": "2009-12",
+        "total_return": 11.844924995129562,
+        "forward_return": 1136.4926617587864,
+        "roa": 0.0148
+      },
+      {
+        "period": "2010-03",
+        "total_return": 11.019477101245831,
+        "forward_return": 1013.7619218212933,
+        "roa": 0.0208
+      },
+      {
+        "period": "2010-06",
+        "total_return": -3.754972155926812,
+        "forward_return": 1057.215023747202,
+        "roa": 0.0267
+      },
+      {
+        "period": "2010-09",
+        "total_return": 31.71300149825205,
+        "forward_return": 778.5883022812741,
+        "roa": 0.0326
+      },
+      {
+        "period": "2010-12",
+        "total_return": 19.598373157092002,
+        "forward_return": 634.6155964239182,
+        "roa": 0.0429
+      },
+      {
+        "period": "2011-03",
+        "total_return": 19.357249626307922,
+        "forward_return": 515.4763105918612,
+        "roa": 0.0566
+      },
+      {
+        "period": "2011-06",
+        "total_return": -3.9964077233947015,
+        "forward_return": 541.0971673003155,
+        "roa": 0.0571
+      },
+      {
+        "period": "2011-09",
+        "total_return": -30.208529024985904,
+        "forward_return": 818.5895616526459,
+        "roa": 0.0574
+      },
+      {
+        "period": "2011-12",
+        "total_return": 23.320693391115917,
+        "forward_return": 644.8786869364305,
+        "roa": 0.0619
+      },
+      {
+        "period": "2012-03",
+        "total_return": 18.0794701986755,
+        "forward_return": 530.8282766539602,
+        "roa": 0.064
+      },
+      {
+        "period": "2012-06",
+        "total_return": -19.855426211040182,
+        "forward_return": 687.1128971439595,
+        "roa": 0.0691
+      },
+      {
+        "period": "2012-09",
+        "total_return": 1.9432340124838177,
+        "forward_return": 672.1090122053323,
+        "roa": 0.0728
+      },
+      {
+        "period": "2012-12",
+        "total_return": 4.752440725244058,
+        "forward_return": 637.0797347152063,
+        "roa": 0.0632
+      },
+      {
+        "period": "2013-03",
+        "total_return": -2.3647178296822817,
+        "forward_return": 654.9317401771048,
+        "roa": 0.0559
+      },
+      {
+        "period": "2013-06",
+        "total_return": -4.553294239392899,
+        "forward_return": 690.9458311432696,
+        "roa": 0.0481
+      },
+      {
+        "period": "2013-09",
+        "total_return": 1.8305249121105722,
+        "forward_return": 676.7276382262894,
+        "roa": 0.0398
+      },
+      {
+        "period": "2013-12",
+        "total_return": 9.604316546762586,
+        "forward_return": 608.6651901112843,
+        "roa": 0.044
+      },
+      {
+        "period": "2014-03",
+        "total_return": 10.086994824358552,
+        "forward_return": 543.7319787336775,
+        "roa": 0.0452
+      },
+      {
+        "period": "2014-06",
+        "total_return": 9.9627654221596,
+        "forward_return": 485.4090484741057,
+        "roa": 0.0449
+      },
+      {
+        "period": "2014-09",
+        "total_return": -8.226741510996597,
+        "forward_return": 537.8863060030192,
+        "roa": 0.0457
+      },
+      {
+        "period": "2014-12",
+        "total_return": -6.86660607896597,
+        "forward_return": 584.9168479180197,
+        "roa": 0.0289
+      },
+      {
+        "period": "2015-03",
+        "total_return": -11.799410029498526,
+        "forward_return": 676.5445198802968,
+        "roa": 0.0331
+      },
+      {
+        "period": "2015-06",
+        "total_return": 6.859927527177298,
+        "forward_return": 626.6938485268961,
+        "roa": 0.0312
+      },
+      {
+        "period": "2015-09",
+        "total_return": -22.034897429851444,
+        "forward_return": 832.0757936194063,
+        "roa": 0.0263
+      },
+      {
+        "period": "2015-12",
+        "total_return": 5.156058751529979,
+        "forward_return": 786.3738377850196,
+        "roa": 0.0319
+      },
+      {
+        "period": "2016-03",
+        "total_return": 13.758092995879947,
+        "forward_return": 679.174311419867,
+        "roa": 0.0196
+      },
+      {
+        "period": "2016-06",
+        "total_return": 0.05226025607524959,
+        "forward_return": 678.7673256212667,
+        "roa": 0.0164
+      },
+      {
+        "period": "2016-09",
+        "total_return": 18.111067141538044,
+        "forward_return": 559.3516970666547,
+        "roa": 0.013
+      },
+      {
+        "period": "2016-12",
+        "total_return": 5.339641770868535,
+        "forward_return": 525.929313962217,
+        "roa": -0.0008
+      },
+      {
+        "period": "2017-03",
+        "total_return": 0.8518438645676194,
+        "forward_return": 520.6424096745001,
+        "roa": -0.0019
+      },
+      {
+        "period": "2017-06",
+        "total_return": 16.67744717550667,
+        "forward_return": 431.93005563528254,
+        "roa": 0.0013
+      },
+      {
+        "period": "2017-09",
+        "total_return": 16.778336125069796,
+        "forward_return": 355.5040543355444,
+        "roa": 0.0112
+      },
+      {
+        "period": "2017-12",
+        "total_return": 26.98259963114427,
+        "forward_return": 258.7137573641435,
+        "roa": 0.0096
+      },
+      {
+        "period": "2018-03",
+        "total_return": -5.977915979185187,
+        "forward_return": 281.5207470669662,
+        "roa": 0.0287
+      },
+      {
+        "period": "2018-06",
+        "total_return": -7.416203012620443,
+        "forward_return": 312.0815515040635,
+        "roa": 0.0398
+      },
+      {
+        "period": "2018-09",
+        "total_return": 13.031620844696706,
+        "forward_return": 264.5719210469925,
+        "roa": 0.0483
+      },
+      {
+        "period": "2018-12",
+        "total_return": -16.10597416224016,
+        "forward_return": 334.5624344599068,
+        "roa": 0.0784
+      },
+      {
+        "period": "2019-03",
+        "total_return": 7.303061304792646,
+        "forward_return": 304.9860546154776,
+        "roa": 0.0809
+      },
+      {
+        "period": "2019-06",
+        "total_return": 1.2251826703077588,
+        "forward_return": 300.0842912129133,
+        "roa": 0.0794
+      },
+      {
+        "period": "2019-09",
+        "total_return": -6.566879448235374,
+        "forward_return": 328.2039268839951,
+        "roa": 0.0768
+      },
+      {
+        "period": "2019-12",
+        "total_return": 17.734146148365138,
+        "forward_return": 263.7041086995994,
+        "roa": 0.0778
+      },
+      {
+        "period": "2020-03",
+        "total_return": -20.727248104008666,
+        "forward_return": 358.8009120419991,
+        "roa": 0.0687
+      },
+      {
+        "period": "2020-06",
+        "total_return": 9.90175801447776,
+        "forward_return": 317.4645795762063,
+        "roa": 0.0543
+      },
+      {
+        "period": "2020-09",
+        "total_return": 18.719367588932812,
+        "forward_return": 251.63982764942125,
+        "roa": 0.0432
+      },
+      {
+        "period": "2020-12",
+        "total_return": 22.72879651357694,
+        "forward_return": 186.51778363240203,
+        "roa": 0.0386
+      },
+      {
+        "period": "2021-03",
+        "total_return": 27.952972200857047,
+        "forward_return": 123.92428929484674,
+        "roa": 0.0432
+      },
+      {
+        "period": "2021-06",
+        "total_return": -5.697157890197097,
+        "forward_return": 137.4523230531241,
+        "roa": 0.054
+      },
+      {
+        "period": "2021-09",
+        "total_return": -11.280613885953223,
+        "forward_return": 167.64423589212458,
+        "roa": 0.0633
+      },
+      {
+        "period": "2021-12",
+        "total_return": 8.272125852997869,
+        "forward_return": 147.1958814732315,
+        "roa": 0.0793
+      },
+      {
+        "period": "2022-03",
+        "total_return": 8.314791525587687,
+        "forward_return": 128.2198746741208,
+        "roa": 0.0787
+      },
+      {
+        "period": "2022-06",
+        "total_return": -19.275648505520152,
+        "forward_return": 182.7150301600467,
+        "roa": 0.0827
+      },
+      {
+        "period": "2022-09",
+        "total_return": -7.540836876258659,
+        "forward_return": 205.77286296835632,
+        "roa": 0.0909
+      },
+      {
+        "period": "2022-12",
+        "total_return": 46.73330082886396,
+        "forward_return": 108.38682237850105,
+        "roa": 0.0823
+      },
+      {
+        "period": "2023-03",
+        "total_return": -3.973952245783937,
+        "forward_return": 117.01072495650195,
+        "roa": 0.0858
+      },
+      {
+        "period": "2023-06",
+        "total_return": 8.044922216395738,
+        "forward_return": 100.85231263517053,
+        "roa": 0.0988
+      },
+      {
+        "period": "2023-09",
+        "total_return": 11.481406218248319,
+        "forward_return": 80.16664791791365,
+        "roa": 0.1058
+      },
+      {
+        "period": "2023-12",
+        "total_return": 8.780219780219786,
+        "forward_return": 65.62445661713446,
+        "roa": 0.1186
+      },
+      {
+        "period": "2024-03",
+        "total_return": 24.37176582000202,
+        "forward_return": 33.168855105615904,
+        "roa": 0.1313
+      },
+      {
+        "period": "2024-06",
+        "total_return": -8.741096525939467,
+        "forward_return": 45.92423318286734,
+        "roa": 0.1317
+      },
+      {
+        "period": "2024-09",
+        "total_return": 17.841489042329624,
+        "forward_return": 23.830948139538677,
+        "roa": 0.1259
+      },
+      {
+        "period": "2024-12",
+        "total_return": -6.890468398445493,
+        "forward_return": 32.99492115313279,
+        "roa": 0.124
+      },
+      {
+        "period": "2025-03",
+        "total_return": -8.697210276767004,
+        "forward_return": 45.66358985993915,
+        "roa": 0.115
+      },
+      {
+        "period": "2025-06",
+        "total_return": 18.13826561552455,
+        "forward_return": 23.29924525385745,
+        "roa": 0.1076
+      },
+      {
+        "period": "2025-09",
+        "total_return": 23.29924525385745,
+        "forward_return": null,
+        "roa": 0.1007
+      }
+    ]
+  },
+  {
+    "symbol": "IBM",
+    "company_name": "IBM",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-03",
+        "total_return": null,
+        "forward_return": 448.483405112901,
+        "roa": 0.0826
+      },
+      {
+        "period": "2002-06",
+        "total_return": -30.61799732224649,
+        "forward_return": 690.5269146818185,
+        "roa": 0.0618
+      },
+      {
+        "period": "2002-09",
+        "total_return": -18.795440004653067,
+        "forward_return": 873.5006442090397,
+        "roa": 0.0582
+      },
+      {
+        "period": "2002-12",
+        "total_return": 33.17832519390981,
+        "forward_return": 630.9752865502747,
+        "roa": 0.0396
+      },
+      {
+        "period": "2003-03",
+        "total_return": 1.4022289766970495,
+        "forward_return": 620.8670794783599,
+        "roa": 0.0392
+      },
+      {
+        "period": "2003-06",
+        "total_return": 5.403601511086201,
+        "forward_return": 583.9112413085231,
+        "roa": 0.0562
+      },
+      {
+        "period": "2003-09",
+        "total_return": 7.270212306950423,
+        "forward_return": 537.5593248119363,
+        "roa": 0.0607
+      },
+      {
+        "period": "2003-12",
+        "total_return": 5.114377148275455,
+        "forward_return": 506.53865066677656,
+        "roa": 0.065
+      },
+      {
+        "period": "2004-03",
+        "total_return": -0.726348489127378,
+        "forward_return": 510.97646901841586,
+        "roa": 0.0633
+      },
+      {
+        "period": "2004-06",
+        "total_return": -3.8120425890882568,
+        "forward_return": 535.1901895663974,
+        "roa": 0.0652
+      },
+      {
+        "period": "2004-09",
+        "total_return": -2.5202498871707077,
+        "forward_return": 551.6124516437388,
+        "roa": 0.0632
+      },
+      {
+        "period": "2004-12",
+        "total_return": 15.194881312884629,
+        "forward_return": 465.66094275827504,
+        "roa": 0.0706
+      },
+      {
+        "period": "2005-03",
+        "total_return": -7.112361937128288,
+        "forward_return": 508.9733300952305,
+        "roa": 0.0696
+      },
+      {
+        "period": "2005-06",
+        "total_return": -18.571772280971093,
+        "forward_return": 647.8651410620349,
+        "roa": 0.073
+      },
+      {
+        "period": "2005-09",
+        "total_return": 8.39529863276565,
+        "forward_return": 589.9424149341943,
+        "roa": 0.0741
+      },
+      {
+        "period": "2005-12",
+        "total_return": 2.7289456168513255,
+        "forward_return": 571.6144225868686,
+        "roa": 0.0767
+      },
+      {
+        "period": "2006-03",
+        "total_return": 0.5833354560970143,
+        "forward_return": 567.7193787036597,
+        "roa": 0.0791
+      },
+      {
+        "period": "2006-06",
+        "total_return": -6.469303813537806,
+        "forward_return": 613.9039972208678,
+        "roa": 0.0819
+      },
+      {
+        "period": "2006-09",
+        "total_return": 7.07315743567379,
+        "forward_return": 566.7441348684976,
+        "roa": 0.088
+      },
+      {
+        "period": "2006-12",
+        "total_return": 18.945646896481218,
+        "forward_return": 460.54521730313263,
+        "roa": 0.0915
+      },
+      {
+        "period": "2007-03",
+        "total_return": -2.651033471991714,
+        "forward_return": 475.81013676386465,
+        "roa": 0.0939
+      },
+      {
+        "period": "2007-06",
+        "total_return": 12.10320545571673,
+        "forward_return": 413.6428832905424,
+        "roa": 0.0966
+      },
+      {
+        "period": "2007-09",
+        "total_return": 12.32157245028896,
+        "forward_return": 357.29673479942545,
+        "roa": 0.0947
+      },
+      {
+        "period": "2007-12",
+        "total_return": -7.8787394016957295,
+        "forward_return": 396.4073785241316,
+        "roa": 0.0909
+      },
+      {
+        "period": "2008-03",
+        "total_return": 6.900525892710134,
+        "forward_return": 364.3638320566791,
+        "roa": 0.0899
+      },
+      {
+        "period": "2008-06",
+        "total_return": 3.398861590499918,
+        "forward_return": 349.0995596215965,
+        "roa": 0.0938
+      },
+      {
+        "period": "2008-09",
+        "total_return": -0.8832673827020916,
+        "forward_return": 353.1016587841187,
+        "roa": 0.1001
+      },
+      {
+        "period": "2008-12",
+        "total_return": -27.59586809409574,
+        "forward_return": 525.7953059543137,
+        "roa": 0.1094
+      },
+      {
+        "period": "2009-03",
+        "total_return": 15.747571124684349,
+        "forward_return": 440.65523783665526,
+        "roa": 0.1164
+      },
+      {
+        "period": "2009-06",
+        "total_return": 8.365569554599867,
+        "forward_return": 398.91791281939163,
+        "roa": 0.123
+      },
+      {
+        "period": "2009-09",
+        "total_return": 15.098558222543062,
+        "forward_return": 333.4701672411339,
+        "roa": 0.1257
+      },
+      {
+        "period": "2009-12",
+        "total_return": 9.920610606843073,
+        "forward_return": 294.34839821945843,
+        "roa": 0.1262
+      },
+      {
+        "period": "2010-03",
+        "total_return": -1.5844070670473769,
+        "forward_return": 300.69707092870465,
+        "roa": 0.1281
+      },
+      {
+        "period": "2010-06",
+        "total_return": -3.188571428571427,
+        "forward_return": 313.8943891661156,
+        "roa": 0.1343
+      },
+      {
+        "period": "2010-09",
+        "total_return": 9.184019534694434,
+        "forward_return": 279.07964089433085,
+        "roa": 0.1366
+      },
+      {
+        "period": "2010-12",
+        "total_return": 9.91523968593416,
+        "forward_return": 244.88360483722965,
+        "roa": 0.1344
+      },
+      {
+        "period": "2011-03",
+        "total_return": 11.577257811385346,
+        "forward_return": 209.0984772364945,
+        "roa": 0.1333
+      },
+      {
+        "period": "2011-06",
+        "total_return": 5.681212642608144,
+        "forward_return": 192.4819554084802,
+        "roa": 0.1357
+      },
+      {
+        "period": "2011-09",
+        "total_return": 2.39292558190628,
+        "forward_return": 185.64664379524726,
+        "roa": 0.1397
+      },
+      {
+        "period": "2011-12",
+        "total_return": 5.60142250746876,
+        "forward_return": 170.4950719532631,
+        "roa": 0.1399
+      },
+      {
+        "period": "2012-03",
+        "total_return": 13.898141031115665,
+        "forward_return": 137.4885748832083,
+        "roa": 0.1385
+      },
+      {
+        "period": "2012-06",
+        "total_return": -5.837577460548424,
+        "forward_return": 152.21162378623674,
+        "roa": 0.142
+      },
+      {
+        "period": "2012-09",
+        "total_return": 6.524241077880849,
+        "forward_return": 136.7645347520876,
+        "roa": 0.1416
+      },
+      {
+        "period": "2012-12",
+        "total_return": -7.235464221368774,
+        "forward_return": 155.23173566791831,
+        "roa": 0.1413
+      },
+      {
+        "period": "2013-03",
+        "total_return": 11.818847629562425,
+        "forward_return": 128.25466464603454,
+        "roa": 0.1401
+      },
+      {
+        "period": "2013-06",
+        "total_return": -9.936879098441118,
+        "forward_return": 153.43854661168413,
+        "roa": 0.1369
+      },
+      {
+        "period": "2013-09",
+        "total_return": -2.5824335354796935,
+        "forward_return": 160.156926321894,
+        "roa": 0.1384
+      },
+      {
+        "period": "2013-12",
+        "total_return": 1.8278238549952717,
+        "forward_return": 155.48707266136046,
+        "roa": 0.135
+      },
+      {
+        "period": "2014-03",
+        "total_return": 3.153047555257877,
+        "forward_return": 147.67767769972988,
+        "roa": 0.1272
+      },
+      {
+        "period": "2014-06",
+        "total_return": -5.230094800907222,
+        "forward_return": 161.346338987475,
+        "roa": 0.1356
+      },
+      {
+        "period": "2014-09",
+        "total_return": 5.357421322259627,
+        "forward_return": 148.05688646088615,
+        "roa": 0.1046
+      },
+      {
+        "period": "2014-12",
+        "total_return": -14.875992036135196,
+        "forward_return": 191.40649317897078,
+        "roa": 0.1017
+      },
+      {
+        "period": "2015-03",
+        "total_return": 0.7556477819975679,
+        "forward_return": 189.22100109909422,
+        "roa": 0.1043
+      },
+      {
+        "period": "2015-06",
+        "total_return": 2.193680530188376,
+        "forward_return": 183.01260860612342,
+        "roa": 0.1003
+      },
+      {
+        "period": "2015-09",
+        "total_return": -10.038811330591432,
+        "forward_return": 214.5941186328081,
+        "roa": 0.1283
+      },
+      {
+        "period": "2015-12",
+        "total_return": -4.130858669747967,
+        "forward_return": 228.14951116448134,
+        "roa": 0.1203
+      },
+      {
+        "period": "2016-03",
+        "total_return": 11.038417649296319,
+        "forward_return": 195.52790656735476,
+        "roa": 0.1122
+      },
+      {
+        "period": "2016-06",
+        "total_return": 1.1855385040785273,
+        "forward_return": 192.06535927606177,
+        "roa": 0.1007
+      },
+      {
+        "period": "2016-09",
+        "total_return": 5.623728229005011,
+        "forward_return": 176.51491210651915,
+        "roa": 0.1012
+      },
+      {
+        "period": "2016-12",
+        "total_return": 5.417589370452384,
+        "forward_return": 162.30434006113194,
+        "roa": 0.1018
+      },
+      {
+        "period": "2017-03",
+        "total_return": 5.792567550520973,
+        "forward_return": 147.94212498516876,
+        "roa": 0.0988
+      },
+      {
+        "period": "2017-06",
+        "total_return": -10.761008104273381,
+        "forward_return": 177.84057138933468,
+        "roa": 0.096
+      },
+      {
+        "period": "2017-09",
+        "total_return": -4.667433456065012,
+        "forward_return": 191.44350295162678,
+        "roa": 0.0934
+      },
+      {
+        "period": "2017-12",
+        "total_return": 6.830957965000908,
+        "forward_return": 172.80809655110198,
+        "roa": 0.0465
+      },
+      {
+        "period": "2018-03",
+        "total_return": 1.0304283442858932,
+        "forward_return": 170.02567545437063,
+        "roa": 0.0453
+      },
+      {
+        "period": "2018-06",
+        "total_return": -7.877803631500284,
+        "forward_return": 193.11684490699275,
+        "roa": 0.0466
+      },
+      {
+        "period": "2018-09",
+        "total_return": 9.415749872598099,
+        "forward_return": 167.8927350480102,
+        "roa": 0.0469
+      },
+      {
+        "period": "2018-12",
+        "total_return": -23.73952779893375,
+        "forward_return": 251.2864886827499,
+        "roa": 0.0711
+      },
+      {
+        "period": "2019-03",
+        "total_return": 25.578182421043916,
+        "forward_return": 179.7352867434737,
+        "roa": 0.0679
+      },
+      {
+        "period": "2019-06",
+        "total_return": -1.0662293914256369,
+        "forward_return": 182.75005089033743,
+        "roa": 0.0611
+      },
+      {
+        "period": "2019-09",
+        "total_return": 6.683267915303258,
+        "forward_return": 165.03692323599898,
+        "roa": 0.0506
+      },
+      {
+        "period": "2019-12",
+        "total_return": -6.659467242620592,
+        "forward_return": 183.94622936737568,
+        "roa": 0.0624
+      },
+      {
+        "period": "2020-03",
+        "total_return": -15.975943138326954,
+        "forward_return": 237.93444398290615,
+        "roa": 0.059
+      },
+      {
+        "period": "2020-06",
+        "total_return": 10.409037713767978,
+        "forward_return": 206.07498351628692,
+        "roa": 0.0512
+      },
+      {
+        "period": "2020-09",
+        "total_return": 2.1585540288674085,
+        "forward_return": 199.60778754738237,
+        "roa": 0.0512
+      },
+      {
+        "period": "2020-12",
+        "total_return": 4.862539259131782,
+        "forward_return": 185.71479354224346,
+        "roa": 0.036
+      },
+      {
+        "period": "2021-03",
+        "total_return": 7.218304002129139,
+        "forward_return": 166.4794935914764,
+        "roa": 0.0352
+      },
+      {
+        "period": "2021-06",
+        "total_return": 11.29119692029697,
+        "forward_return": 139.44346090762247,
+        "roa": 0.036
+      },
+      {
+        "period": "2021-09",
+        "total_return": -4.053793467936038,
+        "forward_return": 149.56011244447018,
+        "roa": 0.0327
+      },
+      {
+        "period": "2021-12",
+        "total_return": 1.958538368211244,
+        "forward_return": 144.76627111229595,
+        "roa": 0.0415
+      },
+      {
+        "period": "2022-03",
+        "total_return": -1.4963339817447152,
+        "forward_return": 148.48442804853008,
+        "roa": 0.0416
+      },
+      {
+        "period": "2022-06",
+        "total_return": 9.860021535148428,
+        "forward_return": 126.18275927520227,
+        "roa": 0.0428
+      },
+      {
+        "period": "2022-09",
+        "total_return": -14.68234294213471,
+        "forward_return": 165.10662279649512,
+        "roa": 0.0099
+      },
+      {
+        "period": "2022-12",
+        "total_return": 19.973066240215456,
+        "forward_return": 120.97178233795137,
+        "roa": 0.0129
+      },
+      {
+        "period": "2023-03",
+        "total_return": -5.784654695152234,
+        "forward_return": 134.5390569051828,
+        "roa": 0.014
+      },
+      {
+        "period": "2023-06",
+        "total_return": 3.3412159585017918,
+        "forward_return": 126.95596788735821,
+        "roa": 0.0152
+      },
+      {
+        "period": "2023-09",
+        "total_return": 6.0907256557805916,
+        "forward_return": 113.92630362783459,
+        "roa": 0.0529
+      },
+      {
+        "period": "2023-12",
+        "total_return": 17.75481111903065,
+        "forward_return": 81.67096664236544,
+        "roa": 0.0567
+      },
+      {
+        "period": "2024-03",
+        "total_return": 17.774380923265053,
+        "forward_return": 54.25338279700375,
+        "roa": 0.06
+      },
+      {
+        "period": "2024-06",
+        "total_return": -8.55676581483034,
+        "forward_return": 68.68758434838986,
+        "roa": 0.0622
+      },
+      {
+        "period": "2024-09",
+        "total_return": 28.79444926279273,
+        "forward_return": 30.97426582740303,
+        "roa": 0.0477
+      },
+      {
+        "period": "2024-12",
+        "total_return": 0.18997647910258725,
+        "forward_return": 30.72591733238039,
+        "roa": 0.0443
+      },
+      {
+        "period": "2025-03",
+        "total_return": 13.874357458035746,
+        "forward_return": 14.798379767415753,
+        "roa": 0.0387
+      },
+      {
+        "period": "2025-06",
+        "total_return": 19.223035470119836,
+        "forward_return": -3.71124228238007,
+        "roa": 0.0396
+      },
+      {
+        "period": "2025-09",
+        "total_return": -3.7112422823800633,
+        "forward_return": null,
+        "roa": 0.0536
+      }
+    ]
+  },
+  {
+    "symbol": "UNH",
+    "company_name": "UNH",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-03",
+        "total_return": null,
+        "forward_return": 2205.5369066449935,
+        "roa": 0.0804
+      },
+      {
+        "period": "2002-06",
+        "total_return": 19.801099188694067,
+        "forward_return": 1824.4705785325323,
+        "roa": 0.0874
+      },
+      {
+        "period": "2002-09",
+        "total_return": -4.731737154840973,
+        "forward_return": 1920.0542353337582,
+        "roa": 0.0919
+      },
+      {
+        "period": "2002-12",
+        "total_return": -4.26507681724375,
+        "forward_return": 2010.0494659378505,
+        "roa": 0.097
+      },
+      {
+        "period": "2003-03",
+        "total_return": 9.8251497005988,
+        "forward_return": 1821.2807555374943,
+        "roa": 0.102
+      },
+      {
+        "period": "2003-06",
+        "total_return": 9.629985164499523,
+        "forward_return": 1652.5139245933651,
+        "roa": 0.1075
+      },
+      {
+        "period": "2003-09",
+        "total_return": 0.13930348258706524,
+        "forward_return": 1650.0760077666255,
+        "roa": 0.1141
+      },
+      {
+        "period": "2003-12",
+        "total_return": 15.620031796502385,
+        "forward_return": 1413.64428860118,
+        "roa": 0.1016
+      },
+      {
+        "period": "2004-03",
+        "total_return": 10.914403575111724,
+        "forward_return": 1264.6958734048762,
+        "roa": 0.0937
+      },
+      {
+        "period": "2004-06",
+        "total_return": -3.488372093023256,
+        "forward_return": 1314.0222302749305,
+        "roa": 0.094
+      },
+      {
+        "period": "2004-09",
+        "total_return": 18.457831325301196,
+        "forward_return": 1093.6924848740773,
+        "roa": 0.0895
+      },
+      {
+        "period": "2004-12",
+        "total_return": 19.378898833740177,
+        "forward_return": 899.91916204265,
+        "roa": 0.0864
+      },
+      {
+        "period": "2005-03",
+        "total_return": 8.383505623083034,
+        "forward_return": 822.5750323300962,
+        "roa": 0.0926
+      },
+      {
+        "period": "2005-06",
+        "total_return": 9.331096665967713,
+        "forward_return": 743.8358897549342,
+        "roa": 0.0977
+      },
+      {
+        "period": "2005-09",
+        "total_return": 7.786728039892601,
+        "forward_return": 682.8755034132078,
+        "roa": 0.0987
+      },
+      {
+        "period": "2005-12",
+        "total_return": 10.569395017793589,
+        "forward_return": 608.0399628552025,
+        "roa": 0.087
+      },
+      {
+        "period": "2006-03",
+        "total_return": -10.057933698101063,
+        "forward_return": 687.2178080483502,
+        "roa": 0.0749
+      },
+      {
+        "period": "2006-06",
+        "total_return": -19.835302542069456,
+        "forward_return": 882.0005975341858,
+        "roa": 0.0752
+      },
+      {
+        "period": "2006-09",
+        "total_return": 9.870477891916037,
+        "forward_return": 793.7802186500161,
+        "roa": 0.0808
+      },
+      {
+        "period": "2006-12",
+        "total_return": 9.207317073170719,
+        "forward_return": 718.4252141742203,
+        "roa": 0.0877
+      },
+      {
+        "period": "2007-03",
+        "total_return": -1.3586450772380383,
+        "forward_return": 729.6978633505813,
+        "roa": 0.0844
+      },
+      {
+        "period": "2007-06",
+        "total_return": -3.4547857277704326,
+        "forward_return": 759.3878729307836,
+        "roa": 0.0852
+      },
+      {
+        "period": "2007-09",
+        "total_return": -5.299178725068441,
+        "forward_return": 807.4766843212943,
+        "roa": 0.089
+      },
+      {
+        "period": "2007-12",
+        "total_return": 20.17344621102623,
+        "forward_return": 655.1391034652974,
+        "roa": 0.0918
+      },
+      {
+        "period": "2008-03",
+        "total_return": -40.91065292096221,
+        "forward_return": 1177.9614952509548,
+        "roa": 0.0904
+      },
+      {
+        "period": "2008-06",
+        "total_return": -23.60302677532014,
+        "forward_return": 1572.7907419742019,
+        "roa": 0.0711
+      },
+      {
+        "period": "2008-09",
+        "total_return": -3.2761904761904743,
+        "forward_return": 1629.4508458772273,
+        "roa": 0.0642
+      },
+      {
+        "period": "2008-12",
+        "total_return": 4.765655769988188,
+        "forward_return": 1550.7803374745401,
+        "roa": 0.0543
+      },
+      {
+        "period": "2009-03",
+        "total_return": -21.203007518796994,
+        "forward_return": 1994.9788633980334,
+        "roa": 0.053
+      },
+      {
+        "period": "2009-06",
+        "total_return": 19.350215002388918,
+        "forward_return": 1655.3205608855415,
+        "roa": 0.0623
+      },
+      {
+        "period": "2009-09",
+        "total_return": 0.24019215372297326,
+        "forward_return": 1651.1145212029078,
+        "roa": 0.0635
+      },
+      {
+        "period": "2009-12",
+        "total_return": 21.725239616613422,
+        "forward_return": 1338.579646027586,
+        "roa": 0.0656
+      },
+      {
+        "period": "2010-03",
+        "total_return": 7.283464566929138,
+        "forward_return": 1240.9146058385577,
+        "roa": 0.0679
+      },
+      {
+        "period": "2010-06",
+        "total_return": -12.687480869299058,
+        "forward_return": 1435.7644232338532,
+        "roa": 0.0715
+      },
+      {
+        "period": "2010-09",
+        "total_return": 24.066901408450708,
+        "forward_return": 1137.8518410626205,
+        "roa": 0.0734
+      },
+      {
+        "period": "2010-12",
+        "total_return": 3.204215323269724,
+        "forward_return": 1099.4198465491538,
+        "roa": 0.0735
+      },
+      {
+        "period": "2011-03",
+        "total_return": 25.519246746053735,
+        "forward_return": 855.5664789606171,
+        "roa": 0.0745
+      },
+      {
+        "period": "2011-06",
+        "total_return": 14.47566371681415,
+        "forward_return": 734.7332943397153,
+        "roa": 0.075
+      },
+      {
+        "period": "2011-09",
+        "total_return": -10.269484296238854,
+        "forward_return": 830.2669084122136,
+        "roa": 0.0719
+      },
+      {
+        "period": "2011-12",
+        "total_return": 10.240676496097144,
+        "forward_return": 743.8508706404289,
+        "roa": 0.074
+      },
+      {
+        "period": "2012-03",
+        "total_return": 16.61996842936069,
+        "forward_return": 623.5903782220349,
+        "roa": 0.0737
+      },
+      {
+        "period": "2012-06",
+        "total_return": -0.38513742789276845,
+        "forward_return": 626.3879701668575,
+        "roa": 0.0718
+      },
+      {
+        "period": "2012-09",
+        "total_return": -4.917948717948724,
+        "forward_return": 663.9590862549878,
+        "roa": 0.0763
+      },
+      {
+        "period": "2012-12",
+        "total_return": -1.727125067677305,
+        "forward_return": 677.3855062051475,
+        "roa": 0.0724
+      },
+      {
+        "period": "2013-03",
+        "total_return": 5.868362831858405,
+        "forward_return": 634.2944439783216,
+        "roa": 0.0649
+      },
+      {
+        "period": "2013-06",
+        "total_return": 14.94493969585737,
+        "forward_return": 538.8227667274908,
+        "roa": 0.0664
+      },
+      {
+        "period": "2013-09",
+        "total_return": 9.789248625534507,
+        "forward_return": 481.8627731995564,
+        "roa": 0.0671
+      },
+      {
+        "period": "2013-12",
+        "total_return": 5.54391844714425,
+        "forward_return": 451.29919540646006,
+        "roa": 0.0687
+      },
+      {
+        "period": "2014-03",
+        "total_return": 9.256308100929612,
+        "forward_return": 404.59255395777825,
+        "roa": 0.0664
+      },
+      {
+        "period": "2014-06",
+        "total_return": 0.16465422612514347,
+        "forward_return": 403.76308674579286,
+        "roa": 0.0647
+      },
+      {
+        "period": "2014-09",
+        "total_return": 5.963302752293578,
+        "forward_return": 375.41278316269614,
+        "roa": 0.0647
+      },
+      {
+        "period": "2014-12",
+        "total_return": 17.640579710144934,
+        "forward_return": 304.1231217442723,
+        "roa": 0.0654
+      },
+      {
+        "period": "2015-03",
+        "total_return": 17.385498071025822,
+        "forward_return": 244.27005753278928,
+        "roa": 0.0673
+      },
+      {
+        "period": "2015-06",
+        "total_return": 3.559049792881895,
+        "forward_return": 232.43840902492775,
+        "roa": 0.0674
+      },
+      {
+        "period": "2015-09",
+        "total_return": -4.499999999999996,
+        "forward_return": 248.1030460994009,
+        "roa": 0.0611
+      },
+      {
+        "period": "2015-12",
+        "total_return": 1.8360486164985736,
+        "forward_return": 241.8269373454504,
+        "roa": 0.0529
+      },
+      {
+        "period": "2016-03",
+        "total_return": 9.996599795987764,
+        "forward_return": 210.76136715084067,
+        "roa": 0.0524
+      },
+      {
+        "period": "2016-06",
+        "total_return": 10.02715283165243,
+        "forward_return": 182.44061502375,
+        "roa": 0.052
+      },
+      {
+        "period": "2016-09",
+        "total_return": -0.40722379603398634,
+        "forward_return": 183.59548331629168,
+        "roa": 0.0538
+      },
+      {
+        "period": "2016-12",
+        "total_return": 14.760714285714279,
+        "forward_return": 147.1189597253964,
+        "roa": 0.0569
+      },
+      {
+        "period": "2017-03",
+        "total_return": 2.871157210697325,
+        "forward_return": 140.22181379689889,
+        "roa": 0.0582
+      },
+      {
+        "period": "2017-06",
+        "total_return": 13.51137125785013,
+        "forward_return": 111.6279727175667,
+        "roa": 0.0589
+      },
+      {
+        "period": "2017-09",
+        "total_return": 6.029554524862479,
+        "forward_return": 99.59338098316996,
+        "roa": 0.0619
+      },
+      {
+        "period": "2017-12",
+        "total_return": 12.948685218279302,
+        "forward_return": 76.71155764004268,
+        "roa": 0.0755
+      },
+      {
+        "period": "2018-03",
+        "total_return": -2.590039009344102,
+        "forward_return": 81.41015132630409,
+        "roa": 0.0761
+      },
+      {
+        "period": "2018-06",
+        "total_return": 15.065420560747663,
+        "forward_return": 57.658269914835415,
+        "roa": 0.0764
+      },
+      {
+        "period": "2018-09",
+        "total_return": 8.804108584005874,
+        "forward_return": 44.90102622651426,
+        "roa": 0.0821
+      },
+      {
+        "period": "2018-12",
+        "total_return": -6.021650879566988,
+        "forward_return": 54.18554122590939,
+        "roa": 0.079
+      },
+      {
+        "period": "2019-03",
+        "total_return": -0.385356454720622,
+        "forward_return": 54.782003667789155,
+        "roa": 0.0805
+      },
+      {
+        "period": "2019-06",
+        "total_return": -0.8776187009625496,
+        "forward_return": 56.15242656533326,
+        "roa": 0.079
+      },
+      {
+        "period": "2019-09",
+        "total_return": -10.495471497069794,
+        "forward_return": 74.46315753757767,
+        "roa": 0.0782
+      },
+      {
+        "period": "2019-12",
+        "total_return": 35.7721332597092,
+        "forward_return": 28.497029065499873,
+        "roa": 0.0796
+      },
+      {
+        "period": "2020-03",
+        "total_return": -14.80372814477176,
+        "forward_return": 50.824708954226764,
+        "roa": 0.0757
+      },
+      {
+        "period": "2020-06",
+        "total_return": 18.774560911059428,
+        "forward_return": 26.98401728225889,
+        "roa": 0.0896
+      },
+      {
+        "period": "2020-09",
+        "total_return": 6.126462112222408,
+        "forward_return": 19.653491461894603,
+        "roa": 0.0872
+      },
+      {
+        "period": "2020-12",
+        "total_return": 12.881290695063678,
+        "forward_return": 5.999400542934367,
+        "roa": 0.0793
+      },
+      {
+        "period": "2021-03",
+        "total_return": 6.456028287897794,
+        "forward_return": -0.4289355448509866,
+        "roa": 0.0838
+      },
+      {
+        "period": "2021-06",
+        "total_return": 8.014620904668478,
+        "forward_return": -7.817049561254805,
+        "roa": 0.0698
+      },
+      {
+        "period": "2021-09",
+        "total_return": -2.060233742882826,
+        "forward_return": -5.87791459830413,
+        "roa": 0.0728
+      },
+      {
+        "period": "2021-12",
+        "total_return": 28.881097404923985,
+        "forward_return": -26.969829325724007,
+        "roa": 0.0812
+      },
+      {
+        "period": "2022-03",
+        "total_return": 1.8480901740550524,
+        "forward_return": -28.295002341752465,
+        "roa": 0.0805
+      },
+      {
+        "period": "2022-06",
+        "total_return": 1.0412377198658682,
+        "forward_return": -29.03392785325164,
+        "roa": 0.0808
+      },
+      {
+        "period": "2022-09",
+        "total_return": -1.3511671826022575,
+        "forward_return": -28.061924180989635,
+        "roa": 0.0821
+      },
+      {
+        "period": "2022-12",
+        "total_return": 5.304530334230938,
+        "forward_return": -31.685678108356043,
+        "roa": 0.0823
+      },
+      {
+        "period": "2023-03",
+        "total_return": -10.551133577275639,
+        "forward_return": -23.627515223279815,
+        "roa": 0.0782
+      },
+      {
+        "period": "2023-06",
+        "total_return": 2.1011870754776893,
+        "forward_return": -25.199219554360027,
+        "roa": 0.0748
+      },
+      {
+        "period": "2023-09",
+        "total_return": 5.290862183754996,
+        "forward_return": -28.957956185127742,
+        "roa": 0.0771
+      },
+      {
+        "period": "2023-12",
+        "total_return": 4.791844344393984,
+        "forward_return": -32.20651448657058,
+        "roa": 0.0805
+      },
+      {
+        "period": "2024-03",
+        "total_return": -5.677436511102255,
+        "forward_return": -28.125908578164257,
+        "roa": 0.055
+      },
+      {
+        "period": "2024-06",
+        "total_return": 3.3676975945017187,
+        "forward_return": -30.467551184327803,
+        "roa": 0.0494
+      },
+      {
+        "period": "2024-09",
+        "total_return": 15.222086949691702,
+        "forward_return": -39.65354155923987,
+        "roa": 0.0489
+      },
+      {
+        "period": "2024-12",
+        "total_return": -13.121707600738858,
+        "forward_return": -30.539083153902624,
+        "roa": 0.0482
+      },
+      {
+        "period": "2025-03",
+        "total_return": 3.951686237298855,
+        "forward_return": -33.1796151074131,
+        "roa": 0.0727
+      },
+      {
+        "period": "2025-06",
+        "total_return": -40.01336515513126,
+        "forward_return": 11.392121037279225,
+        "roa": 0.0688
+      },
+      {
+        "period": "2025-09",
+        "total_return": 11.39212103727922,
+        "forward_return": null,
+        "roa": 0.0563
+      }
+    ]
+  },
+  {
+    "symbol": "JNJ",
+    "company_name": "JNJ",
+    "data": [
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": 0,
+        "total_return": null,
+        "forward_return": null,
+        "roa": 0
+      },
+      {
+        "period": "2002-03",
+        "total_return": null,
+        "forward_return": 440.3340313897485,
+        "roa": 0.1549
+      },
+      {
+        "period": "2002-06",
+        "total_return": -19.222478829869136,
+        "forward_return": 568.916331626116,
+        "roa": 0.1597
+      },
+      {
+        "period": "2002-09",
+        "total_return": 3.8748564867967863,
+        "forward_return": 543.963663825749,
+        "roa": 0.164
+      },
+      {
+        "period": "2002-12",
+        "total_return": -0.3051035502958533,
+        "forward_return": 545.9344327125381,
+        "roa": 0.1665
+      },
+      {
+        "period": "2003-03",
+        "total_return": 8.126978216347043,
+        "forward_return": 497.38507758915944,
+        "roa": 0.1655
+      },
+      {
+        "period": "2003-06",
+        "total_return": -10.247105581475713,
+        "forward_return": 565.5886492122579,
+        "roa": 0.1457
+      },
+      {
+        "period": "2003-09",
+        "total_return": -3.752417794970986,
+        "forward_return": 591.5380459058231,
+        "roa": 0.1459
+      },
+      {
+        "period": "2003-12",
+        "total_return": 4.806138933764123,
+        "forward_return": 559.8258965945337,
+        "roa": 0.1516
+      },
+      {
+        "period": "2004-03",
+        "total_return": -1.3550135501354972,
+        "forward_return": 568.8894391301727,
+        "roa": 0.1569
+      },
+      {
+        "period": "2004-06",
+        "total_return": 10.238564668769719,
+        "forward_return": 506.7653739324022,
+        "roa": 0.179
+      },
+      {
+        "period": "2004-09",
+        "total_return": 1.7742863306248617,
+        "forward_return": 496.18730409099487,
+        "roa": 0.1787
+      },
+      {
+        "period": "2004-12",
+        "total_return": 13.092490679921895,
+        "forward_return": 427.1678963887565,
+        "roa": 0.1552
+      },
+      {
+        "period": "2005-03",
+        "total_return": 6.346578366445908,
+        "forward_return": 395.7074355248717,
+        "roa": 0.1582
+      },
+      {
+        "period": "2005-06",
+        "total_return": -2.7248362120309655,
+        "forward_return": 409.5930104064038,
+        "roa": 0.1588
+      },
+      {
+        "period": "2005-09",
+        "total_return": -2.1384615384615366,
+        "forward_return": 420.7285910456882,
+        "roa": 0.1593
+      },
+      {
+        "period": "2005-12",
+        "total_return": -4.503792667509481,
+        "forward_return": 445.28719578638356,
+        "roa": 0.1742
+      },
+      {
+        "period": "2006-03",
+        "total_return": -0.9151414309484234,
+        "forward_return": 450.32343353084207,
+        "roa": 0.1739
+      },
+      {
+        "period": "2006-06",
+        "total_return": 1.8152651131374584,
+        "forward_return": 440.51171297282497,
+        "roa": 0.1747
+      },
+      {
+        "period": "2006-09",
+        "total_return": 9.00367156208277,
+        "forward_return": 395.8656027150222,
+        "roa": 0.1796
+      },
+      {
+        "period": "2006-12",
+        "total_return": 2.240529719741297,
+        "forward_return": 384.9990547528206,
+        "roa": 0.1677
+      },
+      {
+        "period": "2007-03",
+        "total_return": -8.15661920630112,
+        "forward_return": 428.0718659978762,
+        "roa": 0.1437
+      },
+      {
+        "period": "2007-06",
+        "total_return": 2.9455692001327574,
+        "forward_return": 412.9622091566375,
+        "roa": 0.1432
+      },
+      {
+        "period": "2007-09",
+        "total_return": 7.294709509899393,
+        "forward_return": 378.0871410153824,
+        "roa": 0.1352
+      },
+      {
+        "period": "2007-12",
+        "total_return": 2.1537290715372905,
+        "forward_return": 368.0075268525758,
+        "roa": 0.1325
+      },
+      {
+        "period": "2008-03",
+        "total_return": -2.121439280359817,
+        "forward_return": 378.15121453728733,
+        "roa": 0.1389
+      },
+      {
+        "period": "2008-06",
+        "total_return": -0.10790812394018978,
+        "forward_return": 378.6677359110162,
+        "roa": 0.136
+      },
+      {
+        "period": "2008-09",
+        "total_return": 8.392912651538696,
+        "forward_return": 341.6042748568223,
+        "roa": 0.1434
+      },
+      {
+        "period": "2008-12",
+        "total_return": -12.976327944572752,
+        "forward_return": 407.45304631084156,
+        "roa": 0.15
+      },
+      {
+        "period": "2009-03",
+        "total_return": -11.315393615243185,
+        "forward_return": 472.1996939460545,
+        "roa": 0.1503
+      },
+      {
+        "period": "2009-06",
+        "total_return": 8.916349809885924,
+        "forward_return": 425.3570239406956,
+        "roa": 0.1468
+      },
+      {
+        "period": "2009-09",
+        "total_return": 8.063380281690149,
+        "forward_return": 386.15638579067354,
+        "roa": 0.1427
+      },
+      {
+        "period": "2009-12",
+        "total_return": 6.585646247331247,
+        "forward_return": 356.1180636485993,
+        "roa": 0.1317
+      },
+      {
+        "period": "2010-03",
+        "total_return": 1.9872690575997614,
+        "forward_return": 347.2303924433898,
+        "roa": 0.1412
+      },
+      {
+        "period": "2010-06",
+        "total_return": -8.588957055214724,
+        "forward_return": 389.2520400555205,
+        "roa": 0.1456
+      },
+      {
+        "period": "2010-09",
+        "total_return": 5.82458516762614,
+        "forward_return": 362.32360777086456,
+        "roa": 0.1427
+      },
+      {
+        "period": "2010-12",
+        "total_return": 0.6939961265332483,
+        "forward_return": 359.1372132951236,
+        "roa": 0.1325
+      },
+      {
+        "period": "2011-03",
+        "total_return": -3.3306386418755074,
+        "forward_return": 374.9562910570898,
+        "roa": 0.1164
+      },
+      {
+        "period": "2011-06",
+        "total_return": 13.232067510548518,
+        "forward_return": 319.45387159237697,
+        "roa": 0.1054
+      },
+      {
+        "period": "2011-09",
+        "total_return": -3.397474443776306,
+        "forward_return": 334.20590629201587,
+        "roa": 0.1017
+      },
+      {
+        "period": "2011-12",
+        "total_return": 3.8624587847385783,
+        "forward_return": 318.0585664661897,
+        "roa": 0.0857
+      },
+      {
+        "period": "2012-03",
+        "total_return": 1.4486123818237198,
+        "forward_return": 312.0889942710467,
+        "roa": 0.0879
+      },
+      {
+        "period": "2012-06",
+        "total_return": 3.3505154639175387,
+        "forward_return": 298.72950069118747,
+        "roa": 0.0753
+      },
+      {
+        "period": "2012-09",
+        "total_return": 2.9011249259917027,
+        "forward_return": 287.4879900272817,
+        "roa": 0.0724
+      },
+      {
+        "period": "2012-12",
+        "total_return": 2.6121027427078767,
+        "forward_return": 277.62406155819474,
+        "roa": 0.0903
+      },
+      {
+        "period": "2013-03",
+        "total_return": 17.17546362339516,
+        "forward_return": 222.27229991757326,
+        "roa": 0.0859
+      },
+      {
+        "period": "2013-06",
+        "total_return": 6.12044646142524,
+        "forward_return": 203.68539773786125,
+        "roa": 0.1046
+      },
+      {
+        "period": "2013-09",
+        "total_return": 1.7353831819240606,
+        "forward_return": 198.5051888926477,
+        "roa": 0.1025
+      },
+      {
+        "period": "2013-12",
+        "total_return": 6.413657861345029,
+        "forward_return": 180.51398184394174,
+        "roa": 0.1065
+      },
+      {
+        "period": "2014-03",
+        "total_return": 7.970302434763621,
+        "forward_return": 159.80660933447905,
+        "roa": 0.1132
+      },
+      {
+        "period": "2014-06",
+        "total_return": 7.2177542502290555,
+        "forward_return": 142.31677967077363,
+        "roa": 0.1158
+      },
+      {
+        "period": "2014-09",
+        "total_return": 2.5520932900019107,
+        "forward_return": 136.28652706828532,
+        "roa": 0.1296
+      },
+      {
+        "period": "2014-12",
+        "total_return": -1.2383900928792666,
+        "forward_return": 139.24936753309134,
+        "roa": 0.1243
+      },
+      {
+        "period": "2015-03",
+        "total_return": -3.1270919001625694,
+        "forward_return": 146.97242214151387,
+        "roa": 0.1229
+      },
+      {
+        "period": "2015-06",
+        "total_return": -2.375745526838967,
+        "forward_return": 152.9826460384513,
+        "roa": 0.1235
+      },
+      {
+        "period": "2015-09",
+        "total_return": -3.44756823312128,
+        "forward_return": 162.01582022218344,
+        "roa": 0.1109
+      },
+      {
+        "period": "2015-12",
+        "total_return": 10.840921264059995,
+        "forward_return": 136.38906753397907,
+        "roa": 0.1155
+      },
+      {
+        "period": "2016-03",
+        "total_return": 6.065031152647979,
+        "forward_return": 122.87182209353219,
+        "roa": 0.1153
+      },
+      {
+        "period": "2016-06",
+        "total_return": 12.84658040665434,
+        "forward_return": 97.49984562260596,
+        "roa": 0.1088
+      },
+      {
+        "period": "2016-09",
+        "total_return": -1.9538334707337197,
+        "forward_return": 101.43556103608938,
+        "roa": 0.1137
+      },
+      {
+        "period": "2016-12",
+        "total_return": -1.7946330314060799,
+        "forward_return": 105.11665222992175,
+        "roa": 0.1174
+      },
+      {
+        "period": "2017-03",
+        "total_return": 8.80131932991928,
+        "forward_return": 88.52404869093971,
+        "roa": 0.1153
+      },
+      {
+        "period": "2017-06",
+        "total_return": 6.888799678843833,
+        "forward_return": 76.37399732935137,
+        "roa": 0.1097
+      },
+      {
+        "period": "2017-09",
+        "total_return": -1.0885176506160716,
+        "forward_return": 78.31498744134421,
+        "roa": 0.1026
+      },
+      {
+        "period": "2017-12",
+        "total_return": 8.114760403045926,
+        "forward_return": 64.93121455071966,
+        "roa": 0.0083
+      },
+      {
+        "period": "2018-03",
+        "total_return": -7.679645004294298,
+        "forward_return": 78.65097524634899,
+        "roa": 0.0079
+      },
+      {
+        "period": "2018-06",
+        "total_return": -4.61178306671869,
+        "forward_return": 87.28830561043543,
+        "roa": 0.0087
+      },
+      {
+        "period": "2018-09",
+        "total_return": 14.611834514587096,
+        "forward_return": 63.41096572064589,
+        "roa": 0.0099
+      },
+      {
+        "period": "2018-12",
+        "total_return": -5.949193023087484,
+        "forward_return": 73.74754239031665,
+        "roa": 0.0991
+      },
+      {
+        "period": "2019-03",
+        "total_return": 9.019759783029818,
+        "forward_return": 59.372523601324644,
+        "roa": 0.0968
+      },
+      {
+        "period": "2019-06",
+        "total_return": 0.31475785106231424,
+        "forward_return": 58.87246006010963,
+        "roa": 0.107
+      },
+      {
+        "period": "2019-09",
+        "total_return": -6.425904652498568,
+        "forward_return": 69.78252311188578,
+        "roa": 0.0911
+      },
+      {
+        "period": "2019-12",
+        "total_return": 13.479672283196791,
+        "forward_return": 49.61492194670868,
+        "roa": 0.0965
+      },
+      {
+        "period": "2020-03",
+        "total_return": -9.453623089051902,
+        "forward_return": 65.23568037830401,
+        "roa": 0.1097
+      },
+      {
+        "period": "2020-06",
+        "total_return": 8.014946999161138,
+        "forward_return": 52.9748289184341,
+        "roa": 0.0969
+      },
+      {
+        "period": "2020-09",
+        "total_return": 6.584654767830478,
+        "forward_return": 43.52425239041557,
+        "roa": 0.1032
+      },
+      {
+        "period": "2020-12",
+        "total_return": 6.387694787748523,
+        "forward_return": 34.906816692247475,
+        "roa": 0.0851
+      },
+      {
+        "period": "2021-03",
+        "total_return": 5.070529927563857,
+        "forward_return": 28.39643693169998,
+        "roa": 0.087
+      },
+      {
+        "period": "2021-06",
+        "total_return": 0.8822634621235259,
+        "forward_return": 27.27354891269532,
+        "roa": 0.1018
+      },
+      {
+        "period": "2021-09",
+        "total_return": -1.3232973169843443,
+        "forward_return": 28.980342322080617,
+        "roa": 0.1005
+      },
+      {
+        "period": "2021-12",
+        "total_return": 6.582043343653248,
+        "forward_return": 21.015077470609583,
+        "roa": 0.1155
+      },
+      {
+        "period": "2022-03",
+        "total_return": 4.220494534401121,
+        "forward_return": 16.11447250489192,
+        "roa": 0.11
+      },
+      {
+        "period": "2022-06",
+        "total_return": 0.7955763696891052,
+        "forward_return": 15.197984561363612,
+        "roa": 0.1031
+      },
+      {
+        "period": "2022-09",
+        "total_return": -7.334798039547056,
+        "forward_return": 24.31633679547477,
+        "roa": 0.1085
+      },
+      {
+        "period": "2022-12",
+        "total_return": 8.827130264446614,
+        "forward_return": 14.23285397068716,
+        "roa": 0.0989
+      },
+      {
+        "period": "2023-03",
+        "total_return": -11.61619020662327,
+        "forward_return": 29.246356586958882,
+        "roa": 0.0663
+      },
+      {
+        "period": "2023-06",
+        "total_return": 7.5548387096774245,
+        "forward_return": 20.16786798019693,
+        "roa": 0.0673
+      },
+      {
+        "period": "2023-09",
+        "total_return": -5.183663605606579,
+        "forward_return": 26.73751438818782,
+        "roa": 0.1935
+      },
+      {
+        "period": "2023-12",
+        "total_return": 1.3996789727126864,
+        "forward_return": 24.988082479327844,
+        "roa": 0.2107
+      },
+      {
+        "period": "2024-03",
+        "total_return": 1.6843179788184182,
+        "forward_return": 22.917756605658482,
+        "roa": 0.2266
+      },
+      {
+        "period": "2024-06",
+        "total_return": -6.820911562045643,
+        "forward_return": 31.91560323913916,
+        "roa": 0.2153
+      },
+      {
+        "period": "2024-09",
+        "total_return": 11.726874657909143,
+        "forward_return": 18.06971567319401,
+        "roa": 0.0817
+      },
+      {
+        "period": "2024-12",
+        "total_return": -9.996297667530543,
+        "forward_return": 31.18317648428507,
+        "roa": 0.0784
+      },
+      {
+        "period": "2025-03",
+        "total_return": 15.530355414188907,
+        "forward_return": 13.548665209224978,
+        "roa": 0.1167
+      },
+      {
+        "period": "2025-06",
+        "total_return": -7.109261939218525,
+        "forward_return": 22.23895253682487,
+        "roa": 0.117
+      },
+      {
+        "period": "2025-09",
+        "total_return": 22.238952536824865,
+        "forward_return": null,
+        "roa": 0.13
+      }
+    ]
+  }
+]
