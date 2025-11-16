@@ -97,23 +97,39 @@ def process_quarterly_data(data: Dict, symbol: str) -> Optional[Dict]:
                 "total_return": total_return
             })
     
-    # Calculate forward returns
+    # Calculate forward returns (annualized)
+    # Forward return = cumulative total return from period j+1 to most recent period, annualized
     for j in range(len(quarterly_data)):
         forward_return = None
         if j < len(quarterly_data) - 1:
             cumulative_value = 100.0
             valid_returns = True
+            num_quarters = 0
             
             for k in range(j + 1, len(quarterly_data)):
                 period_return = quarterly_data[k].get("total_return")
                 if period_return is not None:
                     cumulative_value = cumulative_value * (1 + period_return / 100.0)
+                    num_quarters += 1
                 else:
                     valid_returns = False
                     break
             
-            if valid_returns:
-                forward_return = (cumulative_value - 100.0)
+            if valid_returns and num_quarters > 0:
+                # Calculate cumulative return: (final_value - 100)
+                cumulative_return = (cumulative_value - 100.0)
+                
+                # Annualize the return
+                # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
+                # Where years = num_quarters / 4
+                years = num_quarters / 4.0
+                if years > 0:
+                    # Convert cumulative return to decimal (e.g., 50% -> 0.50)
+                    cumulative_return_decimal = cumulative_return / 100.0
+                    # Annualize: (1 + cumulative_return)^(1/years) - 1
+                    annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
+                    # Convert back to percentage
+                    forward_return = annualized_return_decimal * 100.0
         
         quarterly_data[j]["forward_return"] = forward_return
     
@@ -184,15 +200,16 @@ def process_batch_data(batch_data: Dict, formatted_symbol: str, original_symbol:
             "total_return": total_return
         })
     
-    # Calculate forward returns
-    # Forward return = cumulative total return from period j+1 to most recent period
-    # This represents what the return would be if you held from period j+1 to the present
+    # Calculate forward returns (annualized)
+    # Forward return = cumulative total return from period j+1 to most recent period, annualized
+    # This represents what the annualized return would be if you held from period j+1 to the present
     for j in range(len(quarterly_data)):
         forward_return = None
         if j < len(quarterly_data) - 1:
             # Start with 100% and compound each future period's return
             cumulative_value = 100.0
             valid_returns = True
+            num_quarters = 0
             
             # Compound returns from period j+1 to the most recent period
             for k in range(j + 1, len(quarterly_data)):
@@ -200,14 +217,27 @@ def process_batch_data(batch_data: Dict, formatted_symbol: str, original_symbol:
                 if period_return is not None:
                     # Compound: multiply by (1 + return/100)
                     cumulative_value = cumulative_value * (1 + period_return / 100.0)
+                    num_quarters += 1
                 else:
                     # If any return is missing, we can't calculate forward return
                     valid_returns = False
                     break
             
-            if valid_returns:
-                # Convert back to percentage return: (final_value - 100)
-                forward_return = (cumulative_value - 100.0)
+            if valid_returns and num_quarters > 0:
+                # Calculate cumulative return: (final_value - 100)
+                cumulative_return = (cumulative_value - 100.0)
+                
+                # Annualize the return
+                # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
+                # Where years = num_quarters / 4
+                years = num_quarters / 4.0
+                if years > 0:
+                    # Convert cumulative return to decimal (e.g., 50% -> 0.50)
+                    cumulative_return_decimal = cumulative_return / 100.0
+                    # Annualize: (1 + cumulative_return)^(1/years) - 1
+                    annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
+                    # Convert back to percentage
+                    forward_return = annualized_return_decimal * 100.0
         
         quarterly_data[j]["forward_return"] = forward_return
     
@@ -337,28 +367,42 @@ def fetch_quarterly_price_dividends(symbol: str) -> Optional[Dict]:
                     "total_return": total_return
                 })
         
-        # Calculate forward return for each period (from t+1 to most recent)
-        # Forward return is the cumulative total return from the next period to the most recent period
+        # Calculate forward return for each period (from t+1 to most recent, annualized)
+        # Forward return is the cumulative total return from the next period to the most recent period, annualized
         for i in range(len(quarterly_data)):
             forward_return = None
             if i < len(quarterly_data) - 1:  # Not the last period
                 # Calculate cumulative return from period i+1 to the end (most recent)
                 cumulative_value = 100.0  # Start at 100%
                 valid_returns = True
+                num_quarters = 0
                 
                 for j in range(i + 1, len(quarterly_data)):
                     period_return = quarterly_data[j].get("total_return")
                     if period_return is not None:
                         # Compound the return: multiply by (1 + return/100)
                         cumulative_value = cumulative_value * (1 + period_return / 100.0)
+                        num_quarters += 1
                     else:
                         # If we hit a None return, we can't calculate forward return
                         valid_returns = False
                         break
                 
-                if valid_returns:
-                    # Convert back to percentage return: (final_value - 100)
-                    forward_return = (cumulative_value - 100.0)
+                if valid_returns and num_quarters > 0:
+                    # Calculate cumulative return: (final_value - 100)
+                    cumulative_return = (cumulative_value - 100.0)
+                    
+                    # Annualize the return
+                    # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
+                    # Where years = num_quarters / 4
+                    years = num_quarters / 4.0
+                    if years > 0:
+                        # Convert cumulative return to decimal (e.g., 50% -> 0.50)
+                        cumulative_return_decimal = cumulative_return / 100.0
+                        # Annualize: (1 + cumulative_return)^(1/years) - 1
+                        annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
+                        # Convert back to percentage
+                        forward_return = annualized_return_decimal * 100.0
             
             quarterly_data[i]["forward_return"] = forward_return
         
@@ -482,12 +526,11 @@ def main():
     # Fetch data for all tickers in batch
     all_results = fetch_quarterly_data_batch(tickers)
     
-    # Filter out None results and print data
+    # Filter out None results
     all_data = []
     for stock_data in all_results:
         if stock_data:
             all_data.append(stock_data)
-            print_quarterly_data(stock_data)
     
     # Save to file
     if all_data:
