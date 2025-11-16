@@ -1,10 +1,14 @@
 """
 Program to fetch quarterly price and dividend data from QuickFS API
-for stocks listed in tickers.json
+for stocks listed in tickers.json, fetching one ticker at a time
+and saving all data to JSON
 """
 import json
+import os
+import threading
 from quickfs import QuickFS
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import QUICKFS_API_KEY
 
 # QuickFS API Configuration
@@ -31,34 +35,30 @@ def load_tickers(filename: str = "tickers.json") -> List[str]:
         print(f"Error: Invalid JSON in {filename}")
         return []
 
-def format_symbols(tickers: List[str]) -> List[str]:
+def format_symbol(ticker: str) -> str:
     """
-    Format ticker symbols for QuickFS (add :US for US stocks)
+    Format ticker symbol for QuickFS (add :US for US stocks)
     
     Args:
-        tickers: List of ticker symbols
+        ticker: Ticker symbol
     
     Returns:
-        List of formatted ticker symbols
+        Formatted ticker symbol
     """
-    formatted = []
-    for ticker in tickers:
-        if ":" not in ticker:
-            formatted.append(f"{ticker}:US")
-        else:
-            formatted.append(ticker)
-    return formatted
+    if ":" not in ticker:
+        return f"{ticker}:US"
+    return ticker
 
 def process_quarterly_data(data: Dict, symbol: str) -> Optional[Dict]:
     """
-    Process quarterly data from QuickFS response
+    Extract raw quarterly data from QuickFS response without any calculations
     
     Args:
         data: Full data response from QuickFS
         symbol: Original ticker symbol
     
     Returns:
-        Dictionary containing processed quarterly data
+        Dictionary containing raw quarterly data
     """
     if not data or "financials" not in data:
         return None
@@ -67,71 +67,52 @@ def process_quarterly_data(data: Dict, symbol: str) -> Optional[Dict]:
     if not quarterly:
         return None
     
-    # Extract relevant data
-    period_dates = quarterly.get("period_end_date", [])
-    prices = quarterly.get("period_end_price", [])
-    dividends = quarterly.get("dividends", [])
-    
     # Get company name from metadata
     metadata = data.get("metadata", {})
     company_name = metadata.get("name", symbol)
     
-    # Process the data
-    quarterly_data = []
-    for j in range(len(period_dates)):
-        if j < len(prices) and j < len(dividends):
-            current_price = prices[j] if prices[j] else 0.0
-            current_dividend = dividends[j] if dividends[j] else 0.0
-            
-            # Calculate total return (compared to previous period)
-            total_return = None
-            if j > 0:
-                prev_price = prices[j-1] if prices[j-1] else 0.0
-                if prev_price > 0 and current_price > 0:
-                    total_return = ((current_price - prev_price + current_dividend) / prev_price) * 100
-            
-            quarterly_data.append({
-                "period": period_dates[j],
-                "price": current_price,
-                "dividends": current_dividend,
-                "total_return": total_return
-            })
+    # Get all available quarterly metrics - store everything as raw data
+    # Find the longest list to determine number of periods
+    all_keys = list(quarterly.keys())
+    if not all_keys:
+        return None
     
-    # Calculate forward returns (annualized)
-    # Forward return = cumulative total return from period j+1 to most recent period, annualized
-    for j in range(len(quarterly_data)):
-        forward_return = None
-        if j < len(quarterly_data) - 1:
-            cumulative_value = 100.0
-            valid_returns = True
-            num_quarters = 0
-            
-            for k in range(j + 1, len(quarterly_data)):
-                period_return = quarterly_data[k].get("total_return")
-                if period_return is not None:
-                    cumulative_value = cumulative_value * (1 + period_return / 100.0)
-                    num_quarters += 1
-                else:
-                    valid_returns = False
-                    break
-            
-            if valid_returns and num_quarters > 0:
-                # Calculate cumulative return: (final_value - 100)
-                cumulative_return = (cumulative_value - 100.0)
-                
-                # Annualize the return
-                # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
-                # Where years = num_quarters / 4
-                years = num_quarters / 4.0
-                if years > 0:
-                    # Convert cumulative return to decimal (e.g., 50% -> 0.50)
-                    cumulative_return_decimal = cumulative_return / 100.0
-                    # Annualize: (1 + cumulative_return)^(1/years) - 1
-                    annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
-                    # Convert back to percentage
-                    forward_return = annualized_return_decimal * 100.0
+    # Find the maximum length to determine number of periods
+    # Only consider keys that have list values
+    lengths = []
+    for key in all_keys:
+        value = quarterly.get(key)
+        if isinstance(value, list):
+            lengths.append(len(value))
+    
+    if not lengths:
+        return None
+    
+    max_length = max(lengths)
+    
+    # Build raw data entries for each period
+    quarterly_data = []
+    for j in range(max_length):
+        period_entry = {}
         
-        quarterly_data[j]["forward_return"] = forward_return
+        # Store all available metrics for this period
+        for key in all_keys:
+            values = quarterly.get(key)
+            # Only process if it's a list
+            if isinstance(values, list):
+                if j < len(values):
+                    value = values[j]
+                    # Store the value as-is (could be None, number, string, etc.)
+                    period_entry[key] = value
+                else:
+                    # If this metric doesn't have data for this period, set to None
+                    period_entry[key] = None
+            else:
+                # If the value is not a list (e.g., a single value), store it for all periods
+                # or set to None if it's not applicable
+                period_entry[key] = values
+        
+        quarterly_data.append(period_entry)
     
     return {
         "symbol": symbol,
@@ -139,380 +120,211 @@ def process_quarterly_data(data: Dict, symbol: str) -> Optional[Dict]:
         "data": quarterly_data
     }
 
-def process_batch_data(batch_data: Dict, formatted_symbol: str, original_symbol: str) -> Optional[Dict]:
+def fetch_single_ticker(ticker: str, max_retries: int = 3) -> Optional[Dict]:
     """
-    Process batch data response from QuickFS get_data_batch
-    
-    Batch response format: {metric: {ticker: [values], ...}, ...}
+    Fetch data for a single ticker
     
     Args:
-        batch_data: Full batch data response from QuickFS
-        formatted_symbol: Formatted ticker symbol (e.g., 'GOOGL:US')
-        original_symbol: Original ticker symbol (e.g., 'GOOGL')
+        ticker: Stock ticker symbol (e.g., 'GOOGL')
+        max_retries: Maximum number of retry attempts
     
     Returns:
-        Dictionary containing processed quarterly data
+        Dictionary containing quarterly data or None
     """
-    if not batch_data:
-        return None
+    formatted_symbol = format_symbol(ticker)
     
-    # Batch response format: {metric: {ticker: [values], ...}, ...}
-    # Extract the metrics for this specific ticker
-    period_dates = batch_data.get("period_end_date", {}).get(formatted_symbol, [])
-    prices = batch_data.get("period_end_price", {}).get(formatted_symbol, [])
-    dividends = batch_data.get("dividends", {}).get(formatted_symbol, [])
-    roa = batch_data.get("roa", {}).get(formatted_symbol, [])
+    for attempt in range(max_retries):
+        try:
+            client = QuickFS(API_KEY)
+            data = client.get_data_full(formatted_symbol)
+            processed_data = process_quarterly_data(data, ticker)
+            return processed_data
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"  Retry {attempt + 1}/{max_retries} for {ticker}...")
+            else:
+                print(f"  Error fetching {ticker} after {max_retries} attempts: {e}")
+                return None
     
-    if not period_dates:
-        return None
-    
-    # Get company name - might need to fetch separately or from metadata
-    # For now, use symbol as company name
-    company_name = original_symbol
-    
-    # Process the data
-    # Note: QuickFS returns data in chronological order (oldest to newest)
-    # Each index j represents a quarter, with j=0 being the oldest quarter
-    quarterly_data = []
-    for j in range(len(period_dates)):
-        current_price = prices[j] if j < len(prices) and prices[j] is not None else 0.0
-        current_dividend = dividends[j] if j < len(dividends) and dividends[j] is not None else 0.0
-        current_roa = roa[j] if j < len(roa) and roa[j] is not None else None
-        
-        # Calculate total return for the quarter (compared to previous quarter)
-        # Formula: Total Return = ((Ending Price - Beginning Price + Dividends) / Beginning Price) * 100
-        # Where:
-        #   - Beginning Price = price at end of previous quarter (prev_price)
-        #   - Ending Price = price at end of current quarter (current_price)
-        #   - Dividends = dividends paid during current quarter (current_dividend)
-        total_return = None
-        if j > 0 and j - 1 < len(prices):
-            prev_price = prices[j-1] if prices[j-1] is not None else 0.0
-            if prev_price > 0 and current_price > 0:
-                # Total return includes both price appreciation and dividends
-                total_return = ((current_price - prev_price + current_dividend) / prev_price) * 100
-        
-        quarterly_data.append({
-            "period": period_dates[j],
-            "price": current_price,
-            "dividends": current_dividend,
-            "roa": current_roa,
-            "total_return": total_return
-        })
-    
-    # Calculate forward returns (annualized)
-    # Forward return = cumulative total return from period j+1 to most recent period, annualized
-    # This represents what the annualized return would be if you held from period j+1 to the present
-    for j in range(len(quarterly_data)):
-        forward_return = None
-        if j < len(quarterly_data) - 1:
-            # Start with 100% and compound each future period's return
-            cumulative_value = 100.0
-            valid_returns = True
-            num_quarters = 0
-            
-            # Compound returns from period j+1 to the most recent period
-            for k in range(j + 1, len(quarterly_data)):
-                period_return = quarterly_data[k].get("total_return")
-                if period_return is not None:
-                    # Compound: multiply by (1 + return/100)
-                    cumulative_value = cumulative_value * (1 + period_return / 100.0)
-                    num_quarters += 1
-                else:
-                    # If any return is missing, we can't calculate forward return
-                    valid_returns = False
-                    break
-            
-            if valid_returns and num_quarters > 0:
-                # Calculate cumulative return: (final_value - 100)
-                cumulative_return = (cumulative_value - 100.0)
-                
-                # Annualize the return
-                # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
-                # Where years = num_quarters / 4
-                years = num_quarters / 4.0
-                if years > 0:
-                    # Convert cumulative return to decimal (e.g., 50% -> 0.50)
-                    cumulative_return_decimal = cumulative_return / 100.0
-                    # Annualize: (1 + cumulative_return)^(1/years) - 1
-                    annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
-                    # Convert back to percentage
-                    forward_return = annualized_return_decimal * 100.0
-        
-        quarterly_data[j]["forward_return"] = forward_return
-    
-    return {
-        "symbol": original_symbol,
-        "company_name": company_name,
-        "data": quarterly_data
-    }
+    return None
 
-def fetch_quarterly_data_batch(tickers: List[str]) -> List[Optional[Dict]]:
+def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 10, 
+                                  output_file: str = "data.json") -> List[Optional[Dict]]:
     """
-    Fetch quarterly price and dividend data from QuickFS API for multiple tickers
-    Uses get_data_batch to fetch all tickers in a single API call
+    Fetch data for all tickers one at a time, using concurrent requests
+    Appends data to JSON file as each ticker is fetched
     
     Args:
-        tickers: List of stock ticker symbols (e.g., ['GOOGL', 'MSFT'])
+        tickers: List of stock ticker symbols
+        max_workers: Maximum number of concurrent threads (default: 10)
+        output_file: Output JSON filename
     
     Returns:
         List of dictionaries containing quarterly data for each ticker
     """
-    # Format symbols for QuickFS
-    formatted_symbols = format_symbols(tickers)
+    total_tickers = len(tickers)
+    print(f"Fetching data for {total_tickers} ticker(s) individually...")
+    print(f"Using {max_workers} concurrent threads")
+    print(f"Data will be appended to {output_file} as fetched\n")
     
-    try:
-        print(f"Fetching quarterly data for {len(tickers)} ticker(s)...")
-        client = QuickFS(API_KEY)
+    # Load existing data to skip already processed tickers
+    existing_data, processed_tickers = load_existing_data(output_file)
+    if processed_tickers:
+        print(f"Found {len(processed_tickers)} already processed ticker(s), skipping...")
+    
+    # Filter out already processed tickers
+    remaining_tickers = [t for t in tickers if t not in processed_tickers]
+    remaining_indices = [i for i, t in enumerate(tickers) if t not in processed_tickers]
+    
+    if not remaining_tickers:
+        print("All tickers already processed!")
+        return [None] * total_tickers
+    
+    print(f"Fetching {len(remaining_tickers)} remaining ticker(s)...\n")
+    
+    results = [None] * total_tickers
+    completed = len(processed_tickers)
+    
+    # File lock for thread-safe JSON writing
+    file_lock = threading.Lock()
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks for remaining tickers
+        future_to_info = {}
+        for idx, ticker in enumerate(remaining_tickers):
+            original_index = remaining_indices[idx]
+            future = executor.submit(fetch_single_ticker, ticker)
+            future_to_info[future] = (original_index, ticker)
         
-        # Define metrics and period for batch request
-        # Metrics explanation:
-        # - period_end_price: Stock price at the end of each fiscal quarter
-        # - dividends: Total dividends paid during each fiscal quarter (quarterly, not cumulative)
-        # - period_end_date: Date marking the end of each fiscal quarter
-        # - roa: Return on Assets (quarterly)
-        # 
-        # Total Return Calculation:
-        #   Total Return = ((Ending Price - Beginning Price + Dividends) / Beginning Price) * 100
-        #   Where: Beginning Price = period_end_price of previous quarter
-        #          Ending Price = period_end_price of current quarter
-        #          Dividends = dividends paid during current quarter
-        metrics = ['period_end_price', 'dividends', 'period_end_date', 'roa']
-        period = "FQ-100:FQ"  # Last 100 fiscal quarters to current
-        
-        # Fetch all tickers in a single batch request
-        batch_data = client.get_data_batch(formatted_symbols, metrics, period)
-        
-        # Process the batch response
-        # Batch response format: {metric: {ticker: [values], ...}, ...}
-        results = []
-        for i, formatted_symbol in enumerate(formatted_symbols):
-            original_symbol = tickers[i]
+        # Process completed tasks
+        for future in as_completed(future_to_info):
+            original_index, ticker = future_to_info[future]
             try:
-                processed_data = process_batch_data(batch_data, formatted_symbol, original_symbol)
-                if processed_data:
-                    results.append(processed_data)
+                result = future.result()
+                results[original_index] = result
+                completed += 1
+                
+                if result:
+                    # Append to JSON file immediately
+                    append_stock_to_json(result, output_file, file_lock)
+                    print(f"  [{completed}/{total_tickers}] Fetched and saved {ticker}")
                 else:
-                    print(f"  No data found for {original_symbol}")
-                    results.append(None)
+                    print(f"  [{completed}/{total_tickers}] Failed {ticker}")
             except Exception as e:
-                print(f"  Error processing {original_symbol}: {e}")
-                results.append(None)
-        
-        return results
+                print(f"  [{completed + 1}/{total_tickers}] Error processing {ticker}: {e}")
+                completed += 1
     
-    except Exception as e:
-        print(f"  Error in batch fetch: {e}")
-        return [None] * len(tickers)
+    return results
 
-def fetch_quarterly_price_dividends(symbol: str) -> Optional[Dict]:
+def load_existing_data(filename: str = "data.json") -> Tuple[List[Dict], Set[str]]:
     """
-    Fetch quarterly price and dividend data from QuickFS API (individual request)
-    This function is kept for backward compatibility but batch is preferred
+    Load existing data from JSON file and return set of already processed tickers
     
     Args:
-        symbol: Stock ticker symbol (e.g., 'GOOGL')
+        filename: Path to JSON file
     
     Returns:
-        Dictionary containing quarterly data with dates, prices, and dividends
+        Tuple of (existing_data, processed_tickers_set)
     """
-    # Format symbol for QuickFS (add :US for US stocks)
-    if ":" not in symbol:
-        symbol_formatted = f"{symbol}:US"
-    else:
-        symbol_formatted = symbol
+    if not os.path.exists(filename):
+        return [], set()
     
     try:
-        print(f"Fetching quarterly data for {symbol}...")
-        client = QuickFS(API_KEY)
-        data = client.get_data_full(symbol_formatted)
-        
-        if not data or "financials" not in data:
-            print(f"  Error: No financial data found for {symbol}")
-            return None
-        
-        quarterly = data["financials"].get("quarterly")
-        if not quarterly:
-            print(f"  Error: No quarterly data found for {symbol}")
-            return None
-        
-        # Extract relevant data
-        period_dates = quarterly.get("period_end_date", [])
-        prices = quarterly.get("period_end_price", [])
-        dividends = quarterly.get("dividends", [])
-        
-        # Get company name from metadata
-        metadata = data.get("metadata", {})
-        company_name = metadata.get("name", symbol)
-        
-        # Combine data and calculate total return for each period
-        quarterly_data = []
-        for i in range(len(period_dates)):
-            if i < len(prices) and i < len(dividends):
-                current_price = prices[i] if prices[i] else 0.0
-                current_dividend = dividends[i] if dividends[i] else 0.0
-                
-                # Calculate total return (compared to previous period)
-                total_return = None
-                if i > 0:
-                    prev_price = prices[i-1] if prices[i-1] else 0.0
-                    if prev_price > 0 and current_price > 0:
-                        # Total return = (current_price - prev_price + dividend) / prev_price
-                        total_return = ((current_price - prev_price + current_dividend) / prev_price) * 100
-                
-                quarterly_data.append({
-                    "period": period_dates[i],
-                    "price": current_price,
-                    "dividends": current_dividend,
-                    "total_return": total_return
-                })
-        
-        # Calculate forward return for each period (from t+1 to most recent, annualized)
-        # Forward return is the cumulative total return from the next period to the most recent period, annualized
-        for i in range(len(quarterly_data)):
-            forward_return = None
-            if i < len(quarterly_data) - 1:  # Not the last period
-                # Calculate cumulative return from period i+1 to the end (most recent)
-                cumulative_value = 100.0  # Start at 100%
-                valid_returns = True
-                num_quarters = 0
-                
-                for j in range(i + 1, len(quarterly_data)):
-                    period_return = quarterly_data[j].get("total_return")
-                    if period_return is not None:
-                        # Compound the return: multiply by (1 + return/100)
-                        cumulative_value = cumulative_value * (1 + period_return / 100.0)
-                        num_quarters += 1
-                    else:
-                        # If we hit a None return, we can't calculate forward return
-                        valid_returns = False
-                        break
-                
-                if valid_returns and num_quarters > 0:
-                    # Calculate cumulative return: (final_value - 100)
-                    cumulative_return = (cumulative_value - 100.0)
-                    
-                    # Annualize the return
-                    # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
-                    # Where years = num_quarters / 4
-                    years = num_quarters / 4.0
-                    if years > 0:
-                        # Convert cumulative return to decimal (e.g., 50% -> 0.50)
-                        cumulative_return_decimal = cumulative_return / 100.0
-                        # Annualize: (1 + cumulative_return)^(1/years) - 1
-                        annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
-                        # Convert back to percentage
-                        forward_return = annualized_return_decimal * 100.0
-            
-            quarterly_data[i]["forward_return"] = forward_return
-        
-        return {
-            "symbol": symbol,
-            "company_name": company_name,
-            "data": quarterly_data
-        }
-    
-    except Exception as e:
-        print(f"  Error fetching data for {symbol}: {e}")
-        return None
+        with open(filename, 'r') as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                processed_tickers = {stock.get("symbol") for stock in data if stock.get("symbol")}
+                return data, processed_tickers
+            return [], set()
+    except (json.JSONDecodeError, FileNotFoundError):
+        return [], set()
 
-def format_price(value: float) -> str:
-    """Format price value"""
-    if value is None or value == 0:
-        return "N/A"
-    return f"${value:.2f}"
-
-def format_dividend(value: float) -> str:
-    """Format dividend value"""
-    if value is None or value == 0:
-        return "$0.00"
-    return f"${value:.4f}"
-
-def print_quarterly_data(stock_data: Dict):
+def format_stock_data_for_json(stock_data: Dict) -> Dict:
     """
-    Print quarterly price and dividend data for a stock
+    Format a single stock's data for JSON output (raw data, no calculations)
     
     Args:
-        stock_data: Dictionary containing stock quarterly data
+        stock_data: Dictionary containing quarterly data for a stock
+    
+    Returns:
+        Formatted dictionary for JSON output with all raw data
     """
-    if not stock_data or "data" not in stock_data:
-        print(f"\nNo data available for {stock_data.get('symbol', 'Unknown')}")
+    output_stock = {
+        "symbol": stock_data.get("symbol"),
+        "company_name": stock_data.get("company_name"),
+        "data": stock_data.get("data", [])  # Store all raw data as-is
+    }
+    
+    return output_stock
+
+def append_stock_to_json(stock_data: Dict, filename: str = "data.json", file_lock: threading.Lock = None):
+    """
+    Append a single stock's data to JSON file
+    
+    Args:
+        stock_data: Dictionary containing quarterly data for a stock
+        filename: Output filename
+        file_lock: Thread lock for file operations (optional)
+    """
+    if not stock_data:
         return
     
-    symbol = stock_data["symbol"]
-    company_name = stock_data.get("company_name", symbol)
-    quarterly_data = stock_data["data"]
-    
-    print(f"\n{'='*80}")
-    print(f"{company_name} ({symbol})")
-    print(f"{'='*80}")
-    print(f"\n{'Period':<15} {'Price':<15} {'Dividends':<15} {'Total Return':<15} {'Forward Return':<15}")
-    print("-" * 95)
-    
-    # Print in reverse order (most recent first)
-    for entry in reversed(quarterly_data):
-        period = entry["period"]
-        price = format_price(entry["price"])
-        dividend = format_dividend(entry["dividends"])
-        total_return = entry.get("total_return")
-        forward_return = entry.get("forward_return")
+    try:
+        # Use lock if provided (for thread safety)
+        if file_lock:
+            file_lock.acquire()
         
-        if total_return is not None:
-            return_str = f"{total_return:.2f}%"
-        else:
-            return_str = "N/A"
-        
-        if forward_return is not None:
-            forward_str = f"{forward_return:.2f}%"
-        else:
-            forward_str = "N/A"
-        
-        print(f"{period:<15} {price:<15} {dividend:<15} {return_str:<15} {forward_str:<15}")
-    
-    print(f"\nTotal quarters: {len(quarterly_data)}")
+        try:
+            # Load existing data
+            existing_data, _ = load_existing_data(filename)
+            
+            # Check if this ticker already exists
+            symbol = stock_data.get("symbol")
+            existing_data = [s for s in existing_data if s.get("symbol") != symbol]
+            
+            # Add new stock data
+            formatted_data = format_stock_data_for_json(stock_data)
+            existing_data.append(formatted_data)
+            
+            # Write back to file
+            with open(filename, 'w') as f:
+                json.dump(existing_data, f, indent=2)
+        finally:
+            if file_lock:
+                file_lock.release()
+                
+    except Exception as e:
+        print(f"  Error appending {stock_data.get('symbol', 'unknown')} to {filename}: {e}")
 
 def save_to_json(all_data: List[Dict], filename: str = "data.json"):
     """
-    Save total return and forward return data to JSON file
+    Save all quarterly data to JSON file (for final save/update)
     
     Args:
         all_data: List of dictionaries containing quarterly data for all stocks
         filename: Output filename
     """
     try:
-        # Create output data with only period and total_return
+        # Create output data with period, total_return, forward_return, and roa
         output_data = []
         for stock_data in all_data:
-            output_stock = {
-                "symbol": stock_data.get("symbol"),
-                "company_name": stock_data.get("company_name"),
-                "data": []
-            }
-            
-            # Include period, total_return, forward_return, and roa in the output
-            for entry in stock_data.get("data", []):
-                output_entry = {
-                    "period": entry.get("period"),
-                    "total_return": entry.get("total_return"),
-                    "forward_return": entry.get("forward_return"),
-                    "roa": entry.get("roa")
-                }
-                output_stock["data"].append(output_entry)
-            
-            output_data.append(output_stock)
+            if stock_data:  # Only include valid data
+                formatted_data = format_stock_data_for_json(stock_data)
+                output_data.append(formatted_data)
         
         with open(filename, 'w') as f:
             json.dump(output_data, f, indent=2)
-        print(f"\nData saved to {filename}")
+        print(f"\nFinal data saved to {filename}")
+        print(f"Saved data for {len(output_data)} stock(s)")
     except Exception as e:
         print(f"Error saving to {filename}: {e}")
 
 def main():
     """
-    Main function to fetch quarterly price and dividend data,
-    calculate total return, and save only total return to JSON
+    Main function to fetch quarterly data for all tickers individually
+    and save to JSON
     """
-    print("Fetching Quarterly Price and Dividend Data")
+    print("Fetching Quarterly Price and Dividend Data (Individual Requests)")
     print("=" * 80)
     
     # Load tickers
@@ -521,31 +333,22 @@ def main():
         print("No tickers found. Please check tickers.json")
         return
     
-    print(f"\nFound {len(tickers)} ticker(s): {', '.join(tickers)}\n")
+    print(f"\nFound {len(tickers)} ticker(s)\n")
     
-    # Fetch data for all tickers in batch
-    all_results = fetch_quarterly_data_batch(tickers)
+    # Fetch data for all tickers individually (data is appended as fetched)
+    all_results = fetch_all_tickers_individual(tickers, max_workers=10, output_file="data.json")
     
-    # Filter out None results
-    all_data = []
-    for stock_data in all_results:
-        if stock_data:
-            all_data.append(stock_data)
+    # Filter out None results for summary
+    all_data = [stock_data for stock_data in all_results if stock_data]
     
-    # Save to file
-    if all_data:
-        save_to_json(all_data)
-        
-        # Summary
-        print(f"\n{'='*80}")
-        print("SUMMARY")
-        print(f"{'='*80}")
-        print(f"Successfully fetched data for {len(all_data)} stock(s):")
-        for stock_data in all_data:
-            num_quarters = len(stock_data.get("data", []))
-            print(f"  - {stock_data['company_name']} ({stock_data['symbol']}): {num_quarters} quarters")
-    else:
-        print("\nNo data was successfully fetched.")
+    # Summary
+    print(f"\n{'='*80}")
+    print("SUMMARY")
+    print(f"{'='*80}")
+    print(f"Successfully fetched data for {len(all_data)} stock(s) out of {len(tickers)}")
+    if len(all_data) < len(tickers):
+        print(f"Failed to fetch data for {len(tickers) - len(all_data)} stock(s)")
+    print(f"\nAll data has been saved to data.json")
 
 if __name__ == "__main__":
     main()

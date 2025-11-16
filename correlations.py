@@ -1,5 +1,6 @@
 """
-Calculate correlation between ROA and forward return across all stocks and periods
+Calculate correlation between ROA and forward return by period
+For each period, calculate correlation across all stocks
 """
 import json
 import numpy as np
@@ -27,36 +28,41 @@ def load_data(filename: str = "data.json") -> List[dict]:
         print(f"Error: Invalid JSON in {filename}")
         return []
 
-def extract_roa_forward_return_pairs(data: List[dict]) -> Tuple[List[float], List[float]]:
+def extract_data_by_period(data: List[dict]) -> dict:
     """
-    Extract all (ROA, forward_return) pairs from all stocks and periods
-    Filters out None/null values and zero ROA values that might be invalid
+    Extract ROA and forward return data grouped by period
+    For each period, collect all stocks' ROA and forward_return values
     
     Args:
         data: List of stock data dictionaries
         
     Returns:
-        Tuple of (roa_values, forward_return_values) lists
+        Dictionary mapping period -> {'roa': [values], 'forward_return': [values]}
     """
-    roa_values = []
-    forward_return_values = []
+    period_data = {}
     
     for stock in data:
         symbol = stock.get("symbol", "Unknown")
         for entry in stock.get("data", []):
+            period = entry.get("period")
             roa = entry.get("roa")
             forward_return = entry.get("forward_return")
             
-            # Filter: both must be non-null and numeric
-            # For ROA, also filter out 0 values that might be missing data
-            # (though some companies might legitimately have 0 ROA)
+            # Skip invalid periods (like 0 or None)
+            if period is None or period == 0:
+                continue
+            
+            # Initialize period if not exists
+            if period not in period_data:
+                period_data[period] = {"roa": [], "forward_return": []}
+            
+            # Add valid data points
             if (roa is not None and forward_return is not None and 
                 isinstance(roa, (int, float)) and isinstance(forward_return, (int, float))):
-                # Include all valid numeric pairs
-                roa_values.append(float(roa))
-                forward_return_values.append(float(forward_return))
+                period_data[period]["roa"].append(float(roa))
+                period_data[period]["forward_return"].append(float(forward_return))
     
-    return roa_values, forward_return_values
+    return period_data
 
 def calculate_correlations(roa_values: List[float], forward_return_values: List[float]) -> dict:
     """
@@ -97,11 +103,12 @@ def calculate_correlations(roa_values: List[float], forward_return_values: List[
     roa_ranks = rankdata(roa_array, method='average')
     forward_return_ranks = rankdata(forward_return_array, method='average')
     
-    # Verify rank ranges (should be 1 to n)
-    assert roa_ranks.min() == 1 and roa_ranks.max() == len(roa_array), \
-        f"ROA ranks should range from 1 to {len(roa_array)}"
-    assert forward_return_ranks.min() == 1 and forward_return_ranks.max() == len(forward_return_array), \
-        f"Forward return ranks should range from 1 to {len(forward_return_array)}"
+    # Verify rank ranges (should be 1 to n, but may be less than n if there are ties)
+    # With ties, rankdata uses average ranks, so max rank may be less than n
+    assert roa_ranks.min() == 1 and roa_ranks.max() <= len(roa_array), \
+        f"ROA ranks should range from 1 to at most {len(roa_array)}"
+    assert forward_return_ranks.min() == 1 and forward_return_ranks.max() <= len(forward_return_array), \
+        f"Forward return ranks should range from 1 to at most {len(forward_return_array)}"
     
     # Calculate Pearson correlation on original values (linear relationship)
     pearson_corr, pearson_p = pearsonr(roa_array, forward_return_array)
@@ -231,9 +238,54 @@ def plot_ranks(roa_ranks: List[float], forward_return_ranks: List[float],
     # Show plot
     plt.show()
 
+def print_period_correlations(period_results: List[dict]):
+    """
+    Print correlation results for each period
+    
+    Args:
+        period_results: List of dictionaries with period correlation results
+    """
+    print("\n" + "="*100)
+    print("ROA vs Forward Return Correlation by Period")
+    print("="*100)
+    print(f"\n{'Period':<15} {'N Stocks':<12} {'Ranked Corr':<15} {'p-value':<15} {'Significant':<12}")
+    print("-" * 100)
+    
+    significant_count = 0
+    correlations = []
+    
+    for result in period_results:
+        period = result['period']
+        n_stocks = result['n_pairs']
+        ranked_corr = result['ranked_correlation']
+        p_value = result['ranked_pvalue']
+        is_significant = p_value < 0.05 if p_value is not None else False
+        
+        if is_significant:
+            significant_count += 1
+        if ranked_corr is not None:
+            correlations.append(ranked_corr)
+        
+        p_str = f"{p_value:.4e}" if p_value is not None else "N/A"
+        corr_str = f"{ranked_corr:.4f}" if ranked_corr is not None else "N/A"
+        sig_str = "Yes" if is_significant else "No"
+        
+        print(f"{str(period):<15} {n_stocks:<12} {corr_str:<15} {p_str:<15} {sig_str:<12}")
+    
+    print("\n" + "="*100)
+    print("Summary Statistics Across All Periods:")
+    print(f"  Total periods analyzed: {len(period_results)}")
+    print(f"  Periods with significant correlation (p < 0.05): {significant_count}")
+    if correlations:
+        print(f"  Average ranked correlation: {np.mean(correlations):.4f}")
+        print(f"  Median ranked correlation: {np.median(correlations):.4f}")
+        print(f"  Min ranked correlation: {np.min(correlations):.4f}")
+        print(f"  Max ranked correlation: {np.max(correlations):.4f}")
+    print("="*100)
+
 def main():
     """
-    Main function to calculate and display ROA vs forward return correlation
+    Main function to calculate and display ROA vs forward return correlation by period
     """
     print("Loading data...")
     data = load_data("data.json")
@@ -244,30 +296,34 @@ def main():
     
     print(f"Loaded data for {len(data)} stock(s)")
     
-    # Extract all (ROA, forward_return) pairs
-    print("\nExtracting ROA and forward return pairs...")
-    roa_values, forward_return_values = extract_roa_forward_return_pairs(data)
+    # Extract data grouped by period
+    print("\nExtracting ROA and forward return data by period...")
+    period_data = extract_data_by_period(data)
     
-    print(f"Found {len(roa_values):,} valid (ROA, forward_return) pairs")
+    print(f"Found {len(period_data)} unique periods")
     
-    if len(roa_values) == 0:
-        print("No valid data pairs found. Exiting.")
+    if len(period_data) == 0:
+        print("No valid period data found. Exiting.")
         return
     
-    # Calculate correlations
-    print("\nCalculating correlations...")
-    stats = calculate_correlations(roa_values, forward_return_values)
+    # Calculate correlations for each period
+    print("\nCalculating correlations for each period...")
+    period_results = []
     
-    # Print statistics
-    print_statistics(stats)
+    # Sort periods for consistent output
+    sorted_periods = sorted([p for p in period_data.keys() if isinstance(p, str) or (isinstance(p, (int, float)) and p != 0)])
     
-    # Create visualization of ranks
-    print("\nCreating scatter plot of ranks...")
-    try:
-        plot_ranks(stats['roa_ranks'], stats['forward_return_ranks'], stats)
-    except Exception as e:
-        print(f"Warning: Could not create plot: {e}")
-        print("Continuing without visualization...")
+    for period in sorted_periods:
+        roa_values = period_data[period]["roa"]
+        forward_return_values = period_data[period]["forward_return"]
+        
+        if len(roa_values) >= 2 and len(roa_values) == len(forward_return_values):
+            stats = calculate_correlations(roa_values, forward_return_values)
+            stats['period'] = period
+            period_results.append(stats)
+    
+    # Print results by period
+    print_period_correlations(period_results)
 
 if __name__ == "__main__":
     main()
