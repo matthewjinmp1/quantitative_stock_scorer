@@ -1,11 +1,13 @@
 """
-Program to fetch quarterly price and dividend data from QuickFS API
-for stocks listed in tickers.json, fetching one ticker at a time
-and saving all data to JSON
+Program to fetch quarterly financial data from QuickFS API for stocks listed
+in tickers.json. Uses concurrent threading to fetch multiple tickers in parallel,
+appends data to JSON incrementally as each ticker is fetched, and skips already
+processed tickers to support resumable execution.
 """
 import json
 import os
 import threading
+import time
 from quickfs import QuickFS
 from typing import Dict, List, Optional, Set, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -51,14 +53,15 @@ def format_symbol(ticker: str) -> str:
 
 def process_quarterly_data(data: Dict, symbol: str) -> Optional[Dict]:
     """
-    Extract raw quarterly data from QuickFS response without any calculations
+    Extract raw quarterly data from QuickFS response in compact format
+    Stores data in QuickFS format: each metric is a key with a list of values
     
     Args:
         data: Full data response from QuickFS
         symbol: Original ticker symbol
     
     Returns:
-        Dictionary containing raw quarterly data
+        Dictionary containing raw quarterly data in QuickFS format
     """
     if not data or "financials" not in data:
         return None
@@ -71,58 +74,16 @@ def process_quarterly_data(data: Dict, symbol: str) -> Optional[Dict]:
     metadata = data.get("metadata", {})
     company_name = metadata.get("name", symbol)
     
-    # Get all available quarterly metrics - store everything as raw data
-    # Find the longest list to determine number of periods
-    all_keys = list(quarterly.keys())
-    if not all_keys:
-        return None
-    
-    # Find the maximum length to determine number of periods
-    # Only consider keys that have list values
-    lengths = []
-    for key in all_keys:
-        value = quarterly.get(key)
-        if isinstance(value, list):
-            lengths.append(len(value))
-    
-    if not lengths:
-        return None
-    
-    max_length = max(lengths)
-    
-    # Build raw data entries for each period
-    quarterly_data = []
-    for j in range(max_length):
-        period_entry = {}
-        
-        # Store all available metrics for this period
-        for key in all_keys:
-            values = quarterly.get(key)
-            # Only process if it's a list
-            if isinstance(values, list):
-                if j < len(values):
-                    value = values[j]
-                    # Store the value as-is (could be None, number, string, etc.)
-                    period_entry[key] = value
-                else:
-                    # If this metric doesn't have data for this period, set to None
-                    period_entry[key] = None
-            else:
-                # If the value is not a list (e.g., a single value), store it for all periods
-                # or set to None if it's not applicable
-                period_entry[key] = values
-        
-        quarterly_data.append(period_entry)
-    
+    # Store quarterly data in QuickFS format (compact: metric -> list of values)
     return {
         "symbol": symbol,
         "company_name": company_name,
-        "data": quarterly_data
+        "data": quarterly
     }
 
 def fetch_single_ticker(ticker: str, max_retries: int = 3) -> Optional[Dict]:
     """
-    Fetch data for a single ticker
+    Fetch data for a single ticker with rate limit handling
     
     Args:
         ticker: Stock ticker symbol (e.g., 'GOOGL')
@@ -140,31 +101,41 @@ def fetch_single_ticker(ticker: str, max_retries: int = 3) -> Optional[Dict]:
             processed_data = process_quarterly_data(data, ticker)
             return processed_data
         except Exception as e:
-            if attempt < max_retries - 1:
+            error_str = str(e).lower()
+            # Check for rate limit errors (429 or rate limit in message)
+            is_rate_limit = '429' in error_str or 'rate limit' in error_str or 'too many requests' in error_str
+            
+            if is_rate_limit and attempt < max_retries - 1:
+                # Exponential backoff for rate limits: 2^attempt seconds
+                wait_time = 2 ** attempt
+                print(f"  Rate limit hit for {ticker}, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
+                time.sleep(wait_time)
+            elif attempt < max_retries - 1:
+                # Short delay for other errors
                 print(f"  Retry {attempt + 1}/{max_retries} for {ticker}...")
+                time.sleep(1)
             else:
                 print(f"  Error fetching {ticker} after {max_retries} attempts: {e}")
                 return None
     
     return None
 
-def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 10, 
+def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25, 
                                   output_file: str = "data.json") -> List[Optional[Dict]]:
     """
-    Fetch data for all tickers one at a time, using concurrent requests
+    Fetch data for all tickers one at a time, sequentially (no threading)
     Appends data to JSON file as each ticker is fetched
     
     Args:
         tickers: List of stock ticker symbols
-        max_workers: Maximum number of concurrent threads (default: 10)
+        max_workers: Ignored (kept for compatibility, but not used)
         output_file: Output JSON filename
     
     Returns:
         List of dictionaries containing quarterly data for each ticker
     """
     total_tickers = len(tickers)
-    print(f"Fetching data for {total_tickers} ticker(s) individually...")
-    print(f"Using {max_workers} concurrent threads")
+    print(f"Fetching data for {total_tickers} ticker(s) sequentially (one at a time)...")
     print(f"Data will be appended to {output_file} as fetched\n")
     
     # Load existing data to skip already processed tickers
@@ -185,43 +156,33 @@ def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 10,
     results = [None] * total_tickers
     completed = len(processed_tickers)
     
-    # File lock for thread-safe JSON writing
-    file_lock = threading.Lock()
-    
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks for remaining tickers
-        future_to_info = {}
-        for idx, ticker in enumerate(remaining_tickers):
-            original_index = remaining_indices[idx]
-            future = executor.submit(fetch_single_ticker, ticker)
-            future_to_info[future] = (original_index, ticker)
+    # Fetch one ticker at a time sequentially
+    for idx, ticker in enumerate(remaining_tickers):
+        original_index = remaining_indices[idx]
         
-        # Process completed tasks
-        for future in as_completed(future_to_info):
-            original_index, ticker = future_to_info[future]
-            try:
-                result = future.result()
-                results[original_index] = result
-                completed += 1
-                
-                if result:
-                    # Append to JSON file immediately
-                    append_stock_to_json(result, output_file, file_lock)
-                    print(f"  [{completed}/{total_tickers}] Fetched and saved {ticker}")
-                else:
-                    print(f"  [{completed}/{total_tickers}] Failed {ticker}")
-            except Exception as e:
-                print(f"  [{completed + 1}/{total_tickers}] Error processing {ticker}: {e}")
-                completed += 1
+        try:
+            result = fetch_single_ticker(ticker)
+            results[original_index] = result
+            completed += 1
+            
+            if result:
+                # Append to JSON file immediately
+                append_stock_to_json(result, output_file, None)
+                print(f"  [{completed}/{total_tickers}] Fetched and saved {ticker}")
+            else:
+                print(f"  [{completed}/{total_tickers}] Failed {ticker}")
+        except Exception as e:
+            print(f"  [{completed + 1}/{total_tickers}] Error processing {ticker}: {e}")
+            completed += 1
     
     return results
 
 def load_existing_data(filename: str = "data.json") -> Tuple[List[Dict], Set[str]]:
     """
-    Load existing data from JSON file and return set of already processed tickers
+    Load existing data from JSONL file (one JSON object per line) and return set of already processed tickers
     
     Args:
-        filename: Path to JSON file
+        filename: Path to JSONL file
     
     Returns:
         Tuple of (existing_data, processed_tickers_set)
@@ -230,36 +191,51 @@ def load_existing_data(filename: str = "data.json") -> Tuple[List[Dict], Set[str
         return [], set()
     
     try:
+        existing_data = []
+        processed_tickers = set()
+        
         with open(filename, 'r') as f:
-            data = json.load(f)
-            if isinstance(data, list):
-                processed_tickers = {stock.get("symbol") for stock in data if stock.get("symbol")}
-                return data, processed_tickers
-            return [], set()
-    except (json.JSONDecodeError, FileNotFoundError):
+            for line in f:
+                line = line.strip()
+                if not line:  # Skip empty lines
+                    continue
+                try:
+                    stock = json.loads(line)
+                    symbol = stock.get("symbol")
+                    if symbol:
+                        processed_tickers.add(symbol)
+                        existing_data.append(stock)
+                except json.JSONDecodeError:
+                    # Skip invalid JSON lines
+                    continue
+        
+        return existing_data, processed_tickers
+    except (FileNotFoundError, IOError):
         return [], set()
 
 def format_stock_data_for_json(stock_data: Dict) -> Dict:
     """
-    Format a single stock's data for JSON output (raw data, no calculations)
+    Format a single stock's data for JSON output (raw data in QuickFS format)
     
     Args:
         stock_data: Dictionary containing quarterly data for a stock
     
     Returns:
-        Formatted dictionary for JSON output with all raw data
+        Formatted dictionary for JSON output with all raw data in compact format
     """
     output_stock = {
         "symbol": stock_data.get("symbol"),
         "company_name": stock_data.get("company_name"),
-        "data": stock_data.get("data", [])  # Store all raw data as-is
+        "data": stock_data.get("data", {})  # Store in QuickFS format: metric -> list of values
     }
     
     return output_stock
 
 def append_stock_to_json(stock_data: Dict, filename: str = "data.json", file_lock: threading.Lock = None):
     """
-    Append a single stock's data to JSON file
+    Append a single stock's data to JSONL file (one JSON object per line)
+    If ticker already exists, replaces it by rewriting the file
+    For new tickers, efficiently appends to end of file
     
     Args:
         stock_data: Dictionary containing quarterly data for a stock
@@ -275,20 +251,54 @@ def append_stock_to_json(stock_data: Dict, filename: str = "data.json", file_loc
             file_lock.acquire()
         
         try:
-            # Load existing data
-            existing_data, _ = load_existing_data(filename)
-            
-            # Check if this ticker already exists
             symbol = stock_data.get("symbol")
-            existing_data = [s for s in existing_data if s.get("symbol") != symbol]
-            
-            # Add new stock data
             formatted_data = format_stock_data_for_json(stock_data)
-            existing_data.append(formatted_data)
+            new_line = json.dumps(formatted_data, separators=(',', ':'))
             
-            # Write back to file
-            with open(filename, 'w') as f:
-                json.dump(existing_data, f, indent=2)
+            # Quick check if ticker exists (only read first part of file if needed)
+            ticker_found = False
+            if os.path.exists(filename):
+                # Check if ticker exists by scanning file
+                with open(filename, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            stock = json.loads(line)
+                            if stock.get("symbol") == symbol:
+                                ticker_found = True
+                                break
+                        except json.JSONDecodeError:
+                            continue
+            
+            if ticker_found:
+                # Ticker exists - need to rewrite file to replace it
+                existing_lines = []
+                with open(filename, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            stock = json.loads(line)
+                            if stock.get("symbol") == symbol:
+                                # Replace with new data
+                                existing_lines.append(new_line)
+                            else:
+                                existing_lines.append(line)
+                        except json.JSONDecodeError:
+                            # Keep invalid lines as-is
+                            existing_lines.append(line)
+                
+                # Write all lines back
+                with open(filename, 'w') as f:
+                    for line in existing_lines:
+                        f.write(line + '\n')
+            else:
+                # Ticker doesn't exist - just append new line (efficient!)
+                with open(filename, 'a') as f:
+                    f.write(new_line + '\n')
         finally:
             if file_lock:
                 file_lock.release()
@@ -298,24 +308,23 @@ def append_stock_to_json(stock_data: Dict, filename: str = "data.json", file_loc
 
 def save_to_json(all_data: List[Dict], filename: str = "data.json"):
     """
-    Save all quarterly data to JSON file (for final save/update)
+    Save all quarterly data to JSONL file (one JSON object per line)
     
     Args:
         all_data: List of dictionaries containing quarterly data for all stocks
         filename: Output filename
     """
     try:
-        # Create output data with period, total_return, forward_return, and roa
-        output_data = []
-        for stock_data in all_data:
-            if stock_data:  # Only include valid data
-                formatted_data = format_stock_data_for_json(stock_data)
-                output_data.append(formatted_data)
-        
+        # Write each stock as a separate line in JSONL format
         with open(filename, 'w') as f:
-            json.dump(output_data, f, indent=2)
+            for stock_data in all_data:
+                if stock_data:  # Only include valid data
+                    formatted_data = format_stock_data_for_json(stock_data)
+                    f.write(json.dumps(formatted_data, separators=(',', ':')) + '\n')
+        
+        count = sum(1 for stock_data in all_data if stock_data)
         print(f"\nFinal data saved to {filename}")
-        print(f"Saved data for {len(output_data)} stock(s)")
+        print(f"Saved data for {count} stock(s)")
     except Exception as e:
         print(f"Error saving to {filename}: {e}")
 
@@ -328,15 +337,16 @@ def main():
     print("=" * 80)
     
     # Load tickers
-    tickers = load_tickers("tickers.json")
+    tickers = load_tickers("nyse.json")
     if not tickers:
-        print("No tickers found. Please check tickers.json")
+        print("No tickers found. Please check nyse.json")
         return
     
     print(f"\nFound {len(tickers)} ticker(s)\n")
     
     # Fetch data for all tickers individually (data is appended as fetched)
-    all_results = fetch_all_tickers_individual(tickers, max_workers=10, output_file="data.json")
+    # Fetching sequentially (one at a time) to measure baseline speed
+    all_results = fetch_all_tickers_individual(tickers, max_workers=1, output_file="data.json")
     
     # Filter out None results for summary
     all_data = [stock_data for stock_data in all_results if stock_data]
