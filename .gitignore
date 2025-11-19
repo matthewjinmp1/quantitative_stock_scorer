@@ -36,10 +36,12 @@ ENV/
 *.swo
 *~
 
-# Data files (optional - uncomment if you don't want to commit data)
-# data.json
-# *.csv
-# *.xlsx
+# Data files
+data.jsonl
+metrics.json
+data.json
+*.csv
+*.xlsx
 
 # OS
 .DS_Store
