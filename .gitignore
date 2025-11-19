@@ -37,11 +37,22 @@ ENV/
 *~
 
 # Data files
-data.jsonl
-metrics.json
-data.json
+*.json
+*.jsonl
 *.csv
 *.xlsx
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+*.ico
+*.webp
+*.tiff
+*.tif
 
 # OS
 .DS_Store
