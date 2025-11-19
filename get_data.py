@@ -121,7 +121,7 @@ def fetch_single_ticker(ticker: str, max_retries: int = 3) -> Optional[Dict]:
     return None
 
 def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25, 
-                                  output_file: str = "data.json") -> List[Optional[Dict]]:
+                                  output_file: str = "data.jsonl") -> List[Optional[Dict]]:
     """
     Fetch data for all tickers one at a time, sequentially (no threading)
     Appends data to JSON file as each ticker is fetched
@@ -134,35 +134,46 @@ def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25,
     Returns:
         List of dictionaries containing quarterly data for each ticker
     """
-    total_tickers = len(tickers)
-    print(f"Fetching data for {total_tickers} ticker(s) sequentially (one at a time)...")
-    print(f"Data will be appended to {output_file} as fetched\n")
+    # Deduplicate input ticker list first (keep first occurrence)
+    seen_input = set()
+    unique_tickers = []
+    for ticker in tickers:
+        if ticker not in seen_input:
+            unique_tickers.append(ticker)
+            seen_input.add(ticker)
+    
+    if len(unique_tickers) < len(tickers):
+        print(f"Removed {len(tickers) - len(unique_tickers)} duplicate ticker(s) from input list")
     
     # Load existing data to skip already processed tickers
     existing_data, processed_tickers = load_existing_data(output_file)
     if processed_tickers:
-        print(f"Found {len(processed_tickers)} already processed ticker(s), skipping...")
+        print(f"Found {len(processed_tickers)} already processed ticker(s) in {output_file}, will skip...")
     
-    # Filter out already processed tickers
-    remaining_tickers = [t for t in tickers if t not in processed_tickers]
+    # Filter out already processed tickers (those already in the file)
+    remaining_tickers = [t for t in unique_tickers if t not in processed_tickers]
+    
+    if len(remaining_tickers) < len(unique_tickers):
+        skipped_count = len(unique_tickers) - len(remaining_tickers)
+        print(f"Skipping {skipped_count} ticker(s) that are already in {output_file}")
+    
+    total_tickers = len(unique_tickers)
+    print(f"Fetching data for {len(remaining_tickers)} ticker(s) sequentially (one at a time)...")
+    print(f"Data will be appended to {output_file} as fetched\n")
     remaining_indices = [i for i, t in enumerate(tickers) if t not in processed_tickers]
     
     if not remaining_tickers:
         print("All tickers already processed!")
-        return [None] * total_tickers
+        return []
     
-    print(f"Fetching {len(remaining_tickers)} remaining ticker(s)...\n")
-    
-    results = [None] * total_tickers
+    results = []
     completed = len(processed_tickers)
     
     # Fetch one ticker at a time sequentially
-    for idx, ticker in enumerate(remaining_tickers):
-        original_index = remaining_indices[idx]
-        
+    for ticker in remaining_tickers:
         try:
             result = fetch_single_ticker(ticker)
-            results[original_index] = result
+            results.append(result)
             completed += 1
             
             if result:
@@ -173,13 +184,15 @@ def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25,
                 print(f"  [{completed}/{total_tickers}] Failed {ticker}")
         except Exception as e:
             print(f"  [{completed + 1}/{total_tickers}] Error processing {ticker}: {e}")
+            results.append(None)
             completed += 1
     
     return results
 
-def load_existing_data(filename: str = "data.json") -> Tuple[List[Dict], Set[str]]:
+def load_existing_data(filename: str = "data.jsonl") -> Tuple[List[Dict], Set[str]]:
     """
     Load existing data from JSONL file (one JSON object per line) and return set of already processed tickers
+    Safely handles incomplete or corrupted lines (e.g., from interrupted writes)
     
     Args:
         filename: Path to JSONL file
@@ -193,6 +206,7 @@ def load_existing_data(filename: str = "data.json") -> Tuple[List[Dict], Set[str
     try:
         existing_data = []
         processed_tickers = set()
+        valid_lines = []
         
         with open(filename, 'r') as f:
             for line in f:
@@ -205,12 +219,21 @@ def load_existing_data(filename: str = "data.json") -> Tuple[List[Dict], Set[str
                     if symbol:
                         processed_tickers.add(symbol)
                         existing_data.append(stock)
+                        valid_lines.append(line)
                 except json.JSONDecodeError:
-                    # Skip invalid JSON lines
+                    # Skip invalid JSON lines (could be incomplete from interrupted write)
                     continue
         
+        # If we found any invalid lines, optionally clean up the file
+        # by rewriting only valid lines (but only if we're sure the file is corrupted)
+        # For now, we just skip invalid lines when reading
+        
         return existing_data, processed_tickers
-    except (FileNotFoundError, IOError):
+    except (FileNotFoundError, IOError) as e:
+        print(f"Warning: Error reading {filename}: {e}")
+        return [], set()
+    except Exception as e:
+        print(f"Warning: Unexpected error reading {filename}: {e}")
         return [], set()
 
 def format_stock_data_for_json(stock_data: Dict) -> Dict:
@@ -231,11 +254,12 @@ def format_stock_data_for_json(stock_data: Dict) -> Dict:
     
     return output_stock
 
-def append_stock_to_json(stock_data: Dict, filename: str = "data.json", file_lock: threading.Lock = None):
+def append_stock_to_json(stock_data: Dict, filename: str = "data.jsonl", file_lock: threading.Lock = None):
     """
     Append a single stock's data to JSONL file (one JSON object per line)
-    If ticker already exists, replaces it by rewriting the file
+    If ticker already exists, replaces it by rewriting the file atomically
     For new tickers, efficiently appends to end of file
+    Uses atomic writes to prevent corruption if interrupted
     
     Args:
         stock_data: Dictionary containing quarterly data for a stock
@@ -274,31 +298,60 @@ def append_stock_to_json(stock_data: Dict, filename: str = "data.json", file_loc
             
             if ticker_found:
                 # Ticker exists - need to rewrite file to replace it
+                # Use atomic write: write to temp file, then rename
                 existing_lines = []
-                with open(filename, 'r') as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        try:
-                            stock = json.loads(line)
-                            if stock.get("symbol") == symbol:
-                                # Replace with new data
-                                existing_lines.append(new_line)
-                            else:
-                                existing_lines.append(line)
-                        except json.JSONDecodeError:
-                            # Keep invalid lines as-is
-                            existing_lines.append(line)
+                if os.path.exists(filename):
+                    with open(filename, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                stock = json.loads(line)
+                                if stock.get("symbol") == symbol:
+                                    # Replace with new data
+                                    existing_lines.append(new_line)
+                                else:
+                                    existing_lines.append(line)
+                            except json.JSONDecodeError:
+                                # Skip invalid JSON lines to keep file clean
+                                continue
                 
-                # Write all lines back
-                with open(filename, 'w') as f:
-                    for line in existing_lines:
-                        f.write(line + '\n')
+                # Atomic write: write to temp file first, then rename
+                temp_filename = filename + '.tmp'
+                try:
+                    with open(temp_filename, 'w') as f:
+                        for line in existing_lines:
+                            f.write(line + '\n')
+                    # Only rename if write was successful
+                    # On Windows, we need to remove the old file first if it exists
+                    if os.path.exists(filename):
+                        os.replace(temp_filename, filename)
+                    else:
+                        os.rename(temp_filename, filename)
+                except Exception as e:
+                    # If something went wrong, try to clean up temp file
+                    if os.path.exists(temp_filename):
+                        try:
+                            os.remove(temp_filename)
+                        except:
+                            pass
+                    raise e
             else:
-                # Ticker doesn't exist - just append new line (efficient!)
-                with open(filename, 'a') as f:
-                    f.write(new_line + '\n')
+                # Ticker doesn't exist - append new line
+                # For JSONL format, appending is safe because each line is independent
+                # If interrupted, only the last line might be incomplete, which we handle when reading
+                try:
+                    with open(filename, 'a') as f:
+                        f.write(new_line + '\n')
+                        f.flush()  # Ensure data is written to disk
+                        os.fsync(f.fileno())  # Force write to disk (if available)
+                except (AttributeError, OSError):
+                    # os.fsync might not be available on all systems, that's okay
+                    # The flush() is usually sufficient
+                    with open(filename, 'a') as f:
+                        f.write(new_line + '\n')
+                        f.flush()
         finally:
             if file_lock:
                 file_lock.release()
@@ -306,7 +359,7 @@ def append_stock_to_json(stock_data: Dict, filename: str = "data.json", file_loc
     except Exception as e:
         print(f"  Error appending {stock_data.get('symbol', 'unknown')} to {filename}: {e}")
 
-def save_to_json(all_data: List[Dict], filename: str = "data.json"):
+def save_to_json(all_data: List[Dict], filename: str = "data.jsonl"):
     """
     Save all quarterly data to JSONL file (one JSON object per line)
     
@@ -346,7 +399,7 @@ def main():
     
     # Fetch data for all tickers individually (data is appended as fetched)
     # Fetching sequentially (one at a time) to measure baseline speed
-    all_results = fetch_all_tickers_individual(tickers, max_workers=1, output_file="data.json")
+    all_results = fetch_all_tickers_individual(tickers, max_workers=1, output_file="data.jsonl")
     
     # Filter out None results for summary
     all_data = [stock_data for stock_data in all_results if stock_data]
@@ -358,7 +411,7 @@ def main():
     print(f"Successfully fetched data for {len(all_data)} stock(s) out of {len(tickers)}")
     if len(all_data) < len(tickers):
         print(f"Failed to fetch data for {len(tickers) - len(all_data)} stock(s)")
-    print(f"\nAll data has been saved to data.json")
+    print(f"\nAll data has been saved to data.jsonl")
 
 if __name__ == "__main__":
     main()
