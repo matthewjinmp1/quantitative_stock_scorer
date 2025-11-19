@@ -1,6 +1,7 @@
 """
-Program to calculate metrics (total return, forward return, ROA) from data.jsonl
+Program to calculate metrics (total return, forward return, ROA, EBIT/PPE) from data.jsonl
 and save results to metrics.json
+EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment)
 """
 import json
 import os
@@ -47,7 +48,8 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         stock_data: Dictionary containing stock data from data.jsonl
     
     Returns:
-        Dictionary containing processed quarterly data with total_return and forward_return
+        Dictionary containing processed quarterly data with total_return, forward_return, ROA, and EBIT/PPE
+        EBIT/PPE = Operating Income / PPE
     """
     if not stock_data or "data" not in stock_data:
         return None
@@ -71,6 +73,8 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     prices = data.get("period_end_price", [])
     dividends = data.get("dividends", [])
     roa = data.get("roa", [])
+    operating_income = data.get("operating_income", [])
+    ppe_net = data.get("ppe_net", [])
     
     if not prices:
         print(f"  Warning: No price data found for {symbol}")
@@ -82,6 +86,13 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         current_price = prices[j] if j < len(prices) and prices[j] is not None else 0.0
         current_dividend = dividends[j] if j < len(dividends) and dividends[j] is not None else 0.0
         current_roa = roa[j] if j < len(roa) and roa[j] is not None else None
+        
+        # Calculate operating income / PPE (EBIT/PPE metric)
+        ebit_ppe = None
+        if (j < len(operating_income) and j < len(ppe_net) and 
+            operating_income[j] is not None and ppe_net[j] is not None and 
+            ppe_net[j] != 0):
+            ebit_ppe = operating_income[j] / ppe_net[j]
         
         # Calculate total return for the quarter (compared to previous quarter)
         # Formula: Total Return = ((Ending Price - Beginning Price + Dividends) / Beginning Price) * 100
@@ -96,6 +107,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             "price": current_price,
             "dividends": current_dividend,
             "roa": current_roa,
+            "ebit_ppe": ebit_ppe,  # Operating income / PPE
             "total_return": total_return
         })
     
@@ -190,13 +202,14 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward_return, and roa in the output
+            # Include period, total_return, forward_return, roa, and ebit_ppe in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
                     "total_return": entry.get("total_return"),
                     "forward_return": entry.get("forward_return"),
-                    "roa": entry.get("roa")
+                    "roa": entry.get("roa"),
+                    "ebit_ppe": entry.get("ebit_ppe")  # Operating income / PPE
                 }
                 output_stock["data"].append(output_entry)
             
@@ -228,7 +241,7 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward_return, ROA)...")
+    print("Calculating metrics (total_return, forward_return, ROA, EBIT/PPE)...")
     metrics_data = calculate_metrics_for_all_stocks(stocks)
     
     if not metrics_data:
