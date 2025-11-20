@@ -9,3 +9,9 @@ reduce data storage space
 add ebit ppe 
 
 algorithm backtester
+
+
+add these metrics to get_metrics and correlations: 
+
+operating margin
+gross margin 

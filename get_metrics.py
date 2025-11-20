@@ -1,7 +1,8 @@
 """
-Program to calculate metrics (total return, forward return, ROA, EBIT/PPE) from data.jsonl
+Program to calculate metrics (total return, forward return, ROA, EBIT/PPE, EBIT/PPE TTM) from data.jsonl
 and save results to metrics.json
-EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment)
+EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment) - quarterly
+EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
 """
 import json
 import os
@@ -48,8 +49,9 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         stock_data: Dictionary containing stock data from data.jsonl
     
     Returns:
-        Dictionary containing processed quarterly data with total_return, forward_return, ROA, and EBIT/PPE
-        EBIT/PPE = Operating Income / PPE
+        Dictionary containing processed quarterly data with total_return, forward_return, ROA, EBIT/PPE, and EBIT/PPE TTM
+        EBIT/PPE = Operating Income / PPE (quarterly)
+        EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
     """
     if not stock_data or "data" not in stock_data:
         return None
@@ -67,7 +69,6 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             break
     
     if not period_dates:
-        print(f"  Warning: No date data found for {symbol}")
         return None
     
     prices = data.get("period_end_price", [])
@@ -77,7 +78,6 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     ppe_net = data.get("ppe_net", [])
     
     if not prices:
-        print(f"  Warning: No price data found for {symbol}")
         return None
     
     # Process the data into quarterly entries
@@ -151,13 +151,47 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         
         quarterly_data[j]["forward_return"] = forward_return
     
+    # Calculate TTM (Trailing Twelve Months) EBIT/PPE
+    # TTM EBIT/PPE = Sum of operating income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
+    for j in range(len(quarterly_data)):
+        ebit_ppe_ttm = None
+        
+        # Need at least 4 quarters of data (j >= 3) to calculate TTM
+        if j >= 3:
+            # Sum operating income from quarters j, j-1, j-2, j-3
+            ttm_operating_income = 0.0
+            ttm_ppe = 0.0
+            valid_data = True
+            
+            # Sum the 4 trailing quarters (t, t-1, t-2, t-3)
+            for k in range(j - 3, j + 1):
+                if k < len(operating_income) and k < len(ppe_net):
+                    oi = operating_income[k] if k < len(operating_income) else None
+                    ppe = ppe_net[k] if k < len(ppe_net) else None
+                    
+                    if oi is not None and ppe is not None:
+                        ttm_operating_income += float(oi)
+                        ttm_ppe += float(ppe)
+                    else:
+                        valid_data = False
+                        break
+                else:
+                    valid_data = False
+                    break
+            
+            # Calculate TTM EBIT/PPE if we have valid data and PPE is not zero
+            if valid_data and ttm_ppe != 0:
+                ebit_ppe_ttm = ttm_operating_income / ttm_ppe
+        
+        quarterly_data[j]["ebit_ppe_ttm"] = ebit_ppe_ttm
+    
     return {
         "symbol": symbol,
         "company_name": company_name,
         "data": quarterly_data
     }
 
-def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> List[Dict]:
+def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
     """
     Calculate metrics (total_return, forward_return) for all stocks
     
@@ -165,9 +199,21 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> List[Dict]:
         stocks: List of stock data dictionaries from data.jsonl
     
     Returns:
-        List of dictionaries containing calculated metrics for each stock
+        Tuple of (results list, statistics dictionary)
     """
     results = []
+    stats = {
+        "total_stocks": len(stocks),
+        "processed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "total_quarters": 0,
+        "quarters_per_stock": [],
+        "roa_data_points": 0,
+        "ebit_ppe_data_points": 0,
+        "ebit_ppe_ttm_data_points": 0,
+        "forward_return_data_points": 0
+    }
     
     for stock_data in stocks:
         symbol = stock_data.get("symbol", "Unknown")
@@ -175,14 +221,27 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> List[Dict]:
             processed_data = extract_quarterly_data(stock_data)
             if processed_data:
                 results.append(processed_data)
+                stats["processed"] += 1
                 num_quarters = len(processed_data.get("data", []))
-                print(f"  Processed {symbol}: {num_quarters} quarters")
+                stats["total_quarters"] += num_quarters
+                stats["quarters_per_stock"].append(num_quarters)
+                
+                # Count data completeness
+                for entry in processed_data.get("data", []):
+                    if entry.get("roa") is not None:
+                        stats["roa_data_points"] += 1
+                    if entry.get("ebit_ppe") is not None:
+                        stats["ebit_ppe_data_points"] += 1
+                    if entry.get("ebit_ppe_ttm") is not None:
+                        stats["ebit_ppe_ttm_data_points"] += 1
+                    if entry.get("forward_return") is not None:
+                        stats["forward_return_data_points"] += 1
             else:
-                print(f"  Skipped {symbol}: No valid data")
+                stats["skipped"] += 1
         except Exception as e:
-            print(f"  Error processing {symbol}: {e}")
+            stats["errors"] += 1
     
-    return results
+    return results, stats
 
 def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json"):
     """
@@ -193,7 +252,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
         filename: Output filename
     """
     try:
-        # Create output data with only period, total_return, forward_return, and roa
+        # Create output data with period, total_return, forward_return, roa, ebit_ppe, and ebit_ppe_ttm
         output_data = []
         for stock_data in metrics_data:
             output_stock = {
@@ -202,14 +261,15 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward_return, roa, and ebit_ppe in the output
+            # Include period, total_return, forward_return, roa, ebit_ppe, and ebit_ppe_ttm in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
                     "total_return": entry.get("total_return"),
                     "forward_return": entry.get("forward_return"),
                     "roa": entry.get("roa"),
-                    "ebit_ppe": entry.get("ebit_ppe")  # Operating income / PPE
+                    "ebit_ppe": entry.get("ebit_ppe"),  # Operating income / PPE (quarterly)
+                    "ebit_ppe_ttm": entry.get("ebit_ppe_ttm")  # TTM Operating income / TTM PPE (4 trailing quarters)
                 }
                 output_stock["data"].append(output_entry)
             
@@ -241,8 +301,8 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward_return, ROA, EBIT/PPE)...")
-    metrics_data = calculate_metrics_for_all_stocks(stocks)
+    print("Calculating metrics (total_return, forward_return, ROA, EBIT/PPE, EBIT/PPE TTM)...")
+    metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
     
     if not metrics_data:
         print("\nNo metrics were successfully calculated.")
@@ -251,14 +311,32 @@ def main():
     # Save to metrics.json
     save_metrics_to_json(metrics_data, "metrics.json")
     
-    # Summary
+    # Print summary statistics
     print(f"\n{'='*80}")
-    print("SUMMARY")
+    print("PROCESSING SUMMARY")
     print(f"{'='*80}")
-    print(f"Successfully calculated metrics for {len(metrics_data)} stock(s):")
-    for stock_data in metrics_data:
-        num_quarters = len(stock_data.get("data", []))
-        print(f"  - {stock_data['company_name']} ({stock_data['symbol']}): {num_quarters} quarters")
+    print(f"Total stocks in input: {stats['total_stocks']}")
+    print(f"Successfully processed: {stats['processed']}")
+    print(f"Skipped (no valid data): {stats['skipped']}")
+    print(f"Errors: {stats['errors']}")
+    
+    if stats['processed'] > 0:
+        print(f"\nQuarterly Data Statistics:")
+        print(f"  Total quarters across all stocks: {stats['total_quarters']:,}")
+        if stats['quarters_per_stock']:
+            quarters_list = stats['quarters_per_stock']
+            avg_quarters = sum(quarters_list) / len(quarters_list)
+            print(f"  Average quarters per stock: {avg_quarters:.1f}")
+            print(f"  Min quarters per stock: {min(quarters_list)}")
+            print(f"  Max quarters per stock: {max(quarters_list)}")
+        
+        print(f"\nData Completeness (data points across all stocks/quarters):")
+        print(f"  ROA: {stats['roa_data_points']:,}")
+        print(f"  EBIT/PPE (quarterly): {stats['ebit_ppe_data_points']:,}")
+        print(f"  EBIT/PPE (TTM): {stats['ebit_ppe_ttm_data_points']:,}")
+        print(f"  Forward Return: {stats['forward_return_data_points']:,}")
+    
+    print(f"{'='*80}")
 
 if __name__ == "__main__":
     main()
