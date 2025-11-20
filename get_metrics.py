@@ -1,11 +1,13 @@
 """
-Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM) from data.jsonl
+Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin) from data.jsonl
 and save results to metrics.json
 forward_return = Annualized return from period j+1 to most recent period
 Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
 All forward returns are annualized
 EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment) - quarterly
 EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
+Gross Margin = (Revenue - Cost of Goods Sold) / Revenue
+Operating Margin = Operating Income / Revenue
 """
 import json
 import os
@@ -53,11 +55,13 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     
     Returns:
         Dictionary containing processed quarterly data with total_return, forward_return (total to end, annualized), 
-        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, and EBIT/PPE TTM
+        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, and Operating Margin
         forward_return = Annualized return from period j+1 to most recent period
         Forward returns 1y/3y/5y/10y are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
         EBIT/PPE = Operating Income / PPE (quarterly)
         EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
+        Gross Margin = (Revenue - Cost of Goods Sold) / Revenue
+        Operating Margin = Operating Income / Revenue
     """
     if not stock_data or "data" not in stock_data:
         return None
@@ -82,6 +86,11 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     roa = data.get("roa", [])
     operating_income = data.get("operating_income", [])
     ppe_net = data.get("ppe_net", [])
+    revenue = data.get("revenue", [])
+    cost_of_goods_sold = data.get("cost_of_goods_sold", [])
+    # Also try alternative key names
+    if not cost_of_goods_sold:
+        cost_of_goods_sold = data.get("cogs", [])
     
     # Ensure all data arrays are lists
     if not isinstance(prices, list) or not prices:
@@ -94,6 +103,10 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         operating_income = []
     if not isinstance(ppe_net, list):
         ppe_net = []
+    if not isinstance(revenue, list):
+        revenue = []
+    if not isinstance(cost_of_goods_sold, list):
+        cost_of_goods_sold = []
     
     # Process the data into quarterly entries
     quarterly_data = []
@@ -109,6 +122,20 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             ppe_net[j] != 0):
             ebit_ppe = operating_income[j] / ppe_net[j]
         
+        # Calculate gross margin = (Revenue - Cost of Goods Sold) / Revenue
+        gross_margin = None
+        if (j < len(revenue) and j < len(cost_of_goods_sold) and
+            revenue[j] is not None and cost_of_goods_sold[j] is not None and
+            revenue[j] != 0):
+            gross_margin = (revenue[j] - cost_of_goods_sold[j]) / revenue[j]
+        
+        # Calculate operating margin = Operating Income / Revenue
+        operating_margin = None
+        if (j < len(operating_income) and j < len(revenue) and
+            operating_income[j] is not None and revenue[j] is not None and
+            revenue[j] != 0):
+            operating_margin = operating_income[j] / revenue[j]
+        
         # Calculate total return for the quarter (compared to previous quarter)
         # Formula: Total Return = ((Ending Price - Beginning Price + Dividends) / Beginning Price) * 100
         total_return = None
@@ -123,6 +150,8 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             "dividends": current_dividend,
             "roa": current_roa,
             "ebit_ppe": ebit_ppe,  # Operating income / PPE
+            "gross_margin": gross_margin,  # (Revenue - COGS) / Revenue
+            "operating_margin": operating_margin,  # Operating Income / Revenue
             "total_return": total_return
         })
     
@@ -278,6 +307,8 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
         "roa_data_points": 0,
         "ebit_ppe_data_points": 0,
         "ebit_ppe_ttm_data_points": 0,
+        "gross_margin_data_points": 0,
+        "operating_margin_data_points": 0,
         "forward_return_1y_data_points": 0,
         "forward_return_3y_data_points": 0,
         "forward_return_5y_data_points": 0,
@@ -307,6 +338,10 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
                         stats["ebit_ppe_data_points"] += 1
                     if entry.get("ebit_ppe_ttm") is not None:
                         stats["ebit_ppe_ttm_data_points"] += 1
+                    if entry.get("gross_margin") is not None:
+                        stats["gross_margin_data_points"] += 1
+                    if entry.get("operating_margin") is not None:
+                        stats["operating_margin_data_points"] += 1
                     if entry.get("forward_return_1y") is not None:
                         stats["forward_return_1y_data_points"] += 1
                     if entry.get("forward_return_3y") is not None:
@@ -350,7 +385,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
         filename: Output filename
     """
     try:
-        # Create output data with period, total_return, forward_return, roa, ebit_ppe, and ebit_ppe_ttm
+        # Create output data with period, total_return, forward_return, roa, ebit_ppe, ebit_ppe_ttm, gross_margin, and operating_margin
         output_data = []
         for stock_data in metrics_data:
             output_stock = {
@@ -359,7 +394,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, and ebit_ppe_ttm in the output
+            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, ebit_ppe_ttm, gross_margin, and operating_margin in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
@@ -371,7 +406,9 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                     "forward_return_10y": entry.get("forward_return_10y"),  # Annualized 10-year forward return
                     "roa": entry.get("roa"),
                     "ebit_ppe": entry.get("ebit_ppe"),  # Operating income / PPE (quarterly)
-                    "ebit_ppe_ttm": entry.get("ebit_ppe_ttm")  # TTM Operating income / TTM PPE (4 trailing quarters)
+                    "ebit_ppe_ttm": entry.get("ebit_ppe_ttm"),  # TTM Operating income / TTM PPE (4 trailing quarters)
+                    "gross_margin": entry.get("gross_margin"),  # (Revenue - COGS) / Revenue
+                    "operating_margin": entry.get("operating_margin")  # Operating Income / Revenue
                 }
                 output_stock["data"].append(output_entry)
             
@@ -403,7 +440,7 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM)...")
+    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin)...")
     metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
     
     if not metrics_data:
@@ -453,6 +490,8 @@ def main():
         print(f"  ROA: {stats['roa_data_points']:,}")
         print(f"  EBIT/PPE (quarterly): {stats['ebit_ppe_data_points']:,}")
         print(f"  EBIT/PPE (TTM): {stats['ebit_ppe_ttm_data_points']:,}")
+        print(f"  Gross Margin: {stats['gross_margin_data_points']:,}")
+        print(f"  Operating Margin: {stats['operating_margin_data_points']:,}")
         print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,}")
         print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,}")
         print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")
