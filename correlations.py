@@ -29,26 +29,37 @@ def load_data(filename: str = "metrics.json") -> List[dict]:
         print(f"Error: Invalid JSON in {filename}")
         return []
 
-def extract_data_by_period(data: List[dict]) -> dict:
+def extract_data_by_period(data: List[dict], metric_keys: List[str] = None) -> dict:
     """
-    Extract ROA, EBIT/PPE, and forward return data grouped by period
-    For each period, collect all stocks' ROA, EBIT/PPE, and forward_return values
+    Extract metrics and forward return data grouped by period
+    For each period, collect all stocks' metric values and forward_return values
     
     Args:
         data: List of stock data dictionaries
+        metric_keys: List of metric keys to extract (if None, auto-detect from data)
         
     Returns:
-        Dictionary mapping period -> {'roa': [values], 'ebit_ppe': [values], 
-                                      'forward_return_roa': [values], 'forward_return_ebit': [values]}
+        Dictionary mapping period -> {metric_key: [values], 'forward_return_' + metric_key: [values]}
     """
     period_data = {}
+    
+    # Auto-detect metric keys if not provided
+    if metric_keys is None:
+        metric_keys = []
+        for stock in data:
+            for entry in stock.get("data", []):
+                # Find all numeric metrics (excluding period, price, dividends, total_return, forward_return)
+                excluded_keys = {'period', 'price', 'dividends', 'total_return', 'forward_return'}
+                for key, value in entry.items():
+                    if key not in excluded_keys and value is not None and isinstance(value, (int, float)):
+                        if key not in metric_keys:
+                            metric_keys.append(key)
+                break  # Only need to check one entry
     
     for stock in data:
         symbol = stock.get("symbol", "Unknown")
         for entry in stock.get("data", []):
             period = entry.get("period")
-            roa = entry.get("roa")
-            ebit_ppe = entry.get("ebit_ppe")
             forward_return = entry.get("forward_return")
             
             # Skip invalid periods (like 0 or None)
@@ -57,19 +68,18 @@ def extract_data_by_period(data: List[dict]) -> dict:
             
             # Initialize period if not exists
             if period not in period_data:
-                period_data[period] = {"roa": [], "ebit_ppe": [], "forward_return_roa": [], "forward_return_ebit": []}
+                period_data[period] = {}
+                for metric_key in metric_keys:
+                    period_data[period][metric_key] = []
+                    period_data[period][f"forward_return_{metric_key}"] = []
             
-            # Add valid ROA data points
-            if (roa is not None and forward_return is not None and 
-                isinstance(roa, (int, float)) and isinstance(forward_return, (int, float))):
-                period_data[period]["roa"].append(float(roa))
-                period_data[period]["forward_return_roa"].append(float(forward_return))
-            
-            # Add valid EBIT/PPE data points
-            if (ebit_ppe is not None and forward_return is not None and 
-                isinstance(ebit_ppe, (int, float)) and isinstance(forward_return, (int, float))):
-                period_data[period]["ebit_ppe"].append(float(ebit_ppe))
-                period_data[period]["forward_return_ebit"].append(float(forward_return))
+            # Add valid data points for each metric
+            for metric_key in metric_keys:
+                metric_value = entry.get(metric_key)
+                if (metric_value is not None and forward_return is not None and 
+                    isinstance(metric_value, (int, float)) and isinstance(forward_return, (int, float))):
+                    period_data[period][metric_key].append(float(metric_value))
+                    period_data[period][f"forward_return_{metric_key}"].append(float(forward_return))
     
     return period_data
 
@@ -233,58 +243,119 @@ def plot_ranks(roa_ranks: List[float], forward_return_ranks: List[float],
     # Show plot
     plt.show()
 
-def get_metric_selection() -> str:
+def detect_available_metrics(data: List[dict]) -> dict:
     """
-    Display a menu and get user's metric selection
+    Detect which metrics are available in the data
+    
+    Args:
+        data: List of stock data dictionaries
     
     Returns:
-        String indicating selected metric: 'roa', 'ebit_ppe', 'both', or 'exit'
+        Dictionary mapping metric keys to their display names and descriptions
+    """
+    available_metrics = {}
+    metric_display_names = {
+        'roa': 'ROA (Return on Assets)',
+        'ebit_ppe': 'EBIT/PPE (EBIT per Property, Plant & Equipment)',
+        'ebit_ppe_ttm': 'EBIT/PPE TTM (Trailing Twelve Months)'
+    }
+    
+    # Check which metrics exist in the data by scanning all entries
+    # Exclude non-metric keys
+    excluded_keys = {'period', 'price', 'dividends', 'total_return', 'forward_return'}
+    
+    # First, find all potential metric keys by scanning all entries
+    all_metric_keys = set()
+    for stock in data:
+        for entry in stock.get("data", []):
+            for key, value in entry.items():
+                if key not in excluded_keys:
+                    # Check if it's a numeric value (could be a metric)
+                    if value is not None and isinstance(value, (int, float)):
+                        all_metric_keys.add(key)
+    
+    # Now check which of these have display names, or create default names
+    for metric_key in sorted(all_metric_keys):
+        if metric_key in metric_display_names:
+            # Use the predefined display name
+            available_metrics[metric_key] = metric_display_names[metric_key]
+        else:
+            # Create a default display name from the key
+            # Convert snake_case to Title Case
+            display_name = metric_key.replace('_', ' ').title()
+            available_metrics[metric_key] = display_name
+    
+    return available_metrics
+
+def get_metric_selection(available_metrics: dict) -> str:
+    """
+    Display a dynamic menu and get user's metric selection
+    
+    Args:
+        available_metrics: Dictionary mapping metric keys to display names
+    
+    Returns:
+        String indicating selected metric(s) or 'exit'
     """
     print("\n" + "="*80)
     print("Correlation Analysis - Metric Selection")
     print("="*80)
     print("\nSelect which metric to analyze:")
-    print("  1. ROA (Return on Assets)")
-    print("  2. EBIT/PPE (EBIT per Property, Plant & Equipment)")
-    print("  3. Both metrics")
-    print("  4. Exit")
+    
+    # Build menu dynamically based on available metrics
+    menu_items = []
+    metric_keys = sorted(available_metrics.keys())  # Sort for consistent ordering
+    
+    # Add individual metrics
+    for i, metric_key in enumerate(metric_keys, start=1):
+        menu_items.append((str(i), metric_key, available_metrics[metric_key]))
+        print(f"  {i}. {available_metrics[metric_key]}")
+    
+    # Add "All metrics" option if more than one metric
+    if len(metric_keys) > 1:
+        menu_items.append((str(len(metric_keys) + 1), 'all', 'All metrics'))
+        print(f"  {len(metric_keys) + 1}. All metrics")
+    
+    # Add exit option
+    exit_num = len(metric_keys) + (2 if len(metric_keys) > 1 else 1)
+    menu_items.append((str(exit_num), 'exit', 'Exit'))
+    print(f"  {exit_num}. Exit")
+    
     print("="*80)
     
+    max_choice = exit_num
     while True:
         try:
-            choice = input("\nEnter your choice (1-4): ").strip()
+            choice = input(f"\nEnter your choice (1-{max_choice}): ").strip()
             
-            if choice == '1':
-                return 'roa'
-            elif choice == '2':
-                return 'ebit_ppe'
-            elif choice == '3':
-                return 'both'
-            elif choice == '4':
-                return 'exit'
-            else:
-                print("Invalid choice. Please enter 1, 2, 3, or 4.")
+            # Find the menu item for this choice
+            for num, key, _ in menu_items:
+                if choice == num:
+                    return key
+            
+            print(f"Invalid choice. Please enter a number between 1 and {max_choice}.")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return 'exit'
         except Exception as e:
             print(f"Error: {e}. Please try again.")
 
-def print_roa_correlations_over_time(roa_results: List[dict]):
+def print_correlations_over_time(results: List[dict], metric_name: str):
     """
-    Print ROA correlation for each period over time
+    Print correlation for each period over time for a given metric
     
     Args:
-        roa_results: List of dictionaries with ROA correlation results
+        results: List of dictionaries with correlation results
+        metric_name: Display name of the metric
     """
     print("\n" + "="*100)
-    print("ROA vs Forward Return Correlation by Period (Over Time)")
+    print(f"{metric_name} vs Forward Return Correlation by Period (Over Time)")
     print("="*100)
     print(f"\n{'Period':<15} {'Correlation':<15} {'p-value':<15} {'Significant':<15} {'N Pairs':<15}")
     print("-" * 100)
     
     # Sort results by period for chronological display
-    sorted_results = sorted(roa_results, key=lambda x: x.get('period', 0))
+    sorted_results = sorted(results, key=lambda x: x.get('period', 0))
     
     for result in sorted_results:
         period = result.get('period', 'Unknown')
@@ -301,40 +372,63 @@ def print_roa_correlations_over_time(roa_results: List[dict]):
     
     print("="*100)
 
+def print_roa_correlations_over_time(roa_results: List[dict]):
+    """Print ROA correlation for each period over time (backward compatibility)"""
+    print_correlations_over_time(roa_results, "ROA")
+
 def print_ebit_ppe_correlations_over_time(ebit_ppe_results: List[dict]):
+    """Print EBIT/PPE correlation for each period over time (backward compatibility)"""
+    print_correlations_over_time(ebit_ppe_results, "EBIT/PPE")
+
+def print_period_correlations_summary(results: List[dict], metric_name: str):
     """
-    Print EBIT/PPE correlation for each period over time
+    Print summary statistics for correlation results across all periods for a given metric
     
     Args:
-        ebit_ppe_results: List of dictionaries with EBIT/PPE correlation results
+        results: List of dictionaries with correlation results
+        metric_name: Display name of the metric
     """
+    if not results:
+        return
+    
     print("\n" + "="*100)
-    print("EBIT/PPE vs Forward Return Correlation by Period (Over Time)")
+    print(f"{metric_name} vs Forward Return Correlation Summary")
     print("="*100)
-    print(f"\n{'Period':<15} {'Correlation':<15} {'p-value':<15} {'Significant':<15} {'N Pairs':<15}")
-    print("-" * 100)
     
-    # Sort results by period for chronological display
-    sorted_results = sorted(ebit_ppe_results, key=lambda x: x.get('period', 0))
+    significant_count = 0
+    correlations = []
+    weights = []  # Number of data points for each period (for weighting)
     
-    for result in sorted_results:
-        period = result.get('period', 'Unknown')
+    for result in results:
         ranked_corr = result.get('ranked_correlation')
         p_value = result.get('ranked_pvalue')
-        n_pairs = result.get('n_pairs', 0)
+        is_significant = p_value < 0.05 if p_value is not None else False
         
-        if ranked_corr is not None and p_value is not None:
-            is_significant = p_value < 0.05
-            significance = "Yes" if is_significant else "No"
-            print(f"{str(period):<15} {ranked_corr:<15.4f} {p_value:<15.4e} {significance:<15} {n_pairs:<15}")
-        else:
-            print(f"{str(period):<15} {'N/A':<15} {'N/A':<15} {'N/A':<15} {n_pairs:<15}")
+        if is_significant:
+            significant_count += 1
+        if ranked_corr is not None:
+            correlations.append(ranked_corr)
+            weights.append(result.get('n_pairs', 0))  # Use number of data points as weight
     
+    print("\nSummary Statistics Across All Periods:")
+    print(f"  Total periods analyzed: {len(results)}")
+    print(f"  Periods with significant correlation (p < 0.05): {significant_count}")
+    if correlations:
+        # Calculate weighted average correlation (weighted by number of data points)
+        correlations_array = np.array(correlations)
+        weights_array = np.array(weights)
+        weighted_avg = np.average(correlations_array, weights=weights_array)
+        
+        print(f"  Average ranked correlation (unweighted): {np.mean(correlations):.4f}")
+        print(f"  Weighted average ranked correlation (by data points): {weighted_avg:.4f}")
+        print(f"  Median ranked correlation: {np.median(correlations):.4f}")
+        print(f"  Min ranked correlation: {np.min(correlations):.4f}")
+        print(f"  Max ranked correlation: {np.max(correlations):.4f}")
     print("="*100)
 
 def print_period_correlations(roa_results: List[dict], ebit_ppe_results: List[dict]):
     """
-    Print summary statistics for correlation results across all periods
+    Print summary statistics for correlation results across all periods (backward compatibility)
     
     Args:
         roa_results: List of dictionaries with ROA correlation results
@@ -342,89 +436,17 @@ def print_period_correlations(roa_results: List[dict], ebit_ppe_results: List[di
     """
     # Print ROA summary if results are provided
     if roa_results:
-        print("\n" + "="*100)
-        print("ROA vs Forward Return Correlation Summary")
-        print("="*100)
-        
-        roa_significant_count = 0
-        roa_correlations = []
-        roa_weights = []  # Number of data points for each period (for weighting)
-        
-        for result in roa_results:
-            ranked_corr = result['ranked_correlation']
-            p_value = result['ranked_pvalue']
-            is_significant = p_value < 0.05 if p_value is not None else False
-            
-            if is_significant:
-                roa_significant_count += 1
-            if ranked_corr is not None:
-                roa_correlations.append(ranked_corr)
-                roa_weights.append(result['n_pairs'])  # Use number of data points as weight
-        
-        print("\nSummary Statistics Across All Periods:")
-        print(f"  Total periods analyzed: {len(roa_results)}")
-        print(f"  Periods with significant correlation (p < 0.05): {roa_significant_count}")
-        if roa_correlations:
-            # Calculate weighted average correlation (weighted by number of data points)
-            correlations_array = np.array(roa_correlations)
-            weights_array = np.array(roa_weights)
-            weighted_avg = np.average(correlations_array, weights=weights_array)
-            
-            print(f"  Average ranked correlation (unweighted): {np.mean(roa_correlations):.4f}")
-            print(f"  Weighted average ranked correlation (by data points): {weighted_avg:.4f}")
-            print(f"  Median ranked correlation: {np.median(roa_correlations):.4f}")
-            print(f"  Min ranked correlation: {np.min(roa_correlations):.4f}")
-            print(f"  Max ranked correlation: {np.max(roa_correlations):.4f}")
-        print("="*100)
+        print_period_correlations_summary(roa_results, "ROA")
     
     # Print EBIT/PPE summary if results are provided
     if ebit_ppe_results:
-        print("\n" + "="*100)
-        print("EBIT/PPE vs Forward Return Correlation Summary")
-        print("="*100)
-        
-        ebit_significant_count = 0
-        ebit_correlations = []
-        ebit_weights = []  # Number of data points for each period (for weighting)
-        
-        for result in ebit_ppe_results:
-            ranked_corr = result['ranked_correlation']
-            p_value = result['ranked_pvalue']
-            is_significant = p_value < 0.05 if p_value is not None else False
-            
-            if is_significant:
-                ebit_significant_count += 1
-            if ranked_corr is not None:
-                ebit_correlations.append(ranked_corr)
-                ebit_weights.append(result['n_pairs'])  # Use number of data points as weight
-        
-        print("\nSummary Statistics Across All Periods:")
-        print(f"  Total periods analyzed: {len(ebit_ppe_results)}")
-        print(f"  Periods with significant correlation (p < 0.05): {ebit_significant_count}")
-        if ebit_correlations:
-            # Calculate weighted average correlation (weighted by number of data points)
-            correlations_array = np.array(ebit_correlations)
-            weights_array = np.array(ebit_weights)
-            weighted_avg = np.average(correlations_array, weights=weights_array)
-            
-            print(f"  Average ranked correlation (unweighted): {np.mean(ebit_correlations):.4f}")
-            print(f"  Weighted average ranked correlation (by data points): {weighted_avg:.4f}")
-            print(f"  Median ranked correlation: {np.median(ebit_correlations):.4f}")
-            print(f"  Min ranked correlation: {np.min(ebit_correlations):.4f}")
-            print(f"  Max ranked correlation: {np.max(ebit_correlations):.4f}")
-        print("="*100)
+        print_period_correlations_summary(ebit_ppe_results, "EBIT/PPE")
 
 def main():
     """
     Main function to calculate and display correlation analysis by period
     """
-    # Get user's metric selection
-    selected_metric = get_metric_selection()
-    
-    if selected_metric == 'exit':
-        print("Exiting program.")
-        return
-    
+    # Load data first to detect available metrics
     print("Loading data from metrics.json...")
     data = load_data("metrics.json")
     
@@ -434,9 +456,29 @@ def main():
     
     print(f"Loaded data for {len(data)} stock(s)")
     
+    # Detect available metrics
+    available_metrics = detect_available_metrics(data)
+    
+    if not available_metrics:
+        print("No metrics found in data. Exiting.")
+        return
+    
+    # Get user's metric selection
+    selected_metrics = get_metric_selection(available_metrics)
+    
+    if selected_metrics == 'exit':
+        print("Exiting program.")
+        return
+    
+    # Determine which metrics to process
+    if selected_metrics == 'all':
+        metric_keys_to_process = list(available_metrics.keys())
+    else:
+        metric_keys_to_process = [selected_metrics]
+    
     # Extract data grouped by period
-    print("\nExtracting ROA, EBIT/PPE, and forward return data by period...")
-    period_data = extract_data_by_period(data)
+    print(f"\nExtracting metrics and forward return data by period...")
+    period_data = extract_data_by_period(data, metric_keys_to_process)
     
     print(f"Found {len(period_data)} unique periods")
     
@@ -444,46 +486,37 @@ def main():
         print("No valid period data found. Exiting.")
         return
     
-    # Calculate correlations for each period
+    # Calculate correlations for each period and each metric
     print("\nCalculating correlations for each period...")
-    roa_results = []
-    ebit_ppe_results = []
+    all_results = {metric_key: [] for metric_key in metric_keys_to_process}
     
     # Sort periods for consistent output
     sorted_periods = sorted([p for p in period_data.keys() if isinstance(p, str) or (isinstance(p, (int, float)) and p != 0)])
     
     for period in sorted_periods:
-        # Calculate ROA correlations (if needed)
-        if selected_metric in ['roa', 'both']:
-            roa_values = period_data[period]["roa"]
-            forward_return_roa = period_data[period]["forward_return_roa"]
+        for metric_key in metric_keys_to_process:
+            metric_values = period_data[period].get(metric_key, [])
+            forward_return_values = period_data[period].get(f"forward_return_{metric_key}", [])
             
-            if len(roa_values) >= 2 and len(roa_values) == len(forward_return_roa):
-                stats = calculate_correlations(roa_values, forward_return_roa)
+            if len(metric_values) >= 2 and len(metric_values) == len(forward_return_values):
+                stats = calculate_correlations(metric_values, forward_return_values)
                 stats['period'] = period
-                roa_results.append(stats)
-        
-        # Calculate EBIT/PPE correlations (if needed)
-        if selected_metric in ['ebit_ppe', 'both']:
-            ebit_ppe_values = period_data[period]["ebit_ppe"]
-            forward_return_ebit = period_data[period]["forward_return_ebit"]
-            
-            if len(ebit_ppe_values) >= 2 and len(ebit_ppe_values) == len(forward_return_ebit):
-                stats = calculate_correlations(ebit_ppe_values, forward_return_ebit)
-                stats['period'] = period
-                ebit_ppe_results.append(stats)
+                stats['metric_key'] = metric_key
+                all_results[metric_key].append(stats)
     
-    # Display results based on selection
-    if selected_metric == 'roa':
-        print_roa_correlations_over_time(roa_results)
-        print_period_correlations(roa_results, [])
-    elif selected_metric == 'ebit_ppe':
-        print_ebit_ppe_correlations_over_time(ebit_ppe_results)
-        print_period_correlations([], ebit_ppe_results)
-    elif selected_metric == 'both':
-        print_roa_correlations_over_time(roa_results)
-        print_ebit_ppe_correlations_over_time(ebit_ppe_results)
-        print_period_correlations(roa_results, ebit_ppe_results)
+    # Display results for each selected metric
+    for metric_key in metric_keys_to_process:
+        results = all_results[metric_key]
+        if results:
+            metric_name = available_metrics.get(metric_key, metric_key)
+            print_correlations_over_time(results, metric_name)
+    
+    # Print summary statistics for each selected metric
+    for metric_key in metric_keys_to_process:
+        results = all_results[metric_key]
+        if results:
+            metric_name = available_metrics.get(metric_key, metric_key)
+            print_period_correlations_summary(results, metric_name)
 
 if __name__ == "__main__":
     main()

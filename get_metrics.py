@@ -1,6 +1,7 @@
 """
-Program to calculate metrics (total return, forward return, ROA, EBIT/PPE, EBIT/PPE TTM) from data.jsonl
+Program to calculate metrics (total return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM) from data.jsonl
 and save results to metrics.json
+Forward returns are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
 EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment) - quarterly
 EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
 """
@@ -49,7 +50,8 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         stock_data: Dictionary containing stock data from data.jsonl
     
     Returns:
-        Dictionary containing processed quarterly data with total_return, forward_return, ROA, EBIT/PPE, and EBIT/PPE TTM
+        Dictionary containing processed quarterly data with total_return, forward returns (1y, 3y, 5y, 10y), ROA, EBIT/PPE, and EBIT/PPE TTM
+        Forward returns are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
         EBIT/PPE = Operating Income / PPE (quarterly)
         EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
     """
@@ -68,7 +70,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             period_dates = data[date_key]
             break
     
-    if not period_dates:
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
         return None
     
     prices = data.get("period_end_price", [])
@@ -77,8 +79,17 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     operating_income = data.get("operating_income", [])
     ppe_net = data.get("ppe_net", [])
     
-    if not prices:
+    # Ensure all data arrays are lists
+    if not isinstance(prices, list) or not prices:
         return None
+    if not isinstance(dividends, list):
+        dividends = []
+    if not isinstance(roa, list):
+        roa = []
+    if not isinstance(operating_income, list):
+        operating_income = []
+    if not isinstance(ppe_net, list):
+        ppe_net = []
     
     # Process the data into quarterly entries
     quarterly_data = []
@@ -111,45 +122,61 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             "total_return": total_return
         })
     
-    # Calculate forward returns (annualized)
-    # Forward return = cumulative total return from period j+1 to most recent period, annualized
+    # Calculate forward returns for specific periods: 1y, 3y, 5y, 10y
+    # Each period requires a specific number of quarters: 1y=4, 3y=12, 5y=20, 10y=40
+    forward_return_periods = {
+        '1y': 4,
+        '3y': 12,
+        '5y': 20,
+        '10y': 40
+    }
+    
     for j in range(len(quarterly_data)):
-        forward_return = None
-        if j < len(quarterly_data) - 1:
-            # Start with 100% and compound each future period's return
-            cumulative_value = 100.0
-            valid_returns = True
-            num_quarters = 0
-            
-            # Compound returns from period j+1 to the most recent period
-            for k in range(j + 1, len(quarterly_data)):
-                period_return = quarterly_data[k].get("total_return")
-                if period_return is not None:
-                    # Compound: multiply by (1 + return/100)
-                    cumulative_value = cumulative_value * (1 + period_return / 100.0)
-                    num_quarters += 1
-                else:
-                    # If any return is missing, we can't calculate forward return
-                    valid_returns = False
-                    break
-            
-            if valid_returns and num_quarters > 0:
-                # Calculate cumulative return: (final_value - 100)
-                cumulative_return = (cumulative_value - 100.0)
-                
-                # Annualize the return
-                # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
-                # Where years = num_quarters / 4
-                years = num_quarters / 4.0
-                if years > 0:
-                    # Convert cumulative return to decimal (e.g., 50% -> 0.50)
-                    cumulative_return_decimal = cumulative_return / 100.0
-                    # Annualize: (1 + cumulative_return)^(1/years) - 1
-                    annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
-                    # Convert back to percentage
-                    forward_return = annualized_return_decimal * 100.0
+        # Initialize all forward returns to None
+        for period_name in forward_return_periods.keys():
+            quarterly_data[j][f"forward_return_{period_name}"] = None
         
-        quarterly_data[j]["forward_return"] = forward_return
+        # Calculate forward return for each period
+        for period_name, required_quarters in forward_return_periods.items():
+            # Check if we have enough future periods (need j+1 to j+required_quarters, so j+required_quarters < len)
+            if j + required_quarters < len(quarterly_data):
+                # Start with 100% and compound each future period's return
+                cumulative_value = 100.0
+                valid_returns = True
+                
+                # Compound returns from period j+1 to j+required_quarters (inclusive)
+                for k in range(j + 1, j + required_quarters + 1):
+                    if k >= len(quarterly_data):
+                        valid_returns = False
+                        break
+                    period_return = quarterly_data[k].get("total_return")
+                    if period_return is not None and isinstance(period_return, (int, float)):
+                        # Compound: multiply by (1 + return/100)
+                        cumulative_value = cumulative_value * (1 + float(period_return) / 100.0)
+                    else:
+                        # If any return is missing, we can't calculate forward return
+                        valid_returns = False
+                        break
+                
+                if valid_returns:
+                    # Calculate cumulative return: (final_value - 100)
+                    cumulative_return = (cumulative_value - 100.0)
+                    
+                    # Annualize the return
+                    # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
+                    # Where years = required_quarters / 4
+                    years = required_quarters / 4.0
+                    if years > 0:
+                        # Convert cumulative return to decimal (e.g., 50% -> 0.50)
+                        cumulative_return_decimal = cumulative_return / 100.0
+                        # Annualize: (1 + cumulative_return)^(1/years) - 1
+                        annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
+                        # Convert back to percentage
+                        forward_return = annualized_return_decimal * 100.0
+                        quarterly_data[j][f"forward_return_{period_name}"] = forward_return
+        
+        # Keep backward compatibility: set forward_return to forward_return_1y if available
+        quarterly_data[j]["forward_return"] = quarterly_data[j].get("forward_return_1y")
     
     # Calculate TTM (Trailing Twelve Months) EBIT/PPE
     # TTM EBIT/PPE = Sum of operating income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
@@ -212,8 +239,15 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
         "roa_data_points": 0,
         "ebit_ppe_data_points": 0,
         "ebit_ppe_ttm_data_points": 0,
-        "forward_return_data_points": 0
+        "forward_return_1y_data_points": 0,
+        "forward_return_3y_data_points": 0,
+        "forward_return_5y_data_points": 0,
+        "forward_return_10y_data_points": 0
     }
+    
+    # Track errors for reporting
+    error_details = {}
+    error_examples = {}  # Store first few examples of each error type
     
     for stock_data in stocks:
         symbol = stock_data.get("symbol", "Unknown")
@@ -234,12 +268,37 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
                         stats["ebit_ppe_data_points"] += 1
                     if entry.get("ebit_ppe_ttm") is not None:
                         stats["ebit_ppe_ttm_data_points"] += 1
-                    if entry.get("forward_return") is not None:
-                        stats["forward_return_data_points"] += 1
+                    if entry.get("forward_return_1y") is not None:
+                        stats["forward_return_1y_data_points"] += 1
+                    if entry.get("forward_return_3y") is not None:
+                        stats["forward_return_3y_data_points"] += 1
+                    if entry.get("forward_return_5y") is not None:
+                        stats["forward_return_5y_data_points"] += 1
+                    if entry.get("forward_return_10y") is not None:
+                        stats["forward_return_10y_data_points"] += 1
             else:
                 stats["skipped"] += 1
         except Exception as e:
             stats["errors"] += 1
+            error_type = type(e).__name__
+            error_msg = str(e)
+            
+            # Track error types
+            if error_type not in error_details:
+                error_details[error_type] = 0
+                error_examples[error_type] = []
+            error_details[error_type] += 1
+            
+            # Store first 3 examples of each error type
+            if len(error_examples[error_type]) < 3:
+                error_examples[error_type].append({
+                    "symbol": symbol,
+                    "error": error_msg
+                })
+    
+    # Add error details to stats
+    stats["error_details"] = error_details
+    stats["error_examples"] = error_examples
     
     return results, stats
 
@@ -261,12 +320,16 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward_return, roa, ebit_ppe, and ebit_ppe_ttm in the output
+            # Include period, total_return, forward returns (1y, 3y, 5y, 10y), roa, ebit_ppe, and ebit_ppe_ttm in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
                     "total_return": entry.get("total_return"),
-                    "forward_return": entry.get("forward_return"),
+                    "forward_return": entry.get("forward_return"),  # Backward compatibility (same as forward_return_1y)
+                    "forward_return_1y": entry.get("forward_return_1y"),
+                    "forward_return_3y": entry.get("forward_return_3y"),
+                    "forward_return_5y": entry.get("forward_return_5y"),
+                    "forward_return_10y": entry.get("forward_return_10y"),
                     "roa": entry.get("roa"),
                     "ebit_ppe": entry.get("ebit_ppe"),  # Operating income / PPE (quarterly)
                     "ebit_ppe_ttm": entry.get("ebit_ppe_ttm")  # TTM Operating income / TTM PPE (4 trailing quarters)
@@ -301,7 +364,7 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward_return, ROA, EBIT/PPE, EBIT/PPE TTM)...")
+    print("Calculating metrics (total_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM)...")
     metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
     
     if not metrics_data:
@@ -320,6 +383,23 @@ def main():
     print(f"Skipped (no valid data): {stats['skipped']}")
     print(f"Errors: {stats['errors']}")
     
+    # Print error details if there are errors
+    if stats.get('errors', 0) > 0 and 'error_details' in stats:
+        print(f"\nError Breakdown:")
+        error_details = stats.get('error_details', {})
+        error_examples = stats.get('error_examples', {})
+        
+        # Sort by count (most common first)
+        sorted_errors = sorted(error_details.items(), key=lambda x: x[1], reverse=True)
+        
+        for error_type, count in sorted_errors:
+            print(f"  {error_type}: {count} occurrence(s)")
+            # Show examples
+            if error_type in error_examples and error_examples[error_type]:
+                print(f"    Examples:")
+                for example in error_examples[error_type][:3]:
+                    print(f"      - {example['symbol']}: {example['error']}")
+    
     if stats['processed'] > 0:
         print(f"\nQuarterly Data Statistics:")
         print(f"  Total quarters across all stocks: {stats['total_quarters']:,}")
@@ -334,7 +414,10 @@ def main():
         print(f"  ROA: {stats['roa_data_points']:,}")
         print(f"  EBIT/PPE (quarterly): {stats['ebit_ppe_data_points']:,}")
         print(f"  EBIT/PPE (TTM): {stats['ebit_ppe_ttm_data_points']:,}")
-        print(f"  Forward Return: {stats['forward_return_data_points']:,}")
+        print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,}")
+        print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,}")
+        print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")
+        print(f"  Forward Return 10y: {stats['forward_return_10y_data_points']:,}")
     
     print(f"{'='*80}")
 
