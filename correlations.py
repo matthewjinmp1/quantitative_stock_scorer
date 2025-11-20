@@ -233,6 +233,105 @@ def plot_ranks(roa_ranks: List[float], forward_return_ranks: List[float],
     # Show plot
     plt.show()
 
+def get_metric_selection() -> str:
+    """
+    Display a menu and get user's metric selection
+    
+    Returns:
+        String indicating selected metric: 'roa', 'ebit_ppe', 'both', or 'exit'
+    """
+    print("\n" + "="*80)
+    print("Correlation Analysis - Metric Selection")
+    print("="*80)
+    print("\nSelect which metric to analyze:")
+    print("  1. ROA (Return on Assets)")
+    print("  2. EBIT/PPE (EBIT per Property, Plant & Equipment)")
+    print("  3. Both metrics")
+    print("  4. Exit")
+    print("="*80)
+    
+    while True:
+        try:
+            choice = input("\nEnter your choice (1-4): ").strip()
+            
+            if choice == '1':
+                return 'roa'
+            elif choice == '2':
+                return 'ebit_ppe'
+            elif choice == '3':
+                return 'both'
+            elif choice == '4':
+                return 'exit'
+            else:
+                print("Invalid choice. Please enter 1, 2, 3, or 4.")
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            return 'exit'
+        except Exception as e:
+            print(f"Error: {e}. Please try again.")
+
+def print_roa_correlations_over_time(roa_results: List[dict]):
+    """
+    Print ROA correlation for each period over time
+    
+    Args:
+        roa_results: List of dictionaries with ROA correlation results
+    """
+    print("\n" + "="*100)
+    print("ROA vs Forward Return Correlation by Period (Over Time)")
+    print("="*100)
+    print(f"\n{'Period':<15} {'Correlation':<15} {'p-value':<15} {'Significant':<15} {'N Pairs':<15}")
+    print("-" * 100)
+    
+    # Sort results by period for chronological display
+    sorted_results = sorted(roa_results, key=lambda x: x.get('period', 0))
+    
+    for result in sorted_results:
+        period = result.get('period', 'Unknown')
+        ranked_corr = result.get('ranked_correlation')
+        p_value = result.get('ranked_pvalue')
+        n_pairs = result.get('n_pairs', 0)
+        
+        if ranked_corr is not None and p_value is not None:
+            is_significant = p_value < 0.05
+            significance = "Yes" if is_significant else "No"
+            print(f"{str(period):<15} {ranked_corr:<15.4f} {p_value:<15.4e} {significance:<15} {n_pairs:<15}")
+        else:
+            print(f"{str(period):<15} {'N/A':<15} {'N/A':<15} {'N/A':<15} {n_pairs:<15}")
+    
+    print("="*100)
+
+def print_ebit_ppe_correlations_over_time(ebit_ppe_results: List[dict]):
+    """
+    Print EBIT/PPE correlation for each period over time
+    
+    Args:
+        ebit_ppe_results: List of dictionaries with EBIT/PPE correlation results
+    """
+    print("\n" + "="*100)
+    print("EBIT/PPE vs Forward Return Correlation by Period (Over Time)")
+    print("="*100)
+    print(f"\n{'Period':<15} {'Correlation':<15} {'p-value':<15} {'Significant':<15} {'N Pairs':<15}")
+    print("-" * 100)
+    
+    # Sort results by period for chronological display
+    sorted_results = sorted(ebit_ppe_results, key=lambda x: x.get('period', 0))
+    
+    for result in sorted_results:
+        period = result.get('period', 'Unknown')
+        ranked_corr = result.get('ranked_correlation')
+        p_value = result.get('ranked_pvalue')
+        n_pairs = result.get('n_pairs', 0)
+        
+        if ranked_corr is not None and p_value is not None:
+            is_significant = p_value < 0.05
+            significance = "Yes" if is_significant else "No"
+            print(f"{str(period):<15} {ranked_corr:<15.4f} {p_value:<15.4e} {significance:<15} {n_pairs:<15}")
+        else:
+            print(f"{str(period):<15} {'N/A':<15} {'N/A':<15} {'N/A':<15} {n_pairs:<15}")
+    
+    print("="*100)
+
 def print_period_correlations(roa_results: List[dict], ebit_ppe_results: List[dict]):
     """
     Print summary statistics for correlation results across all periods
@@ -241,80 +340,91 @@ def print_period_correlations(roa_results: List[dict], ebit_ppe_results: List[di
         roa_results: List of dictionaries with ROA correlation results
         ebit_ppe_results: List of dictionaries with EBIT/PPE correlation results
     """
-    print("\n" + "="*100)
-    print("ROA vs Forward Return Correlation Summary")
-    print("="*100)
-    
-    roa_significant_count = 0
-    roa_correlations = []
-    roa_weights = []  # Number of data points for each period (for weighting)
-    
-    for result in roa_results:
-        ranked_corr = result['ranked_correlation']
-        p_value = result['ranked_pvalue']
-        is_significant = p_value < 0.05 if p_value is not None else False
+    # Print ROA summary if results are provided
+    if roa_results:
+        print("\n" + "="*100)
+        print("ROA vs Forward Return Correlation Summary")
+        print("="*100)
         
-        if is_significant:
-            roa_significant_count += 1
-        if ranked_corr is not None:
-            roa_correlations.append(ranked_corr)
-            roa_weights.append(result['n_pairs'])  # Use number of data points as weight
-    
-    print("\nSummary Statistics Across All Periods:")
-    print(f"  Total periods analyzed: {len(roa_results)}")
-    print(f"  Periods with significant correlation (p < 0.05): {roa_significant_count}")
-    if roa_correlations:
-        # Calculate weighted average correlation (weighted by number of data points)
-        correlations_array = np.array(roa_correlations)
-        weights_array = np.array(roa_weights)
-        weighted_avg = np.average(correlations_array, weights=weights_array)
+        roa_significant_count = 0
+        roa_correlations = []
+        roa_weights = []  # Number of data points for each period (for weighting)
         
-        print(f"  Average ranked correlation (unweighted): {np.mean(roa_correlations):.4f}")
-        print(f"  Weighted average ranked correlation (by data points): {weighted_avg:.4f}")
-        print(f"  Median ranked correlation: {np.median(roa_correlations):.4f}")
-        print(f"  Min ranked correlation: {np.min(roa_correlations):.4f}")
-        print(f"  Max ranked correlation: {np.max(roa_correlations):.4f}")
-    print("="*100)
-    
-    print("\n" + "="*100)
-    print("EBIT/PPE vs Forward Return Correlation Summary")
-    print("="*100)
-    
-    ebit_significant_count = 0
-    ebit_correlations = []
-    ebit_weights = []  # Number of data points for each period (for weighting)
-    
-    for result in ebit_ppe_results:
-        ranked_corr = result['ranked_correlation']
-        p_value = result['ranked_pvalue']
-        is_significant = p_value < 0.05 if p_value is not None else False
+        for result in roa_results:
+            ranked_corr = result['ranked_correlation']
+            p_value = result['ranked_pvalue']
+            is_significant = p_value < 0.05 if p_value is not None else False
+            
+            if is_significant:
+                roa_significant_count += 1
+            if ranked_corr is not None:
+                roa_correlations.append(ranked_corr)
+                roa_weights.append(result['n_pairs'])  # Use number of data points as weight
         
-        if is_significant:
-            ebit_significant_count += 1
-        if ranked_corr is not None:
-            ebit_correlations.append(ranked_corr)
-            ebit_weights.append(result['n_pairs'])  # Use number of data points as weight
+        print("\nSummary Statistics Across All Periods:")
+        print(f"  Total periods analyzed: {len(roa_results)}")
+        print(f"  Periods with significant correlation (p < 0.05): {roa_significant_count}")
+        if roa_correlations:
+            # Calculate weighted average correlation (weighted by number of data points)
+            correlations_array = np.array(roa_correlations)
+            weights_array = np.array(roa_weights)
+            weighted_avg = np.average(correlations_array, weights=weights_array)
+            
+            print(f"  Average ranked correlation (unweighted): {np.mean(roa_correlations):.4f}")
+            print(f"  Weighted average ranked correlation (by data points): {weighted_avg:.4f}")
+            print(f"  Median ranked correlation: {np.median(roa_correlations):.4f}")
+            print(f"  Min ranked correlation: {np.min(roa_correlations):.4f}")
+            print(f"  Max ranked correlation: {np.max(roa_correlations):.4f}")
+        print("="*100)
     
-    print("\nSummary Statistics Across All Periods:")
-    print(f"  Total periods analyzed: {len(ebit_ppe_results)}")
-    print(f"  Periods with significant correlation (p < 0.05): {ebit_significant_count}")
-    if ebit_correlations:
-        # Calculate weighted average correlation (weighted by number of data points)
-        correlations_array = np.array(ebit_correlations)
-        weights_array = np.array(ebit_weights)
-        weighted_avg = np.average(correlations_array, weights=weights_array)
+    # Print EBIT/PPE summary if results are provided
+    if ebit_ppe_results:
+        print("\n" + "="*100)
+        print("EBIT/PPE vs Forward Return Correlation Summary")
+        print("="*100)
         
-        print(f"  Average ranked correlation (unweighted): {np.mean(ebit_correlations):.4f}")
-        print(f"  Weighted average ranked correlation (by data points): {weighted_avg:.4f}")
-        print(f"  Median ranked correlation: {np.median(ebit_correlations):.4f}")
-        print(f"  Min ranked correlation: {np.min(ebit_correlations):.4f}")
-        print(f"  Max ranked correlation: {np.max(ebit_correlations):.4f}")
-    print("="*100)
+        ebit_significant_count = 0
+        ebit_correlations = []
+        ebit_weights = []  # Number of data points for each period (for weighting)
+        
+        for result in ebit_ppe_results:
+            ranked_corr = result['ranked_correlation']
+            p_value = result['ranked_pvalue']
+            is_significant = p_value < 0.05 if p_value is not None else False
+            
+            if is_significant:
+                ebit_significant_count += 1
+            if ranked_corr is not None:
+                ebit_correlations.append(ranked_corr)
+                ebit_weights.append(result['n_pairs'])  # Use number of data points as weight
+        
+        print("\nSummary Statistics Across All Periods:")
+        print(f"  Total periods analyzed: {len(ebit_ppe_results)}")
+        print(f"  Periods with significant correlation (p < 0.05): {ebit_significant_count}")
+        if ebit_correlations:
+            # Calculate weighted average correlation (weighted by number of data points)
+            correlations_array = np.array(ebit_correlations)
+            weights_array = np.array(ebit_weights)
+            weighted_avg = np.average(correlations_array, weights=weights_array)
+            
+            print(f"  Average ranked correlation (unweighted): {np.mean(ebit_correlations):.4f}")
+            print(f"  Weighted average ranked correlation (by data points): {weighted_avg:.4f}")
+            print(f"  Median ranked correlation: {np.median(ebit_correlations):.4f}")
+            print(f"  Min ranked correlation: {np.min(ebit_correlations):.4f}")
+            print(f"  Max ranked correlation: {np.max(ebit_correlations):.4f}")
+        print("="*100)
 
 def main():
     """
-    Main function to calculate and display ROA vs forward return correlation by period
+    Main function to calculate and display correlation analysis by period
     """
+    # Get user's metric selection
+    selected_metric = get_metric_selection()
+    
+    if selected_metric == 'exit':
+        print("Exiting program.")
+        return
+    
     print("Loading data from metrics.json...")
     data = load_data("metrics.json")
     
@@ -343,26 +453,37 @@ def main():
     sorted_periods = sorted([p for p in period_data.keys() if isinstance(p, str) or (isinstance(p, (int, float)) and p != 0)])
     
     for period in sorted_periods:
-        # Calculate ROA correlations
-        roa_values = period_data[period]["roa"]
-        forward_return_roa = period_data[period]["forward_return_roa"]
+        # Calculate ROA correlations (if needed)
+        if selected_metric in ['roa', 'both']:
+            roa_values = period_data[period]["roa"]
+            forward_return_roa = period_data[period]["forward_return_roa"]
+            
+            if len(roa_values) >= 2 and len(roa_values) == len(forward_return_roa):
+                stats = calculate_correlations(roa_values, forward_return_roa)
+                stats['period'] = period
+                roa_results.append(stats)
         
-        if len(roa_values) >= 2 and len(roa_values) == len(forward_return_roa):
-            stats = calculate_correlations(roa_values, forward_return_roa)
-            stats['period'] = period
-            roa_results.append(stats)
-        
-        # Calculate EBIT/PPE correlations
-        ebit_ppe_values = period_data[period]["ebit_ppe"]
-        forward_return_ebit = period_data[period]["forward_return_ebit"]
-        
-        if len(ebit_ppe_values) >= 2 and len(ebit_ppe_values) == len(forward_return_ebit):
-            stats = calculate_correlations(ebit_ppe_values, forward_return_ebit)
-            stats['period'] = period
-            ebit_ppe_results.append(stats)
+        # Calculate EBIT/PPE correlations (if needed)
+        if selected_metric in ['ebit_ppe', 'both']:
+            ebit_ppe_values = period_data[period]["ebit_ppe"]
+            forward_return_ebit = period_data[period]["forward_return_ebit"]
+            
+            if len(ebit_ppe_values) >= 2 and len(ebit_ppe_values) == len(forward_return_ebit):
+                stats = calculate_correlations(ebit_ppe_values, forward_return_ebit)
+                stats['period'] = period
+                ebit_ppe_results.append(stats)
     
-    # Print results by period
-    print_period_correlations(roa_results, ebit_ppe_results)
+    # Display results based on selection
+    if selected_metric == 'roa':
+        print_roa_correlations_over_time(roa_results)
+        print_period_correlations(roa_results, [])
+    elif selected_metric == 'ebit_ppe':
+        print_ebit_ppe_correlations_over_time(ebit_ppe_results)
+        print_period_correlations([], ebit_ppe_results)
+    elif selected_metric == 'both':
+        print_roa_correlations_over_time(roa_results)
+        print_ebit_ppe_correlations_over_time(ebit_ppe_results)
+        print_period_correlations(roa_results, ebit_ppe_results)
 
 if __name__ == "__main__":
     main()
