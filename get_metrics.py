@@ -1,7 +1,9 @@
 """
-Program to calculate metrics (total return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM) from data.jsonl
+Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM) from data.jsonl
 and save results to metrics.json
-Forward returns are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
+forward_return = Annualized return from period j+1 to most recent period
+Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
+All forward returns are annualized
 EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment) - quarterly
 EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
 """
@@ -50,8 +52,10 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         stock_data: Dictionary containing stock data from data.jsonl
     
     Returns:
-        Dictionary containing processed quarterly data with total_return, forward returns (1y, 3y, 5y, 10y), ROA, EBIT/PPE, and EBIT/PPE TTM
-        Forward returns are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
+        Dictionary containing processed quarterly data with total_return, forward_return (total to end, annualized), 
+        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, and EBIT/PPE TTM
+        forward_return = Annualized return from period j+1 to most recent period
+        Forward returns 1y/3y/5y/10y are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
         EBIT/PPE = Operating Income / PPE (quarterly)
         EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
     """
@@ -175,8 +179,43 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
                         forward_return = annualized_return_decimal * 100.0
                         quarterly_data[j][f"forward_return_{period_name}"] = forward_return
         
-        # Keep backward compatibility: set forward_return to forward_return_1y if available
-        quarterly_data[j]["forward_return"] = quarterly_data[j].get("forward_return_1y")
+        # Calculate total forward return (from period j+1 to most recent period, annualized)
+        total_forward_return = None
+        if j < len(quarterly_data) - 1:
+            # Start with 100% and compound each future period's return
+            cumulative_value = 100.0
+            valid_returns = True
+            num_quarters = 0
+            
+            # Compound returns from period j+1 to the most recent period
+            for k in range(j + 1, len(quarterly_data)):
+                period_return = quarterly_data[k].get("total_return")
+                if period_return is not None and isinstance(period_return, (int, float)):
+                    # Compound: multiply by (1 + return/100)
+                    cumulative_value = cumulative_value * (1 + float(period_return) / 100.0)
+                    num_quarters += 1
+                else:
+                    # If any return is missing, we can't calculate forward return
+                    valid_returns = False
+                    break
+            
+            if valid_returns and num_quarters > 0:
+                # Calculate cumulative return: (final_value - 100)
+                cumulative_return = (cumulative_value - 100.0)
+                
+                # Annualize the return
+                # Formula: annualized_return = ((1 + cumulative_return/100)^(1/years) - 1) * 100
+                # Where years = num_quarters / 4
+                years = num_quarters / 4.0
+                if years > 0:
+                    # Convert cumulative return to decimal (e.g., 50% -> 0.50)
+                    cumulative_return_decimal = cumulative_return / 100.0
+                    # Annualize: (1 + cumulative_return)^(1/years) - 1
+                    annualized_return_decimal = (1 + cumulative_return_decimal) ** (1.0 / years) - 1.0
+                    # Convert back to percentage
+                    total_forward_return = annualized_return_decimal * 100.0
+        
+        quarterly_data[j]["forward_return"] = total_forward_return
     
     # Calculate TTM (Trailing Twelve Months) EBIT/PPE
     # TTM EBIT/PPE = Sum of operating income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
@@ -320,16 +359,16 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward returns (1y, 3y, 5y, 10y), roa, ebit_ppe, and ebit_ppe_ttm in the output
+            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, and ebit_ppe_ttm in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
                     "total_return": entry.get("total_return"),
-                    "forward_return": entry.get("forward_return"),  # Backward compatibility (same as forward_return_1y)
-                    "forward_return_1y": entry.get("forward_return_1y"),
-                    "forward_return_3y": entry.get("forward_return_3y"),
-                    "forward_return_5y": entry.get("forward_return_5y"),
-                    "forward_return_10y": entry.get("forward_return_10y"),
+                    "forward_return": entry.get("forward_return"),  # Annualized return from period j+1 to most recent period
+                    "forward_return_1y": entry.get("forward_return_1y"),  # Annualized 1-year forward return
+                    "forward_return_3y": entry.get("forward_return_3y"),  # Annualized 3-year forward return
+                    "forward_return_5y": entry.get("forward_return_5y"),  # Annualized 5-year forward return
+                    "forward_return_10y": entry.get("forward_return_10y"),  # Annualized 10-year forward return
                     "roa": entry.get("roa"),
                     "ebit_ppe": entry.get("ebit_ppe"),  # Operating income / PPE (quarterly)
                     "ebit_ppe_ttm": entry.get("ebit_ppe_ttm")  # TTM Operating income / TTM PPE (4 trailing quarters)
@@ -364,7 +403,7 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM)...")
+    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM)...")
     metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
     
     if not metrics_data:

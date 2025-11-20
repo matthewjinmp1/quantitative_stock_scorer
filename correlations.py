@@ -29,19 +29,23 @@ def load_data(filename: str = "metrics.json") -> List[dict]:
         print(f"Error: Invalid JSON in {filename}")
         return []
 
-def extract_data_by_period(data: List[dict], metric_keys: List[str] = None) -> dict:
+def extract_data_by_period_and_forward_return(data: List[dict], metric_keys: List[str] = None) -> dict:
     """
-    Extract metrics and forward return data grouped by period
-    For each period, collect all stocks' metric values and forward_return values
+    Extract metrics and forward return data grouped by time period AND forward return period
+    Structure: {forward_return_period: {time_period: {metric_key: [values], 'forward_return': [values]}}}
     
     Args:
         data: List of stock data dictionaries
         metric_keys: List of metric keys to extract (if None, auto-detect from data)
         
     Returns:
-        Dictionary mapping period -> {metric_key: [values], 'forward_return_' + metric_key: [values]}
+        Dictionary: {forward_return_period: {time_period: {metric_key: [values], 'forward_return': [values]}}}
     """
-    period_data = {}
+    # Forward return periods to analyze (including total forward return)
+    forward_return_periods = ['total', '1y', '3y', '5y', '10y']
+    
+    # Structure: {forward_return_period: {time_period: {metric_key: [values], 'forward_return': [values]}}}
+    forward_return_data = {period: {} for period in forward_return_periods}
     
     # Auto-detect metric keys if not provided
     if metric_keys is None:
@@ -49,39 +53,51 @@ def extract_data_by_period(data: List[dict], metric_keys: List[str] = None) -> d
         for stock in data:
             for entry in stock.get("data", []):
                 # Find all numeric metrics (excluding period, price, dividends, total_return, forward_return)
-                excluded_keys = {'period', 'price', 'dividends', 'total_return', 'forward_return'}
+                excluded_keys = {'period', 'price', 'dividends', 'total_return', 'forward_return', 
+                                'forward_return_1y', 'forward_return_3y', 'forward_return_5y', 'forward_return_10y'}
                 for key, value in entry.items():
                     if key not in excluded_keys and value is not None and isinstance(value, (int, float)):
                         if key not in metric_keys:
                             metric_keys.append(key)
                 break  # Only need to check one entry
     
+    # Extract data grouped by time period and forward return period
     for stock in data:
         symbol = stock.get("symbol", "Unknown")
         for entry in stock.get("data", []):
-            period = entry.get("period")
-            forward_return = entry.get("forward_return")
+            time_period = entry.get("period")
             
-            # Skip invalid periods (like 0 or None)
-            if period is None or period == 0:
+            # Skip invalid periods
+            if time_period is None or time_period == 0:
                 continue
             
-            # Initialize period if not exists
-            if period not in period_data:
-                period_data[period] = {}
+            # For each forward return period
+            for forward_period in forward_return_periods:
+                # Handle total forward return separately (it's just 'forward_return', not 'forward_return_total')
+                if forward_period == 'total':
+                    forward_return_key = "forward_return"
+                else:
+                    forward_return_key = f"forward_return_{forward_period}"
+                forward_return_value = entry.get(forward_return_key)
+                
+                # Initialize time period if not exists
+                if time_period not in forward_return_data[forward_period]:
+                    forward_return_data[forward_period][time_period] = {}
+                    for metric_key in metric_keys:
+                        forward_return_data[forward_period][time_period][metric_key] = []
+                        forward_return_data[forward_period][time_period][f'forward_return_{metric_key}'] = []
+                
+                # For each metric
                 for metric_key in metric_keys:
-                    period_data[period][metric_key] = []
-                    period_data[period][f"forward_return_{metric_key}"] = []
-            
-            # Add valid data points for each metric
-            for metric_key in metric_keys:
-                metric_value = entry.get(metric_key)
-                if (metric_value is not None and forward_return is not None and 
-                    isinstance(metric_value, (int, float)) and isinstance(forward_return, (int, float))):
-                    period_data[period][metric_key].append(float(metric_value))
-                    period_data[period][f"forward_return_{metric_key}"].append(float(forward_return))
+                    metric_value = entry.get(metric_key)
+                    
+                    # Add valid data points (both metric and forward return must be valid)
+                    if (metric_value is not None and forward_return_value is not None and 
+                        isinstance(metric_value, (int, float)) and isinstance(forward_return_value, (int, float))):
+                        forward_return_data[forward_period][time_period][metric_key].append(float(metric_value))
+                        forward_return_data[forward_period][time_period][f'forward_return_{metric_key}'].append(float(forward_return_value))
     
-    return period_data
+    return forward_return_data
 
 def calculate_correlations(metric_values: List[float], forward_return_values: List[float]) -> dict:
     """
@@ -340,52 +356,56 @@ def get_metric_selection(available_metrics: dict) -> str:
         except Exception as e:
             print(f"Error: {e}. Please try again.")
 
-def print_correlations_over_time(results: List[dict], metric_name: str):
+def print_correlations_by_forward_period(results: dict, metric_name: str):
     """
-    Print correlation for each period over time for a given metric
+    Print correlation for each forward return period (1y, 3y, 5y, 10y) for a given metric
     
     Args:
-        results: List of dictionaries with correlation results
+        results: Dictionary mapping forward_return_period -> correlation results dict
         metric_name: Display name of the metric
     """
     print("\n" + "="*100)
-    print(f"{metric_name} vs Forward Return Correlation by Period (Over Time)")
+    print(f"{metric_name} vs Forward Return Correlation by Forward Return Period")
+    print("(Weighted average of correlations across all time periods)")
     print("="*100)
-    print(f"\n{'Period':<15} {'Correlation':<15} {'p-value':<15} {'Significant':<15} {'N Pairs':<15}")
+    print(f"\n{'Forward Period':<20} {'Correlation':<15} {'p-value':<15} {'Significant':<15} {'N Pairs':<15} {'N Periods':<15}")
     print("-" * 100)
     
-    # Sort results by period for chronological display
-    sorted_results = sorted(results, key=lambda x: x.get('period', 0))
+    # Display in order: total, 1y, 3y, 5y, 10y
+    forward_periods = ['total', '1y', '3y', '5y', '10y']
     
-    for result in sorted_results:
-        period = result.get('period', 'Unknown')
-        ranked_corr = result.get('ranked_correlation')
-        p_value = result.get('ranked_pvalue')
-        n_pairs = result.get('n_pairs', 0)
-        
-        if ranked_corr is not None and p_value is not None:
-            is_significant = p_value < 0.05
-            significance = "Yes" if is_significant else "No"
-            print(f"{str(period):<15} {ranked_corr:<15.4f} {p_value:<15.4e} {significance:<15} {n_pairs:<15}")
-        else:
-            print(f"{str(period):<15} {'N/A':<15} {'N/A':<15} {'N/A':<15} {n_pairs:<15}")
+    for forward_period in forward_periods:
+        if forward_period in results:
+            result = results[forward_period]
+            ranked_corr = result.get('ranked_correlation')
+            p_value = result.get('ranked_pvalue')
+            n_pairs = result.get('n_pairs', 0)
+            n_periods = result.get('n_periods', 0)
+            
+            if ranked_corr is not None and p_value is not None:
+                is_significant = p_value < 0.05
+                significance = "Yes" if is_significant else "No"
+                if forward_period == 'total':
+                    period_display = "Total forward return"
+                else:
+                    period_display = f"{forward_period} forward return"
+                print(f"{period_display:<20} {ranked_corr:<15.4f} {p_value:<15.4e} {significance:<15} {n_pairs:<15} {n_periods:<15}")
+            else:
+                if forward_period == 'total':
+                    period_display = "Total forward return"
+                else:
+                    period_display = f"{forward_period} forward return"
+                print(f"{period_display:<20} {'N/A':<15} {'N/A':<15} {'N/A':<15} {n_pairs:<15} {n_periods:<15}")
     
     print("="*100)
 
-def print_roa_correlations_over_time(roa_results: List[dict]):
-    """Print ROA correlation for each period over time (backward compatibility)"""
-    print_correlations_over_time(roa_results, "ROA")
 
-def print_ebit_ppe_correlations_over_time(ebit_ppe_results: List[dict]):
-    """Print EBIT/PPE correlation for each period over time (backward compatibility)"""
-    print_correlations_over_time(ebit_ppe_results, "EBIT/PPE")
-
-def print_period_correlations_summary(results: List[dict], metric_name: str):
+def print_forward_period_correlations_summary(results: dict, metric_name: str):
     """
-    Print summary statistics for correlation results across all periods for a given metric
+    Print summary statistics for correlation results across forward return periods for a given metric
     
     Args:
-        results: List of dictionaries with correlation results
+        results: Dictionary mapping forward_return_period -> correlation results dict
         metric_name: Display name of the metric
     """
     if not results:
@@ -395,23 +415,26 @@ def print_period_correlations_summary(results: List[dict], metric_name: str):
     print(f"{metric_name} vs Forward Return Correlation Summary")
     print("="*100)
     
+    forward_periods = ['total', '1y', '3y', '5y', '10y']
     significant_count = 0
     correlations = []
-    weights = []  # Number of data points for each period (for weighting)
+    weights = []  # Number of data points for each forward return period (for weighting)
     
-    for result in results:
-        ranked_corr = result.get('ranked_correlation')
-        p_value = result.get('ranked_pvalue')
-        is_significant = p_value < 0.05 if p_value is not None else False
-        
-        if is_significant:
-            significant_count += 1
-        if ranked_corr is not None:
-            correlations.append(ranked_corr)
-            weights.append(result.get('n_pairs', 0))  # Use number of data points as weight
+    for forward_period in forward_periods:
+        if forward_period in results:
+            result = results[forward_period]
+            ranked_corr = result.get('ranked_correlation')
+            p_value = result.get('ranked_pvalue')
+            is_significant = p_value < 0.05 if p_value is not None else False
+            
+            if is_significant:
+                significant_count += 1
+            if ranked_corr is not None:
+                correlations.append(ranked_corr)
+                weights.append(result.get('n_pairs', 0))  # Use number of data points as weight
     
-    print("\nSummary Statistics Across All Periods:")
-    print(f"  Total periods analyzed: {len(results)}")
+    print("\nSummary Statistics Across Forward Return Periods:")
+    print(f"  Total forward return periods analyzed: {len([p for p in forward_periods if p in results])}")
     print(f"  Periods with significant correlation (p < 0.05): {significant_count}")
     if correlations:
         # Calculate weighted average correlation (weighted by number of data points)
@@ -426,21 +449,6 @@ def print_period_correlations_summary(results: List[dict], metric_name: str):
         print(f"  Max ranked correlation: {np.max(correlations):.4f}")
     print("="*100)
 
-def print_period_correlations(roa_results: List[dict], ebit_ppe_results: List[dict]):
-    """
-    Print summary statistics for correlation results across all periods (backward compatibility)
-    
-    Args:
-        roa_results: List of dictionaries with ROA correlation results
-        ebit_ppe_results: List of dictionaries with EBIT/PPE correlation results
-    """
-    # Print ROA summary if results are provided
-    if roa_results:
-        print_period_correlations_summary(roa_results, "ROA")
-    
-    # Print EBIT/PPE summary if results are provided
-    if ebit_ppe_results:
-        print_period_correlations_summary(ebit_ppe_results, "EBIT/PPE")
 
 def main():
     """
@@ -476,47 +484,94 @@ def main():
     else:
         metric_keys_to_process = [selected_metrics]
     
-    # Extract data grouped by period
-    print(f"\nExtracting metrics and forward return data by period...")
-    period_data = extract_data_by_period(data, metric_keys_to_process)
+    # Extract data grouped by time period AND forward return period
+    print(f"\nExtracting metrics and forward return data by time period and forward return period...")
+    forward_return_data = extract_data_by_period_and_forward_return(data, metric_keys_to_process)
     
-    print(f"Found {len(period_data)} unique periods")
-    
-    if len(period_data) == 0:
-        print("No valid period data found. Exiting.")
+    if not forward_return_data:
+        print("No valid forward return data found. Exiting.")
         return
     
-    # Calculate correlations for each period and each metric
-    print("\nCalculating correlations for each period...")
-    all_results = {metric_key: [] for metric_key in metric_keys_to_process}
+    # Calculate correlations: for each forward return period and metric,
+    # calculate correlations for each time period, then take weighted average
+    print("\nCalculating correlations for each time period, then weighted average across periods...")
+    all_results = {metric_key: {} for metric_key in metric_keys_to_process}
     
-    # Sort periods for consistent output
-    sorted_periods = sorted([p for p in period_data.keys() if isinstance(p, str) or (isinstance(p, (int, float)) and p != 0)])
+    forward_return_periods = ['total', '1y', '3y', '5y', '10y']
     
-    for period in sorted_periods:
+    for forward_period in forward_return_periods:
         for metric_key in metric_keys_to_process:
-            metric_values = period_data[period].get(metric_key, [])
-            forward_return_values = period_data[period].get(f"forward_return_{metric_key}", [])
+            # Calculate correlations for each time period
+            period_correlations = []
+            period_weights = []  # Sample sizes for weighting
+            period_stats = []  # Store full stats for each period
             
-            if len(metric_values) >= 2 and len(metric_values) == len(forward_return_values):
-                stats = calculate_correlations(metric_values, forward_return_values)
-                stats['period'] = period
-                stats['metric_key'] = metric_key
-                all_results[metric_key].append(stats)
+            # Get all time periods for this forward return period
+            time_periods = sorted([p for p in forward_return_data[forward_period].keys() 
+                                   if isinstance(p, str) or (isinstance(p, (int, float)) and p != 0)])
+            
+            for time_period in time_periods:
+                period_data = forward_return_data[forward_period][time_period]
+                metric_values = period_data.get(metric_key, [])
+                forward_return_values = period_data.get(f"forward_return_{metric_key}", [])
+                
+                # Calculate correlation for this time period
+                if len(metric_values) >= 2 and len(metric_values) == len(forward_return_values):
+                    period_stat = calculate_correlations(metric_values, forward_return_values)
+                    ranked_corr = period_stat.get('ranked_correlation')
+                    
+                    if ranked_corr is not None:
+                        period_correlations.append(ranked_corr)
+                        period_weights.append(period_stat.get('n_pairs', 0))
+                        period_stat['time_period'] = time_period
+                        period_stats.append(period_stat)
+            
+            # Calculate weighted average correlation across all time periods
+            if period_correlations and period_weights:
+                correlations_array = np.array(period_correlations)
+                weights_array = np.array(period_weights)
+                weighted_avg_correlation = np.average(correlations_array, weights=weights_array)
+                
+                # Calculate weighted average p-value (using Fisher's z-transformation would be more accurate,
+                # but for simplicity we'll use weighted average of p-values)
+                period_pvalues = [s.get('ranked_pvalue') for s in period_stats if s.get('ranked_pvalue') is not None]
+                if period_pvalues:
+                    # Weight p-values by sample size (inverse weighting - larger samples get more weight)
+                    pvalues_array = np.array(period_pvalues)
+                    weighted_avg_pvalue = np.average(pvalues_array, weights=weights_array)
+                else:
+                    weighted_avg_pvalue = None
+                
+                # Total number of pairs across all periods
+                total_pairs = sum(period_weights)
+                
+                # Create summary stats
+                stats = {
+                    'forward_period': forward_period,
+                    'metric_key': metric_key,
+                    'ranked_correlation': float(weighted_avg_correlation),
+                    'ranked_pvalue': float(weighted_avg_pvalue) if weighted_avg_pvalue is not None else None,
+                    'n_pairs': total_pairs,
+                    'n_periods': len(period_correlations),
+                    'period_correlations': period_correlations,  # Store for reference
+                    'period_stats': period_stats  # Store full period stats
+                }
+                
+                all_results[metric_key][forward_period] = stats
     
     # Display results for each selected metric
     for metric_key in metric_keys_to_process:
         results = all_results[metric_key]
         if results:
             metric_name = available_metrics.get(metric_key, metric_key)
-            print_correlations_over_time(results, metric_name)
+            print_correlations_by_forward_period(results, metric_name)
     
     # Print summary statistics for each selected metric
     for metric_key in metric_keys_to_process:
         results = all_results[metric_key]
         if results:
             metric_name = available_metrics.get(metric_key, metric_key)
-            print_period_correlations_summary(results, metric_name)
+            print_forward_period_correlations_summary(results, metric_name)
 
 if __name__ == "__main__":
     main()
