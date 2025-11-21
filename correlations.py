@@ -676,42 +676,10 @@ def show_command_menu() -> str:
             
             # Handle numeric choices
             if choice == '1' or choice == 'average':
-                print("\n" + "="*80)
-                print("Command: average")
-                print("="*80)
-                print("\nDescription:")
-                print("  Calculates weighted average correlation across all time periods.")
-                print("  This mode:")
-                print("  - Analyzes correlations for each time period separately")
-                print("  - Computes weighted average across all periods (weighted by sample size)")
-                print("  - Shows results for all forward return periods (total, 1y, 3y, 5y, 10y)")
-                print("  - Provides summary statistics across forward return periods")
-                print("="*80)
-                confirm = input("\nProceed with this command? (y/n): ").strip().lower()
-                if confirm == 'y' or confirm == 'yes':
-                    return 'average'
-                else:
-                    print("Command cancelled. Returning to menu...")
-                    return show_command_menu()
+                return 'average'
             
             elif choice == '2' or choice == 'by-period' or choice == 'byperiod':
-                print("\n" + "="*80)
-                print("Command: by-period")
-                print("="*80)
-                print("\nDescription:")
-                print("  Shows correlations for each individual time period.")
-                print("  This mode:")
-                print("  - Displays correlation for each time period separately")
-                print("  - Only analyzes total forward return (not 1y, 3y, 5y, 10y)")
-                print("  - Shows a table with correlation, p-value, significance, and sample size per period")
-                print("  - Provides summary statistics across all time periods")
-                print("="*80)
-                confirm = input("\nProceed with this command? (y/n): ").strip().lower()
-                if confirm == 'y' or confirm == 'yes':
-                    return 'by-period'
-                else:
-                    print("Command cancelled. Returning to menu...")
-                    return show_command_menu()
+                return 'by-period'
             
             elif choice == '3' or choice == 'exit':
                 return 'exit'

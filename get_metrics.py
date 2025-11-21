@@ -1,5 +1,5 @@
 """
-Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin) from data.jsonl
+Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT) from data.jsonl
 and save results to metrics.json
 forward_return = Annualized return from period j+1 to most recent period
 Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
@@ -8,6 +8,8 @@ EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment) - quarterly
 EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
 Gross Margin = (Revenue - Cost of Goods Sold) / Revenue
 Operating Margin = Operating Income / Revenue
+EV/EBIT = Enterprise Value / EBIT (Operating Income)
+Enterprise Value = Market Cap + Total Debt - Cash and Cash Equivalents
 """
 import json
 import os
@@ -55,13 +57,15 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     
     Returns:
         Dictionary containing processed quarterly data with total_return, forward_return (total to end, annualized), 
-        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, and Operating Margin
+        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, and EV/EBIT
         forward_return = Annualized return from period j+1 to most recent period
         Forward returns 1y/3y/5y/10y are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
         EBIT/PPE = Operating Income / PPE (quarterly)
         EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
         Gross Margin = (Revenue - Cost of Goods Sold) / Revenue
         Operating Margin = Operating Income / Revenue
+        EV/EBIT = Enterprise Value / EBIT (Operating Income)
+        Enterprise Value = Market Cap + Total Debt - Cash and Cash Equivalents
     """
     if not stock_data or "data" not in stock_data:
         return None
@@ -92,6 +96,10 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     if not cost_of_goods_sold:
         cost_of_goods_sold = data.get("cogs", [])
     
+    # Extract enterprise_value for EV/EBIT calculation
+    # Enterprise value is already calculated in the data
+    enterprise_value = data.get("enterprise_value", [])
+    
     # Ensure all data arrays are lists
     if not isinstance(prices, list) or not prices:
         return None
@@ -107,6 +115,8 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         revenue = []
     if not isinstance(cost_of_goods_sold, list):
         cost_of_goods_sold = []
+    if not isinstance(enterprise_value, list):
+        enterprise_value = []
     
     # Process the data into quarterly entries
     quarterly_data = []
@@ -136,6 +146,16 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             revenue[j] != 0):
             operating_margin = operating_income[j] / revenue[j]
         
+        # Calculate EV/EBIT = Enterprise Value / EBIT (Operating Income)
+        # Enterprise Value is already calculated in the data
+        ev_ebit = None
+        if (j < len(enterprise_value) and j < len(operating_income) and
+            enterprise_value[j] is not None and operating_income[j] is not None and
+            operating_income[j] != 0):
+            # Calculate EV/EBIT ratio
+            # Note: enterprise_value can be negative, but we'll still calculate the ratio
+            ev_ebit = enterprise_value[j] / operating_income[j]
+        
         # Calculate total return for the quarter (compared to previous quarter)
         # Formula: Total Return = ((Ending Price - Beginning Price + Dividends) / Beginning Price) * 100
         total_return = None
@@ -152,6 +172,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             "ebit_ppe": ebit_ppe,  # Operating income / PPE
             "gross_margin": gross_margin,  # (Revenue - COGS) / Revenue
             "operating_margin": operating_margin,  # Operating Income / Revenue
+            "ev_ebit": ev_ebit,  # Enterprise Value / EBIT (Operating Income)
             "total_return": total_return
         })
     
@@ -309,6 +330,7 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
         "ebit_ppe_ttm_data_points": 0,
         "gross_margin_data_points": 0,
         "operating_margin_data_points": 0,
+        "ev_ebit_data_points": 0,
         "forward_return_1y_data_points": 0,
         "forward_return_3y_data_points": 0,
         "forward_return_5y_data_points": 0,
@@ -342,6 +364,8 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
                         stats["gross_margin_data_points"] += 1
                     if entry.get("operating_margin") is not None:
                         stats["operating_margin_data_points"] += 1
+                    if entry.get("ev_ebit") is not None:
+                        stats["ev_ebit_data_points"] += 1
                     if entry.get("forward_return_1y") is not None:
                         stats["forward_return_1y_data_points"] += 1
                     if entry.get("forward_return_3y") is not None:
@@ -385,7 +409,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
         filename: Output filename
     """
     try:
-        # Create output data with period, total_return, forward_return, roa, ebit_ppe, ebit_ppe_ttm, gross_margin, and operating_margin
+        # Create output data with period, total_return, forward_return, roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, and ev_ebit
         output_data = []
         for stock_data in metrics_data:
             output_stock = {
@@ -394,7 +418,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, ebit_ppe_ttm, gross_margin, and operating_margin in the output
+            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, and ev_ebit in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
@@ -408,7 +432,8 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                     "ebit_ppe": entry.get("ebit_ppe"),  # Operating income / PPE (quarterly)
                     "ebit_ppe_ttm": entry.get("ebit_ppe_ttm"),  # TTM Operating income / TTM PPE (4 trailing quarters)
                     "gross_margin": entry.get("gross_margin"),  # (Revenue - COGS) / Revenue
-                    "operating_margin": entry.get("operating_margin")  # Operating Income / Revenue
+                    "operating_margin": entry.get("operating_margin"),  # Operating Income / Revenue
+                    "ev_ebit": entry.get("ev_ebit")  # Enterprise Value / EBIT (Operating Income)
                 }
                 output_stock["data"].append(output_entry)
             
@@ -440,7 +465,7 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin)...")
+    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT)...")
     metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
     
     if not metrics_data:
@@ -492,6 +517,7 @@ def main():
         print(f"  EBIT/PPE (TTM): {stats['ebit_ppe_ttm_data_points']:,}")
         print(f"  Gross Margin: {stats['gross_margin_data_points']:,}")
         print(f"  Operating Margin: {stats['operating_margin_data_points']:,}")
+        print(f"  EV/EBIT: {stats['ev_ebit_data_points']:,}")
         print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,}")
         print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,}")
         print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")

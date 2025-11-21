@@ -1,0 +1,462 @@
+================================================================================
+Available Metrics for Sample Ticker
+================================================================================
+
+Symbol: PAAS
+Company Name: Pan American Silver Corp.
+
+Total Metrics Found: 203
+
+================================================================================
+METRIC KEYS (Alphabetically Sorted)
+================================================================================
+
+  1. accounts_payable                                   (Type: int, Sample: 11931000)
+  2. accumulated_depreciation                           (Type: int, Sample: 0)
+  3. aoci                                               (Type: int, Sample: 0)
+  4. apic                                               (Type: int, Sample: 149472000)
+  5. assets_to_equity                                   (Type: float, Sample: 1.4267)
+  6. assets_to_equity_median                            (Type: float, Sample: 1.4161)
+  7. book_value                                         (Type: int, Sample: 75203000)
+  8. book_value_per_share                               (Type: float, Sample: 1.948)
+  9. capex                                              (Type: int, Sample: -1453000)
+ 10. capex_growth                                       (Type: float, Sample: 0.599)
+ 11. cash_and_equiv                                     (Type: int, Sample: 19921000)
+ 12. cash_and_equiv_growth                              (Type: float, Sample: 4.6417)
+ 13. cf_cff                                             (Type: int, Sample: 16311000)
+ 14. cf_cfi                                             (Type: int, Sample: -1353000)
+ 15. cf_cfo                                             (Type: int, Sample: 1632000)
+ 16. cf_cfo_cagr_10                                     (Type: float, Sample: -0.0155)
+ 17. cf_forex                                           (Type: int, Sample: 0)
+ 18. cf_net_change_in_cash                              (Type: int, Sample: 16590000)
+ 19. cff_common_stock_issued                            (Type: int, Sample: 17189000)
+ 20. cff_common_stock_net                               (Type: int, Sample: 17189000)
+ 21. cff_common_stock_repurchased                       (Type: int, Sample: 0)
+ 22. cff_debt_issued                                    (Type: int, Sample: 0)
+ 23. cff_debt_net                                       (Type: int, Sample: -148000)
+ 24. cff_debt_repaid                                    (Type: int, Sample: -148000)
+ 25. cff_dividend_paid                                  (Type: int, Sample: 0)
+ 26. cff_other                                          (Type: int, Sample: -730000)
+ 27. cff_pfd_issued                                     (Type: int, Sample: 0)
+ 28. cff_pfd_net                                        (Type: int, Sample: 0)
+ 29. cff_pfd_repurchased                                (Type: int, Sample: 0)
+ 30. cfi_acquisitions                                   (Type: int, Sample: 0)
+ 31. cfi_acquisitions_net                               (Type: int, Sample: 0)
+ 32. cfi_divestitures                                   (Type: int, Sample: 0)
+ 33. cfi_intangibles_net                                (Type: int, Sample: 0)
+ 34. cfi_investment_net                                 (Type: int, Sample: 0)
+ 35. cfi_investment_purchases                           (Type: int, Sample: 0)
+ 36. cfi_investment_sales                               (Type: int, Sample: 0)
+ 37. cfi_other                                          (Type: int, Sample: 100000)
+ 38. cfi_ppe_net                                        (Type: int, Sample: -1453000)
+ 39. cfi_ppe_purchases                                  (Type: int, Sample: -1453000)
+ 40. cfi_ppe_sales                                      (Type: int, Sample: 0)
+ 41. cfo_change_in_working_capital                      (Type: int, Sample: 1568000)
+ 42. cfo_da                                             (Type: int, Sample: 1429000)
+ 43. cfo_deferred_tax                                   (Type: int, Sample: 0)
+ 44. cfo_growth                                         (Type: float, Sample: -0.4279)
+ 45. cfo_inventory                                      (Type: int, Sample: 0)
+ 46. cfo_net_income                                     (Type: int, Sample: -1303000)
+ 47. cfo_other_noncash_items                            (Type: int, Sample: -62000)
+ 48. cfo_other_working_capital                          (Type: int, Sample: 1568000)
+ 49. cfo_prepaid_expenses                               (Type: int, Sample: 0)
+ 50. cfo_receivables                                    (Type: int, Sample: 0)
+ 51. cfo_stock_comp                                     (Type: int, Sample: 0)
+ 52. cogs                                               (Type: int, Sample: 9285000)
+ 53. common_stock                                       (Type: int, Sample: 0)
+ 54. current_accrued_liabilities                        (Type: int, Sample: 0)
+ 55. current_capital_leases                             (Type: int, Sample: 0)
+ 56. current_deferred_revenue                           (Type: int, Sample: 0)
+ 57. current_deferred_tax_liability                     (Type: int, Sample: 0)
+ 58. current_ratio                                      (Type: float, Sample: 1.6719)
+ 59. da_income_statement_supplemental                   (Type: int, Sample: 1429000)
+ 60. debt_to_assets                                     (Type: float, Sample: 0.034)
+ 61. debt_to_assets_median                              (Type: float, Sample: 0.0544)
+ 62. debt_to_equity                                     (Type: float, Sample: 0.0485)
+ 63. debt_to_equity_median                              (Type: float, Sample: 0.0785)
+ 64. debt_to_total_equity                               (Type: float, Sample: 0.0485)
+ 65. debt_to_total_equity_median                        (Type: float, Sample: 0.0785)
+ 66. dividends                                          (Type: int, Sample: 0)
+ 67. dividends_per_share_cagr_10                        (Type: int, Sample: 0)
+ 68. dividends_per_share_growth                         (Type: int, Sample: 0)
+ 69. ebitda                                             (Type: int, Sample: 357000)
+ 70. ebitda_growth                                      (Type: float, Sample: 1.3173)
+ 71. ebitda_margin                                      (Type: float, Sample: 0.035)
+ 72. ebitda_per_share                                   (Type: float, Sample: 0.0092)
+ 73. enterprise_value                                   (Type: int, Sample: 190282800)
+ 74. enterprise_value_to_book                           (Type: float, Sample: 2.5302)
+ 75. enterprise_value_to_earnings                       (Type: float, Sample: -24.2738)
+ 76. enterprise_value_to_fcf                            (Type: float, Sample: -24.3359)
+ 77. enterprise_value_to_pretax_income                  (Type: int, Sample: 0)
+ 78. enterprise_value_to_sales                          (Type: float, Sample: 4.4299)
+ 79. enterprise_value_to_tangible_book                  (Type: float, Sample: 2.5302)
+ 80. eps_basic                                          (Type: float, Sample: -0.03)
+ 81. eps_diluted                                        (Type: float, Sample: -0.03)
+ 82. eps_diluted_cagr_10                                (Type: int, Sample: 0)
+ 83. eps_diluted_growth                                 (Type: float, Sample: 0.2105)
+ 84. equity_and_other_investments                       (Type: int, Sample: 0)
+ 85. equity_to_assets                                   (Type: float, Sample: 0.7008)
+ 86. fcf                                                (Type: int, Sample: 179000)
+ 87. fcf_cagr_10                                        (Type: float, Sample: -0.2637)
+ 88. fcf_growth                                         (Type: float, Sample: 1.2321)
+ 89. fcf_margin                                         (Type: float, Sample: 0.0175)
+ 90. fcf_margin_median                                  (Type: float, Sample: -0.3761)
+ 91. fcf_per_share                                      (Type: float, Sample: 0.0046)
+ 92. fiscal_quarter_key                                 (Type: str, Sample: FY2002.FQ1)
+ 93. fiscal_quarter_number                              (Type: int, Sample: 1)
+ 94. goodwill                                           (Type: int, Sample: 0)
+ 95. gross_margin                                       (Type: float, Sample: 0.0896)
+ 96. gross_margin_median                                (Type: float, Sample: -0.0147)
+ 97. gross_profit                                       (Type: int, Sample: 914000)
+ 98. gross_profit_growth                                (Type: float, Sample: 2.8099)
+ 99. income_allocated_to_minority_interest              (Type: int, Sample: 0)
+100. income_tax                                         (Type: int, Sample: 0)
+101. income_tax_rate                                    (Type: int, Sample: 0)
+102. intangible_assets                                  (Type: int, Sample: 0)
+103. interest_expense                                   (Type: int, Sample: 0)
+104. interest_income                                    (Type: int, Sample: 0)
+105. inventories                                        (Type: int, Sample: 6282000)
+106. lt_debt                                            (Type: int, Sample: 0)
+107. market_cap                                         (Type: int, Sample: 210716800)
+108. minority_interest_liability                        (Type: int, Sample: 0)
+109. net_debt                                           (Type: int, Sample: -16269000)
+110. net_income                                         (Type: int, Sample: -1303000)
+111. net_income_available_to_shareholders               (Type: int, Sample: -1303000)
+112. net_income_continuing                              (Type: int, Sample: 0)
+113. net_income_discontinued                            (Type: int, Sample: 0)
+114. net_income_growth                                  (Type: float, Sample: 0.1544)
+115. net_income_margin                                  (Type: float, Sample: -0.1277)
+116. net_interest_income_normal                         (Type: int, Sample: 0)
+117. noncurrent_capital_leases                          (Type: int, Sample: 0)
+118. noncurrent_deferred_revenue                        (Type: int, Sample: 0)
+119. nopat                                              (Type: int, Sample: -804000)
+120. operating_income                                   (Type: int, Sample: -1072000)
+121. operating_income_growth                            (Type: float, Sample: 0.4151)
+122. operating_income_margin_median                     (Type: float, Sample: -0.1569)
+123. operating_income_per_share                         (Type: float, Sample: -0.0277)
+124. operating_margin                                   (Type: float, Sample: -0.1051)
+125. original_filing_date                               (Type: str, Sample: -)
+126. other_current_assets                               (Type: int, Sample: 5474000)
+127. other_current_liabilities                          (Type: int, Sample: 5696000)
+128. other_equity                                       (Type: int, Sample: 0)
+129. other_income_statement_items                       (Type: int, Sample: -1303000)
+130. other_lt_assets                                    (Type: int, Sample: 2003000)
+131. other_lt_liabilities                               (Type: int, Sample: 10816000)
+132. other_nonoperating_income                          (Type: int, Sample: 1072000)
+133. other_opex                                         (Type: int, Sample: 1429000)
+134. payout_ratio                                       (Type: int, Sample: 0)
+135. peg_ratio                                          (Type: int, Sample: 0)
+136. pension_liabilities                                (Type: int, Sample: 0)
+137. period_end_date                                    (Type: str, Sample: 2002-03)
+138. period_end_price                                   (Type: float, Sample: 5.6)
+139. ppe_gross                                          (Type: int, Sample: 69718000)
+140. ppe_growth                                         (Type: float, Sample: 0.0477)
+141. ppe_net                                            (Type: int, Sample: 69718000)
+142. preferred_dividends                                (Type: int, Sample: 0)
+143. preferred_stock                                    (Type: int, Sample: 0)
+144. pretax_income                                      (Type: int, Sample: 0)
+145. pretax_income_growth                               (Type: int, Sample: 0)
+146. pretax_income_per_share                            (Type: int, Sample: 0)
+147. pretax_margin                                      (Type: int, Sample: 0)
+148. pretax_margin_median                               (Type: int, Sample: 0)
+149. price_to_book                                      (Type: float, Sample: 2.8019)
+150. price_to_earnings                                  (Type: float, Sample: -26.8805)
+151. price_to_fcf                                       (Type: float, Sample: -26.9493)
+152. price_to_pretax_income                             (Type: int, Sample: 0)
+153. price_to_sales                                     (Type: float, Sample: 4.9056)
+154. price_to_tangible_book                             (Type: float, Sample: 2.8019)
+155. receivables                                        (Type: int, Sample: 3387000)
+156. retained_earnings                                  (Type: int, Sample: -74269000)
+157. revenue                                            (Type: int, Sample: 10199000)
+158. revenue_cagr_10                                    (Type: float, Sample: 0.039)
+159. revenue_growth                                     (Type: float, Sample: 1.2459)
+160. revenue_per_share                                  (Type: float, Sample: 0.2641)
+161. rnd                                                (Type: int, Sample: 0)
+162. roa                                                (Type: float, Sample: -0.0788)
+163. roa_median                                         (Type: float, Sample: -0.0998)
+164. roce                                               (Type: float, Sample: -0.121)
+165. roe                                                (Type: float, Sample: -0.1169)
+166. roe_median                                         (Type: float, Sample: -0.1465)
+167. roic                                               (Type: float, Sample: -0.1087)
+168. roic_5yr_avg                                       (Type: float)
+169. roic_legacy                                        (Type: float, Sample: -0.1296)
+170. roic_median                                        (Type: float, Sample: -0.1329)
+171. roic_nopat                                         (Type: float, Sample: -0.1016)
+172. rotce                                              (Type: float, Sample: -0.121)
+173. sga                                                (Type: int, Sample: 557000)
+174. shares_basic                                       (Type: int, Sample: 38604000)
+175. shares_diluted                                     (Type: int, Sample: 38604000)
+176. shares_diluted_growth                              (Type: float, Sample: 0.1228)
+177. shares_eop                                         (Type: int, Sample: 37628000)
+178. shares_eop_change                                  (Type: int, Sample: 0)
+179. shares_eop_growth                                  (Type: int, Sample: 0)
+180. special_charges                                    (Type: int, Sample: 0)
+181. st_debt                                            (Type: int, Sample: 3652000)
+182. st_investments                                     (Type: int, Sample: 513000)
+183. tangible_book_per_share                            (Type: float, Sample: 1.948)
+184. tangible_book_value                                (Type: int, Sample: 75203000)
+185. tax_payable                                        (Type: int, Sample: 0)
+186. total_assets                                       (Type: int, Sample: 107298000)
+187. total_assets_cagr_10                               (Type: float, Sample: 0.0081)
+188. total_assets_growth                                (Type: float, Sample: 0.2664)
+189. total_current_assets                               (Type: int, Sample: 35577000)
+190. total_current_liabilities                          (Type: int, Sample: 21279000)
+191. total_equity                                       (Type: int, Sample: 75203000)
+192. total_equity_cagr_10                               (Type: float, Sample: -0.0161)
+193. total_equity_growth                                (Type: float, Sample: 0.343)
+194. total_liabilities                                  (Type: int, Sample: 32095000)
+195. total_liabilities_and_equity                       (Type: int, Sample: 107298000)
+196. total_noncurrent_assets                            (Type: int, Sample: 71721000)
+197. total_noncurrent_liabilities                       (Type: int, Sample: 10816000)
+198. total_opex                                         (Type: int, Sample: 1986000)
+199. total_shareholders_equity                          (Type: int, Sample: 75203000)
+200. total_shareholders_equity_cagr_10                  (Type: float, Sample: -0.0161)
+201. total_shareholders_equity_growth                   (Type: float, Sample: 0.343)
+202. treasury_stock                                     (Type: int, Sample: 0)
+203. working_capital                                    (Type: int, Sample: 14298000)
+
+================================================================================
+METRIC KEYS BY CATEGORY
+================================================================================
+
+
+Financial Statement Items:
+  - cash_and_equiv
+  - cash_and_equiv_growth
+  - cf_net_change_in_cash
+  - cff_debt_issued
+  - cff_debt_net
+  - cff_debt_repaid
+  - cfi_ppe_net
+  - cfo_change_in_working_capital
+  - cfo_net_income
+  - cfo_other_noncash_items
+  - cfo_other_working_capital
+  - cogs
+  - current_deferred_revenue
+  - debt_to_assets
+  - debt_to_assets_median
+  - debt_to_equity
+  - debt_to_equity_median
+  - debt_to_total_equity
+  - debt_to_total_equity_median
+  - ebitda
+  - ebitda_growth
+  - ebitda_margin
+  - ebitda_per_share
+  - enterprise_value_to_pretax_income
+  - gross_profit
+  - gross_profit_growth
+  - lt_debt
+  - net_debt
+  - net_income
+  - net_income_available_to_shareholders
+  - net_income_continuing
+  - net_income_discontinued
+  - net_income_growth
+  - net_income_margin
+  - noncurrent_deferred_revenue
+  - operating_income
+  - operating_income_growth
+  - operating_income_margin_median
+  - operating_income_per_share
+  - other_current_assets
+  - other_current_liabilities
+  - other_nonoperating_income
+  - ppe_net
+  - pretax_income
+  - pretax_income_growth
+  - pretax_income_per_share
+  - price_to_pretax_income
+  - revenue
+  - revenue_cagr_10
+  - revenue_growth
+  - revenue_per_share
+  - st_debt
+  - total_assets
+  - total_assets_cagr_10
+  - total_assets_growth
+  - total_current_assets
+  - total_current_liabilities
+  - total_equity
+  - total_equity_cagr_10
+  - total_equity_growth
+  - total_liabilities
+  - total_liabilities_and_equity
+  - total_noncurrent_assets
+  - total_noncurrent_liabilities
+  - working_capital
+
+Ratios & Margins:
+  - current_ratio
+  - debt_to_equity
+  - debt_to_equity_median
+  - gross_margin
+  - gross_margin_median
+  - operating_margin
+  - pretax_margin
+  - pretax_margin_median
+  - roa
+  - roa_median
+  - roe
+  - roe_median
+  - roic
+  - roic_5yr_avg
+  - roic_legacy
+  - roic_median
+  - roic_nopat
+
+Per Share Metrics:
+  - book_value_per_share
+  - dividends_per_share_cagr_10
+  - dividends_per_share_growth
+  - eps_basic
+  - eps_diluted
+  - eps_diluted_cagr_10
+  - eps_diluted_growth
+
+Cash Flow:
+  - capex
+  - capex_growth
+  - cf_cff
+  - cf_cfi
+  - cf_cfo
+  - cf_cfo_cagr_10
+  - enterprise_value_to_fcf
+  - fcf
+  - fcf_cagr_10
+  - fcf_growth
+  - fcf_margin
+  - fcf_margin_median
+  - fcf_per_share
+  - price_to_fcf
+
+Growth Rates:
+  - net_income_growth
+  - operating_income_growth
+  - revenue_growth
+
+Valuation:
+  - current_deferred_revenue
+  - enterprise_value
+  - enterprise_value_to_book
+  - enterprise_value_to_earnings
+  - enterprise_value_to_fcf
+  - enterprise_value_to_pretax_income
+  - enterprise_value_to_sales
+  - enterprise_value_to_tangible_book
+  - market_cap
+  - noncurrent_deferred_revenue
+  - revenue
+  - revenue_cagr_10
+  - revenue_growth
+  - revenue_per_share
+
+Price & Returns:
+  - dividends
+  - dividends_per_share_cagr_10
+  - dividends_per_share_growth
+  - period_end_price
+  - preferred_dividends
+  - price_to_book
+  - price_to_earnings
+  - price_to_fcf
+  - price_to_pretax_income
+  - price_to_sales
+  - price_to_tangible_book
+
+Dates & Periods:
+  - fiscal_quarter_key
+  - original_filing_date
+  - period_end_date
+  - period_end_price
+
+Shares:
+  - shares_basic
+  - shares_diluted
+  - shares_diluted_growth
+  - shares_eop
+  - shares_eop_change
+  - shares_eop_growth
+
+Other Metrics:
+  - accounts_payable
+  - accumulated_depreciation
+  - aoci
+  - apic
+  - assets_to_equity
+  - assets_to_equity_median
+  - book_value
+  - cf_forex
+  - cff_common_stock_issued
+  - cff_common_stock_net
+  - cff_common_stock_repurchased
+  - cff_dividend_paid
+  - cff_other
+  - cff_pfd_issued
+  - cff_pfd_net
+  - cff_pfd_repurchased
+  - cfi_acquisitions
+  - cfi_acquisitions_net
+  - cfi_divestitures
+  - cfi_intangibles_net
+  - cfi_investment_net
+  - cfi_investment_purchases
+  - cfi_investment_sales
+  - cfi_other
+  - cfi_ppe_purchases
+  - cfi_ppe_sales
+  - cfo_da
+  - cfo_deferred_tax
+  - cfo_growth
+  - cfo_inventory
+  - cfo_prepaid_expenses
+  - cfo_receivables
+  - cfo_stock_comp
+  - common_stock
+  - current_accrued_liabilities
+  - current_capital_leases
+  - current_deferred_tax_liability
+  - da_income_statement_supplemental
+  - equity_and_other_investments
+  - equity_to_assets
+  - fiscal_quarter_number
+  - goodwill
+  - income_allocated_to_minority_interest
+  - income_tax
+  - income_tax_rate
+  - intangible_assets
+  - interest_expense
+  - interest_income
+  - inventories
+  - minority_interest_liability
+  - net_interest_income_normal
+  - noncurrent_capital_leases
+  - nopat
+  - other_equity
+  - other_income_statement_items
+  - other_lt_assets
+  - other_lt_liabilities
+  - other_opex
+  - payout_ratio
+  - peg_ratio
+  - pension_liabilities
+  - ppe_gross
+  - ppe_growth
+  - preferred_stock
+  - receivables
+  - retained_earnings
+  - rnd
+  - roce
+  - rotce
+  - sga
+  - special_charges
+  - st_investments
+  - tangible_book_per_share
+  - tangible_book_value
+  - tax_payable
+  - total_opex
+  - total_shareholders_equity
+  - total_shareholders_equity_cagr_10
+  - total_shareholders_equity_growth
+  - treasury_stock
