@@ -8,8 +8,5 @@ reduce data storage space
 
 algorithm backtester
 
+command in correl that shows correl of all metrics 
 
-add these metrics to get_metrics and correlations: 
-
-operating margin
-gross margin 

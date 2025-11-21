@@ -8,6 +8,7 @@ import numpy as np
 from scipy.stats import pearsonr, spearmanr, rankdata
 from typing import List, Tuple
 import matplotlib.pyplot as plt
+import argparse
 
 def load_data(filename: str = "metrics.json") -> List[dict]:
     """
@@ -450,40 +451,67 @@ def print_forward_period_correlations_summary(results: dict, metric_name: str):
     print("="*100)
 
 
-def main():
+def print_period_correlations(period_stats: List[dict], metric_name: str):
     """
-    Main function to calculate and display correlation analysis by period
+    Print correlations for each individual time period (for total forward return only)
+    
+    Args:
+        period_stats: List of correlation statistics dictionaries, each with 'time_period' key
+        metric_name: Display name of the metric
     """
-    # Load data first to detect available metrics
-    print("Loading data from metrics.json...")
-    data = load_data("metrics.json")
-    
-    if not data:
-        print("No data loaded. Exiting.")
+    if not period_stats:
+        print("No period statistics available.")
         return
     
-    print(f"Loaded data for {len(data)} stock(s)")
+    print("\n" + "="*100)
+    print(f"{metric_name} vs Total Forward Return Correlation by Time Period")
+    print("="*100)
+    print(f"\n{'Time Period':<20} {'Correlation':<15} {'p-value':<15} {'Significant':<15} {'N Pairs':<15}")
+    print("-" * 100)
     
-    # Detect available metrics
-    available_metrics = detect_available_metrics(data)
+    # Sort by time period
+    sorted_stats = sorted(period_stats, key=lambda x: x.get('time_period', 0))
     
-    if not available_metrics:
-        print("No metrics found in data. Exiting.")
-        return
+    for stat in sorted_stats:
+        time_period = stat.get('time_period', 'Unknown')
+        ranked_corr = stat.get('ranked_correlation')
+        p_value = stat.get('ranked_pvalue')
+        n_pairs = stat.get('n_pairs', 0)
+        
+        if ranked_corr is not None and p_value is not None:
+            is_significant = p_value < 0.05
+            significance = "Yes" if is_significant else "No"
+            print(f"{str(time_period):<20} {ranked_corr:<15.4f} {p_value:<15.4e} {significance:<15} {n_pairs:<15}")
+        else:
+            print(f"{str(time_period):<20} {'N/A':<15} {'N/A':<15} {'N/A':<15} {n_pairs:<15}")
     
-    # Get user's metric selection
-    selected_metrics = get_metric_selection(available_metrics)
+    print("="*100)
     
-    if selected_metrics == 'exit':
-        print("Exiting program.")
-        return
+    # Print summary statistics
+    valid_correlations = [s.get('ranked_correlation') for s in sorted_stats 
+                         if s.get('ranked_correlation') is not None]
+    if valid_correlations:
+        print(f"\nSummary Statistics Across Time Periods:")
+        print(f"  Total periods analyzed: {len(valid_correlations)}")
+        significant_count = sum(1 for s in sorted_stats 
+                               if s.get('ranked_pvalue') is not None and s.get('ranked_pvalue') < 0.05)
+        print(f"  Periods with significant correlation (p < 0.05): {significant_count}")
+        print(f"  Average correlation: {np.mean(valid_correlations):.4f}")
+        print(f"  Median correlation: {np.median(valid_correlations):.4f}")
+        print(f"  Min correlation: {np.min(valid_correlations):.4f}")
+        print(f"  Max correlation: {np.max(valid_correlations):.4f}")
+        print("="*100)
+
+
+def run_average_mode(data: List[dict], available_metrics: dict, metric_keys_to_process: List[str]):
+    """
+    Run average correlation mode - calculates weighted average correlation across all time periods
     
-    # Determine which metrics to process
-    if selected_metrics == 'all':
-        metric_keys_to_process = list(available_metrics.keys())
-    else:
-        metric_keys_to_process = [selected_metrics]
-    
+    Args:
+        data: List of stock data dictionaries
+        available_metrics: Dictionary mapping metric keys to display names
+        metric_keys_to_process: List of metric keys to analyze
+    """
     # Extract data grouped by time period AND forward return period
     print(f"\nExtracting metrics and forward return data by time period and forward return period...")
     forward_return_data = extract_data_by_period_and_forward_return(data, metric_keys_to_process)
@@ -572,6 +600,202 @@ def main():
         if results:
             metric_name = available_metrics.get(metric_key, metric_key)
             print_forward_period_correlations_summary(results, metric_name)
+
+
+def run_by_period_mode(data: List[dict], available_metrics: dict, metric_keys_to_process: List[str]):
+    """
+    Run by-period correlation mode - shows correlations for each individual time period (total forward return only)
+    
+    Args:
+        data: List of stock data dictionaries
+        available_metrics: Dictionary mapping metric keys to display names
+        metric_keys_to_process: List of metric keys to analyze
+    """
+    # Extract data grouped by time period AND forward return period
+    print(f"\nExtracting metrics and forward return data by time period...")
+    forward_return_data = extract_data_by_period_and_forward_return(data, metric_keys_to_process)
+    
+    if not forward_return_data:
+        print("No valid forward return data found. Exiting.")
+        return
+    
+    # Only analyze total forward return
+    forward_period = 'total'
+    
+    print(f"\nCalculating correlations for each time period (total forward return only)...")
+    
+    for metric_key in metric_keys_to_process:
+        period_stats = []
+        
+        # Get all time periods for total forward return
+        time_periods = sorted([p for p in forward_return_data[forward_period].keys() 
+                               if isinstance(p, str) or (isinstance(p, (int, float)) and p != 0)])
+        
+        for time_period in time_periods:
+            period_data = forward_return_data[forward_period][time_period]
+            metric_values = period_data.get(metric_key, [])
+            forward_return_values = period_data.get(f"forward_return_{metric_key}", [])
+            
+            # Calculate correlation for this time period
+            if len(metric_values) >= 2 and len(metric_values) == len(forward_return_values):
+                period_stat = calculate_correlations(metric_values, forward_return_values)
+                ranked_corr = period_stat.get('ranked_correlation')
+                
+                if ranked_corr is not None:
+                    period_stat['time_period'] = time_period
+                    period_stats.append(period_stat)
+        
+        # Display results for this metric
+        if period_stats:
+            metric_name = available_metrics.get(metric_key, metric_key)
+            print_period_correlations(period_stats, metric_name)
+        else:
+            metric_name = available_metrics.get(metric_key, metric_key)
+            print(f"\nNo valid correlation data found for {metric_name}.")
+
+
+def show_command_menu() -> str:
+    """
+    Display available commands menu and get user selection
+    
+    Returns:
+        Selected command mode or 'exit'
+    """
+    print("\n" + "="*80)
+    print("Correlation Analysis - Available Commands")
+    print("="*80)
+    print("\nAvailable commands:")
+    print("  1. average      - Calculate weighted average correlation across all time periods")
+    print("  2. by-period   - Show correlations for each individual time period")
+    print("  3. exit         - Exit the program")
+    print("="*80)
+    
+    while True:
+        try:
+            choice = input("\nEnter command (1-3) or command name: ").strip().lower()
+            
+            # Handle numeric choices
+            if choice == '1' or choice == 'average':
+                print("\n" + "="*80)
+                print("Command: average")
+                print("="*80)
+                print("\nDescription:")
+                print("  Calculates weighted average correlation across all time periods.")
+                print("  This mode:")
+                print("  - Analyzes correlations for each time period separately")
+                print("  - Computes weighted average across all periods (weighted by sample size)")
+                print("  - Shows results for all forward return periods (total, 1y, 3y, 5y, 10y)")
+                print("  - Provides summary statistics across forward return periods")
+                print("="*80)
+                confirm = input("\nProceed with this command? (y/n): ").strip().lower()
+                if confirm == 'y' or confirm == 'yes':
+                    return 'average'
+                else:
+                    print("Command cancelled. Returning to menu...")
+                    return show_command_menu()
+            
+            elif choice == '2' or choice == 'by-period' or choice == 'byperiod':
+                print("\n" + "="*80)
+                print("Command: by-period")
+                print("="*80)
+                print("\nDescription:")
+                print("  Shows correlations for each individual time period.")
+                print("  This mode:")
+                print("  - Displays correlation for each time period separately")
+                print("  - Only analyzes total forward return (not 1y, 3y, 5y, 10y)")
+                print("  - Shows a table with correlation, p-value, significance, and sample size per period")
+                print("  - Provides summary statistics across all time periods")
+                print("="*80)
+                confirm = input("\nProceed with this command? (y/n): ").strip().lower()
+                if confirm == 'y' or confirm == 'yes':
+                    return 'by-period'
+                else:
+                    print("Command cancelled. Returning to menu...")
+                    return show_command_menu()
+            
+            elif choice == '3' or choice == 'exit':
+                return 'exit'
+            
+            else:
+                print(f"Invalid choice. Please enter 1-3, or a command name (average, by-period, exit).")
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            return 'exit'
+        except Exception as e:
+            print(f"Error: {e}. Please try again.")
+
+
+def main():
+    """
+    Main function to calculate and display correlation analysis by period
+    Supports two modes:
+    1. average - weighted average correlation across all time periods (default)
+    2. by-period - correlations for each individual time period (total forward return only)
+    """
+    parser = argparse.ArgumentParser(
+        description='Calculate correlation between metrics and forward returns',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python correlations.py                    # Interactive menu
+  python correlations.py average            # Average correlation across all periods
+  python correlations.py by-period          # Show correlations for each time period
+        """
+    )
+    parser.add_argument(
+        'mode',
+        choices=['average', 'by-period'],
+        nargs='?',
+        help='Analysis mode: "average" for weighted average across all periods, "by-period" for per-period correlations'
+    )
+    
+    args = parser.parse_args()
+    
+    # If no mode specified, show interactive menu
+    if args.mode is None:
+        selected_mode = show_command_menu()
+        if selected_mode == 'exit':
+            print("Exiting program.")
+            return
+        mode = selected_mode
+    else:
+        mode = args.mode
+    
+    # Load data first to detect available metrics
+    print("\nLoading data from metrics.json...")
+    data = load_data("metrics.json")
+    
+    if not data:
+        print("No data loaded. Exiting.")
+        return
+    
+    print(f"Loaded data for {len(data)} stock(s)")
+    
+    # Detect available metrics
+    available_metrics = detect_available_metrics(data)
+    
+    if not available_metrics:
+        print("No metrics found in data. Exiting.")
+        return
+    
+    # Get user's metric selection
+    selected_metrics = get_metric_selection(available_metrics)
+    
+    if selected_metrics == 'exit':
+        print("Exiting program.")
+        return
+    
+    # Determine which metrics to process
+    if selected_metrics == 'all':
+        metric_keys_to_process = list(available_metrics.keys())
+    else:
+        metric_keys_to_process = [selected_metrics]
+    
+    # Run the appropriate mode
+    if mode == 'average':
+        run_average_mode(data, available_metrics, metric_keys_to_process)
+    elif mode == 'by-period':
+        run_by_period_mode(data, available_metrics, metric_keys_to_process)
 
 if __name__ == "__main__":
     main()
