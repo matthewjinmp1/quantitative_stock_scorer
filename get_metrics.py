@@ -1,5 +1,5 @@
 """
-Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT) from data.jsonl
+Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS) from data.jsonl
 and save results to metrics.json
 forward_return = Annualized return from period j+1 to most recent period
 Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
@@ -10,6 +10,7 @@ Gross Margin = (Revenue - Cost of Goods Sold) / Revenue
 Operating Margin = Operating Income / Revenue
 EV/EBIT = Enterprise Value / EBIT (Operating Income)
 Enterprise Value = Market Cap + Total Debt - Cash and Cash Equivalents
+Relative PS = Current Price-to-Sales / 5-Year Average Price-to-Sales (20 quarters)
 """
 import json
 import os
@@ -57,7 +58,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     
     Returns:
         Dictionary containing processed quarterly data with total_return, forward_return (total to end, annualized), 
-        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, and EV/EBIT
+        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, and Relative PS
         forward_return = Annualized return from period j+1 to most recent period
         Forward returns 1y/3y/5y/10y are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
         EBIT/PPE = Operating Income / PPE (quarterly)
@@ -66,6 +67,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         Operating Margin = Operating Income / Revenue
         EV/EBIT = Enterprise Value / EBIT (Operating Income)
         Enterprise Value = Market Cap + Total Debt - Cash and Cash Equivalents
+        Relative PS = Current Price-to-Sales / 5-Year Average Price-to-Sales (20 quarters)
     """
     if not stock_data or "data" not in stock_data:
         return None
@@ -100,6 +102,9 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     # Enterprise value is already calculated in the data
     enterprise_value = data.get("enterprise_value", [])
     
+    # Extract price_to_sales for relative PS calculation
+    price_to_sales = data.get("price_to_sales", [])
+    
     # Ensure all data arrays are lists
     if not isinstance(prices, list) or not prices:
         return None
@@ -117,6 +122,8 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         cost_of_goods_sold = []
     if not isinstance(enterprise_value, list):
         enterprise_value = []
+    if not isinstance(price_to_sales, list):
+        price_to_sales = []
     
     # Process the data into quarterly entries
     quarterly_data = []
@@ -301,6 +308,31 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         
         quarterly_data[j]["ebit_ppe_ttm"] = ebit_ppe_ttm
     
+    # Calculate Relative PS (Price-to-Sales)
+    # Relative PS = Current Price-to-Sales / 5-Year Average Price-to-Sales
+    # 5 years = 20 quarters
+    for j in range(len(quarterly_data)):
+        relative_ps = None
+        current_ps = price_to_sales[j] if j < len(price_to_sales) and price_to_sales[j] is not None else None
+        
+        # Need at least 20 quarters of data (j >= 19) to calculate 5-year average
+        if j >= 19 and current_ps is not None and current_ps > 0:
+            # Calculate 5-year average (20 quarters) of price_to_sales
+            ps_values = []
+            for k in range(j - 19, j + 1):  # Include current period in average
+                if k < len(price_to_sales) and price_to_sales[k] is not None:
+                    ps_val = price_to_sales[k]
+                    if ps_val is not None and ps_val > 0:  # Only include positive values
+                        ps_values.append(float(ps_val))
+            
+            if len(ps_values) > 0:
+                # Calculate average
+                avg_ps_5yr = sum(ps_values) / len(ps_values)
+                if avg_ps_5yr > 0:
+                    relative_ps = current_ps / avg_ps_5yr
+        
+        quarterly_data[j]["relative_ps"] = relative_ps
+    
     return {
         "symbol": symbol,
         "company_name": company_name,
@@ -331,6 +363,7 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
         "gross_margin_data_points": 0,
         "operating_margin_data_points": 0,
         "ev_ebit_data_points": 0,
+        "relative_ps_data_points": 0,
         "forward_return_1y_data_points": 0,
         "forward_return_3y_data_points": 0,
         "forward_return_5y_data_points": 0,
@@ -366,6 +399,8 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
                         stats["operating_margin_data_points"] += 1
                     if entry.get("ev_ebit") is not None:
                         stats["ev_ebit_data_points"] += 1
+                    if entry.get("relative_ps") is not None:
+                        stats["relative_ps_data_points"] += 1
                     if entry.get("forward_return_1y") is not None:
                         stats["forward_return_1y_data_points"] += 1
                     if entry.get("forward_return_3y") is not None:
@@ -409,7 +444,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
         filename: Output filename
     """
     try:
-        # Create output data with period, total_return, forward_return, roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, and ev_ebit
+        # Create output data with period, total_return, forward_return, roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, ev_ebit, and relative_ps
         output_data = []
         for stock_data in metrics_data:
             output_stock = {
@@ -418,7 +453,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, and ev_ebit in the output
+            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, ev_ebit, and relative_ps in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
@@ -433,7 +468,8 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                     "ebit_ppe_ttm": entry.get("ebit_ppe_ttm"),  # TTM Operating income / TTM PPE (4 trailing quarters)
                     "gross_margin": entry.get("gross_margin"),  # (Revenue - COGS) / Revenue
                     "operating_margin": entry.get("operating_margin"),  # Operating Income / Revenue
-                    "ev_ebit": entry.get("ev_ebit")  # Enterprise Value / EBIT (Operating Income)
+                    "ev_ebit": entry.get("ev_ebit"),  # Enterprise Value / EBIT (Operating Income)
+                    "relative_ps": entry.get("relative_ps")  # Current Price-to-Sales / 5-Year Average Price-to-Sales
                 }
                 output_stock["data"].append(output_entry)
             
@@ -465,7 +501,7 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT)...")
+    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS)...")
     metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
     
     if not metrics_data:
@@ -518,6 +554,7 @@ def main():
         print(f"  Gross Margin: {stats['gross_margin_data_points']:,}")
         print(f"  Operating Margin: {stats['operating_margin_data_points']:,}")
         print(f"  EV/EBIT: {stats['ev_ebit_data_points']:,}")
+        print(f"  Relative PS: {stats['relative_ps_data_points']:,}")
         print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,}")
         print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,}")
         print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")
