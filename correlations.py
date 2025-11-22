@@ -260,8 +260,9 @@ def detect_available_metrics(data: List[dict]) -> dict:
     }
     
     # Check which metrics exist in the data by scanning all entries
-    # Exclude non-metric keys
-    excluded_keys = {'period', 'price', 'dividends', 'total_return', 'forward_return'}
+    # Exclude non-metric keys (including return metrics which are used to evaluate predictive power, not metrics themselves)
+    excluded_keys = {'period', 'price', 'dividends', 'total_return', 'forward_return',
+                    'forward_return_1y', 'forward_return_3y', 'forward_return_5y', 'forward_return_10y'}
     
     # First, find all potential metric keys by scanning all entries
     all_metric_keys = set()
@@ -286,12 +287,120 @@ def detect_available_metrics(data: List[dict]) -> dict:
     
     return available_metrics
 
-def get_metric_selection(available_metrics: dict) -> str:
+def rank_metrics_by_correlation(data: List[dict], available_metrics: dict) -> List[Tuple[str, float]]:
+    """
+    Rank all metrics by their correlation with total forward return
+    
+    Args:
+        data: List of stock data dictionaries
+        available_metrics: Dictionary mapping metric keys to display names
+    
+    Returns:
+        List of tuples (metric_key, correlation) sorted by correlation (descending)
+    """
+    forward_return_data = extract_data_by_period_and_forward_return(data, list(available_metrics.keys()))
+    forward_period = 'total'
+    
+    rankings = []
+    
+    for metric_key in available_metrics.keys():
+        # Calculate correlations for each time period
+        period_correlations = []
+        period_weights = []
+        
+        time_periods = sorted([p for p in forward_return_data[forward_period].keys() 
+                               if isinstance(p, str) or (isinstance(p, (int, float)) and p != 0)])
+        
+        for time_period in time_periods:
+            period_data = forward_return_data[forward_period][time_period]
+            metric_values = period_data.get(metric_key, [])
+            forward_return_values = period_data.get(f"forward_return_{metric_key}", [])
+            
+            if len(metric_values) >= 2 and len(metric_values) == len(forward_return_values):
+                period_stat = calculate_correlations(metric_values, forward_return_values)
+                ranked_corr = period_stat.get('ranked_correlation')
+                
+                if ranked_corr is not None:
+                    period_correlations.append(ranked_corr)
+                    period_weights.append(period_stat.get('n_pairs', 0))
+        
+        # Calculate weighted average correlation
+        if period_correlations and period_weights:
+            correlations_array = np.array(period_correlations)
+            weights_array = np.array(period_weights)
+            weighted_avg_correlation = np.average(correlations_array, weights=weights_array)
+            rankings.append((metric_key, weighted_avg_correlation))
+        else:
+            rankings.append((metric_key, None))
+    
+    # Sort by correlation (descending), handling None values
+    rankings.sort(key=lambda x: x[1] if x[1] is not None else float('-inf'), reverse=True)
+    return rankings
+
+
+def rank_metrics_by_bucket_difference(data: List[dict], available_metrics: dict) -> List[Tuple[str, float]]:
+    """
+    Rank all metrics by the difference between top 50% and bottom 50% bucket returns
+    
+    Args:
+        data: List of stock data dictionaries
+        available_metrics: Dictionary mapping metric keys to display names
+    
+    Returns:
+        List of tuples (metric_key, difference) sorted by difference (descending)
+    """
+    forward_period = 'total'
+    rankings = []
+    
+    for metric_key in available_metrics.keys():
+        # Collect paired metric values and forward returns
+        pairs = []
+        
+        for stock in data:
+            for entry in stock.get("data", []):
+                metric_value = entry.get(metric_key)
+                
+                if metric_value is not None and isinstance(metric_value, (int, float)):
+                    forward_return_key = "forward_return"
+                    forward_return_value = entry.get(forward_return_key)
+                    
+                    if forward_return_value is not None and isinstance(forward_return_value, (int, float)):
+                        pairs.append((float(metric_value), float(forward_return_value)))
+        
+        if len(pairs) >= 2:
+            metric_values = np.array([p[0] for p in pairs])
+            forward_returns = np.array([p[1] for p in pairs])
+            
+            median_metric = np.median(metric_values)
+            bottom_mask = metric_values <= median_metric
+            top_mask = metric_values > median_metric
+            
+            bottom_returns = forward_returns[bottom_mask]
+            top_returns = forward_returns[top_mask]
+            
+            if len(bottom_returns) > 0 and len(top_returns) > 0:
+                bottom_median = np.median(bottom_returns)
+                top_median = np.median(top_returns)
+                difference = top_median - bottom_median
+                rankings.append((metric_key, difference))
+            else:
+                rankings.append((metric_key, None))
+        else:
+            rankings.append((metric_key, None))
+    
+    # Sort by difference (descending), handling None values
+    rankings.sort(key=lambda x: x[1] if x[1] is not None else float('-inf'), reverse=True)
+    return rankings
+
+
+def get_metric_selection(available_metrics: dict, mode: str = None, data: List[dict] = None) -> str:
     """
     Display a dynamic menu and get user's metric selection
     
     Args:
         available_metrics: Dictionary mapping metric keys to display names
+        mode: Current analysis mode ('average', 'buckets', etc.)
+        data: List of stock data dictionaries (needed for rank functionality)
     
     Returns:
         String indicating selected metric(s) or 'exit'
@@ -315,8 +424,16 @@ def get_metric_selection(available_metrics: dict) -> str:
         menu_items.append((str(len(metric_keys) + 1), 'all', 'All metrics'))
         print(f"  {len(metric_keys) + 1}. All metrics")
     
+    # Add "Rank metrics" option for average and buckets modes
+    rank_option_num = len(metric_keys) + (2 if len(metric_keys) > 1 else 1)
+    if mode in ['average', 'buckets'] and data is not None:
+        menu_items.append((str(rank_option_num), 'rank', 'Rank metrics'))
+        print(f"  {rank_option_num}. Rank metrics")
+        exit_num = rank_option_num + 1
+    else:
+        exit_num = rank_option_num
+    
     # Add exit option
-    exit_num = len(metric_keys) + (2 if len(metric_keys) > 1 else 1)
     menu_items.append((str(exit_num), 'exit', 'Exit'))
     print(f"  {exit_num}. Exit")
     
@@ -330,7 +447,66 @@ def get_metric_selection(available_metrics: dict) -> str:
             # Find the menu item for this choice
             for num, key, _ in menu_items:
                 if choice == num:
-                    return key
+                    if key == 'rank':
+                        # Show rankings and then allow user to select a metric
+                        if mode == 'average':
+                            rankings = rank_metrics_by_correlation(data, available_metrics)
+                            print("\n" + "="*100)
+                            print("Metric Rankings by Correlation (Total Forward Return)")
+                            print("="*100)
+                            print(f"\n{'Rank':<10} {'Metric':<50} {'Correlation':<20}")
+                            print("-"*100)
+                            for rank, (metric_key, score) in enumerate(rankings, start=1):
+                                metric_name = available_metrics.get(metric_key, metric_key)
+                                if score is not None:
+                                    print(f"{rank:<10} {metric_name:<50} {score:<20.4f}")
+                                else:
+                                    print(f"{rank:<10} {metric_name:<50} {'N/A':<20}")
+                            print("="*100)
+                        elif mode == 'buckets':
+                            rankings = rank_metrics_by_bucket_difference(data, available_metrics)
+                            print("\n" + "="*100)
+                            print("Metric Rankings by Bucket Difference (Total Forward Return)")
+                            print("="*100)
+                            print(f"\n{'Rank':<10} {'Metric':<50} {'Top-Bottom Difference (%)':<30}")
+                            print("-"*100)
+                            for rank, (metric_key, score) in enumerate(rankings, start=1):
+                                metric_name = available_metrics.get(metric_key, metric_key)
+                                if score is not None:
+                                    print(f"{rank:<10} {metric_name:<50} {score:<30.2f}")
+                                else:
+                                    print(f"{rank:<10} {metric_name:<50} {'N/A':<30}")
+                            print("="*100)
+                        
+                        # After showing rankings, ask user to select a metric
+                        print("\nSelect a metric from the rankings above:")
+                        print("  Enter rank number (1, 2, 3, etc.) - Select that metric")
+                        print("  'all' - Analyze all metrics")
+                        print("  'exit' - Exit")
+                        metric_choice = input("\nEnter rank number, 'all', or 'exit': ").strip().lower()
+                        
+                        if metric_choice == 'exit':
+                            return 'exit'
+                        elif metric_choice == 'all':
+                            return 'all'
+                        else:
+                            # Try to find metric by rank number
+                            try:
+                                rank_idx = int(metric_choice) - 1
+                                if 0 <= rank_idx < len(rankings):
+                                    return rankings[rank_idx][0]
+                                else:
+                                    print(f"Invalid rank number. Please enter 1-{len(rankings)}, 'all', or 'exit'.")
+                                    continue
+                            except ValueError:
+                                # Try to find by metric name or key
+                                for metric_key, _ in rankings:
+                                    if metric_choice == metric_key or metric_choice.lower() in available_metrics.get(metric_key, '').lower():
+                                        return metric_key
+                                print(f"Invalid selection. Please try again.")
+                                continue
+                    else:
+                        return key
             
             print(f"Invalid choice. Please enter a number between 1 and {max_choice}.")
         except KeyboardInterrupt:
@@ -823,7 +999,7 @@ Examples:
         return
     
     # Get user's metric selection
-    selected_metrics = get_metric_selection(available_metrics)
+    selected_metrics = get_metric_selection(available_metrics, mode, data)
     
     if selected_metrics == 'exit':
         print("Exiting program.")
