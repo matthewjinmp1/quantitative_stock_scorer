@@ -645,6 +645,86 @@ def run_by_period_mode(data: List[dict], available_metrics: dict, metric_keys_to
             print(f"\nNo valid correlation data found for {metric_name}.")
 
 
+def run_buckets_mode(data: List[dict], available_metrics: dict, metric_keys_to_process: List[str]):
+    """
+    Run buckets mode - shows median return for top 50% and bottom 50% of metric values
+    
+    Args:
+        data: List of stock data dictionaries
+        available_metrics: Dictionary mapping metric keys to display names
+        metric_keys_to_process: List of metric keys to analyze
+    """
+    # Extract all metric and forward return pairs across all periods
+    print(f"\nExtracting metrics and forward return data...")
+    
+    forward_return_periods = ['total', '1y', '3y', '5y', '10y']
+    
+    for metric_key in metric_keys_to_process:
+        metric_name = available_metrics.get(metric_key, metric_key)
+        
+        # Collect paired metric values and forward returns for each period
+        # Structure: {forward_period: [(metric_value, forward_return), ...]}
+        paired_data = {period: [] for period in forward_return_periods}
+        
+        for stock in data:
+            for entry in stock.get("data", []):
+                metric_value = entry.get(metric_key)
+                
+                if metric_value is not None and isinstance(metric_value, (int, float)):
+                    # Get forward returns for all periods
+                    for forward_period in forward_return_periods:
+                        if forward_period == 'total':
+                            forward_return_key = "forward_return"
+                        else:
+                            forward_return_key = f"forward_return_{forward_period}"
+                        
+                        forward_return_value = entry.get(forward_return_key)
+                        
+                        if forward_return_value is not None and isinstance(forward_return_value, (int, float)):
+                            paired_data[forward_period].append((float(metric_value), float(forward_return_value)))
+        
+        # Print results for each forward return period
+        print("\n" + "="*100)
+        print(f"{metric_name} - Median Return by Metric Buckets")
+        print("="*100)
+        print(f"\n{'Forward Period':<20} {'Bottom 50% Median Return':<30} {'Top 50% Median Return':<30} {'Difference':<20} {'N Points':<15}")
+        print("-"*100)
+        
+        for forward_period in forward_return_periods:
+            pairs = paired_data[forward_period]
+            
+            if len(pairs) < 2:
+                continue
+            
+            # Separate metric values and forward returns
+            metric_values = np.array([p[0] for p in pairs])
+            forward_returns = np.array([p[1] for p in pairs])
+            
+            # Calculate median to split into top 50% and bottom 50%
+            median_metric = np.median(metric_values)
+            
+            # Create masks for top and bottom 50%
+            bottom_mask = metric_values <= median_metric
+            top_mask = metric_values > median_metric
+            
+            bottom_returns = forward_returns[bottom_mask]
+            top_returns = forward_returns[top_mask]
+            
+            if len(bottom_returns) > 0 and len(top_returns) > 0:
+                bottom_median = np.median(bottom_returns)
+                top_median = np.median(top_returns)
+                difference = top_median - bottom_median
+                
+                if forward_period == 'total':
+                    period_display = "Total forward return"
+                else:
+                    period_display = f"{forward_period} forward return"
+                
+                print(f"{period_display:<20} {bottom_median:<30.2f}% {top_median:<30.2f}% {difference:<20.2f}% {len(pairs):<15,}")
+        
+        print("="*100)
+
+
 def show_command_menu() -> str:
     """
     Display available commands menu and get user selection
@@ -658,12 +738,13 @@ def show_command_menu() -> str:
     print("\nAvailable commands:")
     print("  1. average      - Calculate weighted average correlation across all time periods")
     print("  2. by-period   - Show correlations for each individual time period")
-    print("  3. exit         - Exit the program")
+    print("  3. buckets      - Show median return for top 50% and bottom 50% of metric values")
+    print("  4. exit         - Exit the program")
     print("="*80)
     
     while True:
         try:
-            choice = input("\nEnter command (1-3) or command name: ").strip().lower()
+            choice = input("\nEnter command (1-4) or command name: ").strip().lower()
             
             # Handle numeric choices
             if choice == '1' or choice == 'average':
@@ -672,11 +753,14 @@ def show_command_menu() -> str:
             elif choice == '2' or choice == 'by-period' or choice == 'byperiod':
                 return 'by-period'
             
-            elif choice == '3' or choice == 'exit':
+            elif choice == '3' or choice == 'buckets':
+                return 'buckets'
+            
+            elif choice == '4' or choice == 'exit':
                 return 'exit'
             
             else:
-                print(f"Invalid choice. Please enter 1-3, or a command name (average, by-period, exit).")
+                print(f"Invalid choice. Please enter 1-4, or a command name (average, by-period, buckets, exit).")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return 'exit'
@@ -699,13 +783,14 @@ Examples:
   python correlations.py                    # Interactive menu
   python correlations.py average            # Average correlation across all periods
   python correlations.py by-period          # Show correlations for each time period
+  python correlations.py buckets            # Show median return for top/bottom 50% buckets
         """
     )
     parser.add_argument(
         'mode',
-        choices=['average', 'by-period'],
+        choices=['average', 'by-period', 'buckets'],
         nargs='?',
-        help='Analysis mode: "average" for weighted average across all periods, "by-period" for per-period correlations'
+        help='Analysis mode: "average" for weighted average across all periods, "by-period" for per-period correlations, "buckets" for median return by metric buckets'
     )
     
     args = parser.parse_args()
@@ -755,6 +840,8 @@ Examples:
         run_average_mode(data, available_metrics, metric_keys_to_process)
     elif mode == 'by-period':
         run_by_period_mode(data, available_metrics, metric_keys_to_process)
+    elif mode == 'buckets':
+        run_buckets_mode(data, available_metrics, metric_keys_to_process)
 
 if __name__ == "__main__":
     main()
