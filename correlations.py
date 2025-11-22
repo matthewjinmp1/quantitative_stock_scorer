@@ -1001,14 +1001,16 @@ def calculate_combined_scores(metric_data: MetricData, metric_items: List[Tuple[
     """
     Calculate combined scores by adding/subtracting ranks of multiple metrics, then pair with forward returns.
     
-    For each data point:
-    1. Get metric values for all selected metrics
-    2. Rank each metric within its time period
-    3. Add/subtract the ranks according to the signs to get a combined score
-    4. Pair this combined score with the forward return
+    Process (as specified):
+    1. For each time period (monthly over 25 years):
+       a. Rank all values for metric 1 (e.g., ROA) within that period
+       b. Rank all values for metric 2 (e.g., PE) within that period
+       c. For each stock/period combination, add the ranks together
+    2. This produces a combined score for each stock/period
+    3. The combined scores can then be ranked for sorting into top/bottom buckets
     
-    Matches data points by forward_return value (same stock/period) rather than by index,
-    since different metrics may have different numbers of valid data points.
+    Matches data points by (time_period, forward_return) combination to ensure we're matching
+    the same stock/period across different metrics.
     
     Args:
         metric_data: MetricData object containing extracted data
@@ -1027,7 +1029,7 @@ def calculate_combined_scores(metric_data: MetricData, metric_items: List[Tuple[
     time_periods = metric_data.get_time_periods(forward_period)
     
     for time_period in time_periods:
-        # Get pairs for all metrics for this time period
+        # Step 1: Get all pairs for all metrics for this time period
         all_metric_pairs = {}
         for metric_key in metric_keys:
             pairs = metric_data.get_pairs(forward_period, metric_key, time_period)
@@ -1037,23 +1039,28 @@ def calculate_combined_scores(metric_data: MetricData, metric_items: List[Tuple[
         if not all_metric_pairs or len(all_metric_pairs) < len(metric_keys):
             continue
         
-        # First, rank each metric within this time period
-        metric_value_to_rank = {}  # For each metric, map (metric_value, forward_return) -> rank
+        # Step 2: Rank each metric separately within this time period
+        # For each metric, create a mapping: (metric_value, forward_return) -> rank
+        metric_value_to_rank = {}
         
         for metric_key in metric_keys:
             if metric_key in all_metric_pairs:
                 pairs = all_metric_pairs[metric_key]
+                # Extract just the metric values for ranking
                 metric_values = np.array([p[0] for p in pairs])
+                # Rank all values for this metric within this time period
                 ranks = rankdata(metric_values, method='average')
                 
                 # Create mapping from (metric_value, forward_return) to rank
+                # This allows us to look up the rank for a specific data point
                 metric_value_to_rank[metric_key] = {}
                 for i, (mv, fr) in enumerate(pairs):
                     # Use a tuple key that's tolerant of floating point differences
                     key = (round(mv, 10), round(fr, 10))
                     metric_value_to_rank[metric_key][key] = ranks[i]
         
-        # Group pairs by forward_return value to match across metrics
+        # Step 3: Match data points across metrics by (time_period, forward_return)
+        # Group by forward_return value within this time period
         # Structure: forward_return -> {metric_key: metric_value}
         forward_return_groups = {}
         
@@ -1064,29 +1071,32 @@ def calculate_combined_scores(metric_data: MetricData, metric_items: List[Tuple[
                     fr_rounded = round(forward_return, 10)
                     if fr_rounded not in forward_return_groups:
                         forward_return_groups[fr_rounded] = {}
+                    # Store the metric value for this forward_return
                     forward_return_groups[fr_rounded][metric_key] = metric_value
         
-        # For each forward return group, calculate combined score if all metrics are present
+        # Step 4: For each matched data point (same forward_return = same stock/period),
+        # calculate combined score by adding/subtracting ranks
         for forward_return, metric_values_dict in forward_return_groups.items():
-            # Check if all metrics are present
+            # Only process if all metrics are present for this data point
             if set(metric_values_dict.keys()) == set(metric_keys):
-                # Get ranks for all metrics with their signs
+                # Calculate combined score by adding/subtracting ranks
                 combined_score = 0.0
                 all_ranks_found = True
                 
                 for metric_key, sign in metric_items:
                     metric_value = metric_values_dict[metric_key]
-                    # Look up the rank using the (metric_value, forward_return) key
+                    # Look up the rank for this metric value
                     key = (round(metric_value, 10), forward_return)
                     if metric_key in metric_value_to_rank and key in metric_value_to_rank[metric_key]:
                         rank = metric_value_to_rank[metric_key][key]
                         combined_score += sign * rank  # Add or subtract based on sign
                     else:
-                        # Rank not found - skip this group
+                        # Rank not found - skip this data point
                         all_ranks_found = False
                         break
                 
                 if all_ranks_found:
+                    # Store the combined score paired with its forward return
                     combined_pairs.append((combined_score, forward_return))
     
     return combined_pairs
