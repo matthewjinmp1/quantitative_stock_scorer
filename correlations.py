@@ -11,6 +11,7 @@ import numpy as np
 from scipy.stats import pearsonr, spearmanr, rankdata
 from typing import List, Tuple, Dict, Optional
 import argparse
+import re
 
 # ============================================================================
 # CONSTANTS
@@ -596,6 +597,76 @@ def print_period_correlations(period_stats: List[dict], metric_name: str):
 # UI FUNCTIONS
 # ============================================================================
 
+def get_metric_combination_selection(available_metrics: dict) -> Optional[List[Tuple[str, int]]]:
+    """
+    Display metrics menu and get user's metric combination selection (e.g., "1+3" or "1-3")
+    
+    Args:
+        available_metrics: Dictionary mapping metric keys to display names
+    
+    Returns:
+        List of tuples (metric_key, sign) where sign is 1 for addition or -1 for subtraction,
+        or None if user wants to exit
+    """
+    print("\n" + "="*80)
+    print("Combine Metrics - Metric Selection")
+    print("="*80)
+    print("\nSelect which metrics to combine (e.g., type '1+3' to add, '1-3' to subtract):")
+    print("  Use '+' to add metric ranks, '-' to subtract metric ranks")
+    print("  Example: '1+3' adds ranks, '1-3' subtracts rank 3 from rank 1, '1+2-3' adds 1 and 2, then subtracts 3")
+    
+    metric_keys = sorted(available_metrics.keys())  # Sort for consistent ordering
+    
+    # Display metrics
+    for i, metric_key in enumerate(metric_keys, start=1):
+        print(f"  {i}. {available_metrics[metric_key]}")
+    
+    print("\n  'exit' - Exit")
+    print("="*80)
+    
+    while True:
+        try:
+            choice = input("\nEnter metric numbers to combine (e.g., '1+3', '1-3', or '1+2-3'): ").strip().lower()
+            
+            if choice == 'exit':
+                return None
+            
+            # Parse combination syntax (e.g., "1+3", "1-3", "1+2-3")
+            # Split by + and - while preserving the operators
+            # Match numbers with optional + or - prefix (first number may not have prefix)
+            parts = re.findall(r'([+-]?)(\d+)', choice)
+            
+            if not parts:
+                print("Invalid format. Please use format like '1+3', '1-3', or '1+2-3'.")
+                continue
+            
+            selected_items = []
+            for sign_str, num_str in parts:
+                try:
+                    idx = int(num_str)
+                    if 1 <= idx <= len(metric_keys):
+                        # Determine sign: + or no prefix = 1, - = -1
+                        sign = -1 if sign_str == '-' else 1
+                        selected_items.append((metric_keys[idx - 1], sign))
+                    else:
+                        print(f"Invalid metric number: {idx}. Please enter numbers between 1 and {len(metric_keys)}.")
+                        break
+                except ValueError:
+                    print(f"Invalid number: {num_str}. Please enter valid metric numbers.")
+                    break
+            else:
+                # All indices were valid
+                if len(selected_items) > 0:
+                    return selected_items
+                else:
+                    print("Please select at least one metric.")
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            return None
+        except Exception as e:
+            print(f"Error: {e}. Please try again.")
+
+
 def get_metric_selection(available_metrics: dict, mode: str = None, 
                         metric_data: Optional[MetricData] = None) -> str:
     """
@@ -712,12 +783,13 @@ def show_command_menu() -> str:
     print("  1. average      - Calculate weighted average correlation across all time periods")
     print("  2. by-period   - Show correlations for each individual time period")
     print("  3. buckets      - Show median return for top 50% and bottom 50% of metric values")
-    print("  4. exit         - Exit the program")
+    print("  4. combine      - Combine multiple metrics by adding/subtracting their rankings")
+    print("  5. exit         - Exit the program")
     print("="*80)
     
     while True:
         try:
-            choice = input("\nEnter command (1-4) or command name: ").strip().lower()
+            choice = input("\nEnter command (1-5) or command name: ").strip().lower()
             
             # Handle numeric choices
             if choice == '1' or choice == 'average':
@@ -729,11 +801,14 @@ def show_command_menu() -> str:
             elif choice == '3' or choice == 'buckets':
                 return 'buckets'
             
-            elif choice == '4' or choice == 'exit':
+            elif choice == '4' or choice == 'combine':
+                return 'combine'
+            
+            elif choice == '5' or choice == 'exit':
                 return 'exit'
             
             else:
-                print(f"Invalid choice. Please enter 1-4, or a command name (average, by-period, buckets, exit).")
+                print(f"Invalid choice. Please enter 1-5, or a command name (average, by-period, buckets, combine, exit).")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return 'exit'
@@ -921,6 +996,166 @@ def run_buckets_mode(metric_data: MetricData, available_metrics: dict, metric_ke
         print("="*100)
 
 
+def calculate_combined_scores(metric_data: MetricData, metric_items: List[Tuple[str, int]], 
+                              forward_period: str) -> List[Tuple[float, float]]:
+    """
+    Calculate combined scores by adding/subtracting ranks of multiple metrics, then pair with forward returns.
+    
+    For each data point:
+    1. Get metric values for all selected metrics
+    2. Rank each metric within its time period
+    3. Add/subtract the ranks according to the signs to get a combined score
+    4. Pair this combined score with the forward return
+    
+    Matches data points by forward_return value (same stock/period) rather than by index,
+    since different metrics may have different numbers of valid data points.
+    
+    Args:
+        metric_data: MetricData object containing extracted data
+        metric_items: List of tuples (metric_key, sign) where sign is 1 for addition or -1 for subtraction
+        forward_period: Forward return period to use
+    
+    Returns:
+        List of (combined_score, forward_return) tuples
+    """
+    combined_pairs = []
+    
+    # Extract metric keys (needed for matching)
+    metric_keys = [item[0] for item in metric_items]
+    
+    # Get all time periods
+    time_periods = metric_data.get_time_periods(forward_period)
+    
+    for time_period in time_periods:
+        # Get pairs for all metrics for this time period
+        all_metric_pairs = {}
+        for metric_key in metric_keys:
+            pairs = metric_data.get_pairs(forward_period, metric_key, time_period)
+            if len(pairs) > 0:
+                all_metric_pairs[metric_key] = pairs
+        
+        if not all_metric_pairs or len(all_metric_pairs) < len(metric_keys):
+            continue
+        
+        # First, rank each metric within this time period
+        metric_value_to_rank = {}  # For each metric, map (metric_value, forward_return) -> rank
+        
+        for metric_key in metric_keys:
+            if metric_key in all_metric_pairs:
+                pairs = all_metric_pairs[metric_key]
+                metric_values = np.array([p[0] for p in pairs])
+                ranks = rankdata(metric_values, method='average')
+                
+                # Create mapping from (metric_value, forward_return) to rank
+                metric_value_to_rank[metric_key] = {}
+                for i, (mv, fr) in enumerate(pairs):
+                    # Use a tuple key that's tolerant of floating point differences
+                    key = (round(mv, 10), round(fr, 10))
+                    metric_value_to_rank[metric_key][key] = ranks[i]
+        
+        # Group pairs by forward_return value to match across metrics
+        # Structure: forward_return -> {metric_key: metric_value}
+        forward_return_groups = {}
+        
+        for metric_key in metric_keys:
+            if metric_key in all_metric_pairs:
+                for metric_value, forward_return in all_metric_pairs[metric_key]:
+                    # Round to handle floating point precision issues
+                    fr_rounded = round(forward_return, 10)
+                    if fr_rounded not in forward_return_groups:
+                        forward_return_groups[fr_rounded] = {}
+                    forward_return_groups[fr_rounded][metric_key] = metric_value
+        
+        # For each forward return group, calculate combined score if all metrics are present
+        for forward_return, metric_values_dict in forward_return_groups.items():
+            # Check if all metrics are present
+            if set(metric_values_dict.keys()) == set(metric_keys):
+                # Get ranks for all metrics with their signs
+                combined_score = 0.0
+                all_ranks_found = True
+                
+                for metric_key, sign in metric_items:
+                    metric_value = metric_values_dict[metric_key]
+                    # Look up the rank using the (metric_value, forward_return) key
+                    key = (round(metric_value, 10), forward_return)
+                    if metric_key in metric_value_to_rank and key in metric_value_to_rank[metric_key]:
+                        rank = metric_value_to_rank[metric_key][key]
+                        combined_score += sign * rank  # Add or subtract based on sign
+                    else:
+                        # Rank not found - skip this group
+                        all_ranks_found = False
+                        break
+                
+                if all_ranks_found:
+                    combined_pairs.append((combined_score, forward_return))
+    
+    return combined_pairs
+
+
+def run_combine_mode(metric_data: MetricData, available_metrics: dict):
+    """
+    Run combine mode - combines multiple metrics by adding/subtracting their ranks, then shows buckets.
+    
+    Args:
+        metric_data: MetricData object containing extracted data
+        available_metrics: Dictionary mapping metric keys to display names
+    """
+    # Get metric combination selection
+    selected_metric_items = get_metric_combination_selection(available_metrics)
+    
+    if selected_metric_items is None or len(selected_metric_items) == 0:
+        print("No metrics selected. Exiting.")
+        return
+    
+    # Create display name for combined metrics
+    metric_parts = []
+    for metric_key, sign in selected_metric_items:
+        metric_name = available_metrics.get(metric_key, metric_key)
+        if sign == 1:
+            metric_parts.append(metric_name)
+        else:
+            metric_parts.append(f"- {metric_name}")
+    combined_name = " + ".join(metric_parts)
+    
+    print(f"\nCombining metrics: {combined_name}")
+    print("Calculating combined scores (add/subtract ranks)...")
+    
+    # Print results for each forward return period
+    print("\n" + "="*100)
+    print(f"Combined Metrics ({combined_name}) - Median Return by Combined Score Buckets")
+    print("="*100)
+    print(f"\n{'Forward Period':<20} {'Bottom 50% Median Return':<30} {'Top 50% Median Return':<30} {'Difference':<20} {'N Points':<15}")
+    print("-"*100)
+    
+    for forward_period in FORWARD_RETURN_PERIODS:
+        # Calculate combined scores
+        combined_pairs = calculate_combined_scores(metric_data, selected_metric_items, forward_period)
+        
+        if len(combined_pairs) < 2:
+            continue
+        
+        # Use shared bucket calculation function
+        difference = calculate_bucket_difference(combined_pairs)
+        
+        if difference is not None:
+            # Calculate bucket medians for display
+            combined_scores = np.array([p[0] for p in combined_pairs])
+            forward_returns = np.array([p[1] for p in combined_pairs])
+            median_score = np.median(combined_scores)
+            bottom_mask = combined_scores <= median_score
+            top_mask = combined_scores > median_score
+            bottom_returns = forward_returns[bottom_mask]
+            top_returns = forward_returns[top_mask]
+            
+            bottom_median = np.median(bottom_returns)
+            top_median = np.median(top_returns)
+            
+            period_display = format_forward_period_display(forward_period)
+            print(f"{period_display:<20} {bottom_median:<30.2f}% {top_median:<30.2f}% {difference:<20.2f}% {len(combined_pairs):<15,}")
+    
+    print("="*100)
+
+
 # ============================================================================
 # MAIN FUNCTION
 # ============================================================================
@@ -928,10 +1163,11 @@ def run_buckets_mode(metric_data: MetricData, available_metrics: dict, metric_ke
 def main():
     """
     Main function to calculate and display correlation analysis by period
-    Supports three modes:
+    Supports four modes:
     1. average - weighted average correlation across all time periods
     2. by-period - correlations for each individual time period (total forward return only)
     3. buckets - median return for top/bottom 50% buckets
+    4. combine - combine multiple metrics by summing their ranks, then show buckets
     """
     parser = argparse.ArgumentParser(
         description='Calculate correlation between metrics and forward returns',
@@ -941,13 +1177,14 @@ def main():
   python correlations.py average            # Average correlation across all periods
   python correlations.py by-period          # Show correlations for each time period
   python correlations.py buckets            # Show median return for top/bottom 50% buckets
+  python correlations.py combine            # Combine multiple metrics by summing ranks
         """
     )
     parser.add_argument(
         'mode',
-        choices=['average', 'by-period', 'buckets'],
+        choices=['average', 'by-period', 'buckets', 'combine'],
         nargs='?',
-        help='Analysis mode: "average" for weighted average across all periods, "by-period" for per-period correlations, "buckets" for median return by metric buckets'
+        help='Analysis mode: "average" for weighted average across all periods, "by-period" for per-period correlations, "buckets" for median return by metric buckets, "combine" for combining multiple metrics'
     )
     
     args = parser.parse_args()
@@ -983,26 +1220,30 @@ def main():
     print("\nExtracting metrics and forward return data...")
     metric_data = extract_unified_data(data, list(available_metrics.keys()))
     
-    # Get user's metric selection
-    selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
-    
-    if selected_metrics == 'exit':
-        print("Exiting program.")
-        return
-    
-    # Determine which metrics to process
-    if selected_metrics == 'all':
-        metric_keys_to_process = list(available_metrics.keys())
-    else:
-        metric_keys_to_process = [selected_metrics]
-    
     # Run the appropriate mode
-    if mode == 'average':
-        run_average_mode(metric_data, available_metrics, metric_keys_to_process)
-    elif mode == 'by-period':
-        run_by_period_mode(metric_data, available_metrics, metric_keys_to_process)
-    elif mode == 'buckets':
-        run_buckets_mode(metric_data, available_metrics, metric_keys_to_process)
+    if mode == 'combine':
+        run_combine_mode(metric_data, available_metrics)
+    else:
+        # Get user's metric selection for other modes
+        selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
+        
+        if selected_metrics == 'exit':
+            print("Exiting program.")
+            return
+        
+        # Determine which metrics to process
+        if selected_metrics == 'all':
+            metric_keys_to_process = list(available_metrics.keys())
+        else:
+            metric_keys_to_process = [selected_metrics]
+        
+        # Run the appropriate mode
+        if mode == 'average':
+            run_average_mode(metric_data, available_metrics, metric_keys_to_process)
+        elif mode == 'by-period':
+            run_by_period_mode(metric_data, available_metrics, metric_keys_to_process)
+        elif mode == 'buckets':
+            run_buckets_mode(metric_data, available_metrics, metric_keys_to_process)
 
 
 if __name__ == "__main__":
