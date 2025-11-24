@@ -769,9 +769,49 @@ def get_metric_selection(available_metrics: dict, mode: str = None,
             print(f"Error: {e}. Please try again.")
 
 
+def show_command_summary() -> str:
+    """
+    Display brief command summary and get user selection (used after each command completes)
+    
+    Returns:
+        Selected command mode or 'exit'
+    """
+    print("\n" + "="*80)
+    print("Available commands: 1. average  2. by-period  3. buckets  4. combine  5. exit")
+    print("="*80)
+    
+    while True:
+        try:
+            choice = input("\nEnter command (1-5) or command name: ").strip().lower()
+            
+            # Handle numeric choices
+            if choice == '1' or choice == 'average':
+                return 'average'
+            
+            elif choice == '2' or choice == 'by-period' or choice == 'byperiod':
+                return 'by-period'
+            
+            elif choice == '3' or choice == 'buckets':
+                return 'buckets'
+            
+            elif choice == '4' or choice == 'combine':
+                return 'combine'
+            
+            elif choice == '5' or choice == 'exit':
+                return 'exit'
+            
+            else:
+                print(f"Invalid choice. Please enter 1-5, or a command name (average, by-period, buckets, combine, exit).")
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            return 'exit'
+        except Exception as e:
+            print(f"Error: {e}. Please try again.")
+
+
 def show_command_menu() -> str:
     """
-    Display available commands menu and get user selection
+    Display available commands menu and get user selection (full menu with descriptions)
     
     Returns:
         Selected command mode or 'exit'
@@ -1199,16 +1239,57 @@ def main():
     
     args = parser.parse_args()
     
-    # If no mode specified, show interactive menu
-    if args.mode is None:
-        selected_mode = show_command_menu()
-        if selected_mode == 'exit':
-            print("Exiting program.")
-            return
-        mode = selected_mode
-    else:
+    # If mode specified via command line, run once and exit (non-interactive)
+    if args.mode is not None:
         mode = args.mode
+        # Load data first to detect available metrics
+        print("\nLoading data from metrics.json...")
+        data = load_data("metrics.json")
+        
+        if not data:
+            print("No data loaded. Exiting.")
+            return
+        
+        print(f"Loaded data for {len(data)} stock(s)")
+        
+        # Detect available metrics
+        available_metrics = detect_available_metrics(data)
+        
+        if not available_metrics:
+            print("No metrics found in data. Exiting.")
+            return
+        
+        # Extract data once - this is now reused across all functions
+        print("\nExtracting metrics and forward return data...")
+        metric_data = extract_unified_data(data, list(available_metrics.keys()))
+        
+        # Run the appropriate mode
+        if mode == 'combine':
+            run_combine_mode(metric_data, available_metrics)
+        else:
+            # Get user's metric selection for other modes
+            selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
+            
+            if selected_metrics == 'exit':
+                print("Exiting program.")
+                return
+            
+            # Determine which metrics to process
+            if selected_metrics == 'all':
+                metric_keys_to_process = list(available_metrics.keys())
+            else:
+                metric_keys_to_process = [selected_metrics]
+            
+            # Run the appropriate mode
+            if mode == 'average':
+                run_average_mode(metric_data, available_metrics, metric_keys_to_process)
+            elif mode == 'by-period':
+                run_by_period_mode(metric_data, available_metrics, metric_keys_to_process)
+            elif mode == 'buckets':
+                run_buckets_mode(metric_data, available_metrics, metric_keys_to_process)
+        return
     
+    # Interactive mode: loop until user exits
     # Load data first to detect available metrics
     print("\nLoading data from metrics.json...")
     data = load_data("metrics.json")
@@ -1230,30 +1311,48 @@ def main():
     print("\nExtracting metrics and forward return data...")
     metric_data = extract_unified_data(data, list(available_metrics.keys()))
     
-    # Run the appropriate mode
-    if mode == 'combine':
-        run_combine_mode(metric_data, available_metrics)
-    else:
-        # Get user's metric selection for other modes
-        selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
-        
-        if selected_metrics == 'exit':
-            print("Exiting program.")
-            return
-        
-        # Determine which metrics to process
-        if selected_metrics == 'all':
-            metric_keys_to_process = list(available_metrics.keys())
+    # Show full menu first time
+    first_time = True
+    
+    # Main loop: continue until user exits
+    while True:
+        # Show full menu first time, brief summary after
+        if first_time:
+            selected_mode = show_command_menu()
+            first_time = False
         else:
-            metric_keys_to_process = [selected_metrics]
+            selected_mode = show_command_summary()
+        
+        if selected_mode == 'exit':
+            print("Exiting program.")
+            break
+        
+        mode = selected_mode
         
         # Run the appropriate mode
-        if mode == 'average':
-            run_average_mode(metric_data, available_metrics, metric_keys_to_process)
-        elif mode == 'by-period':
-            run_by_period_mode(metric_data, available_metrics, metric_keys_to_process)
-        elif mode == 'buckets':
-            run_buckets_mode(metric_data, available_metrics, metric_keys_to_process)
+        if mode == 'combine':
+            run_combine_mode(metric_data, available_metrics)
+        else:
+            # Get user's metric selection for other modes
+            selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
+            
+            if selected_metrics == 'exit':
+                # User exited from metric selection, go back to command menu
+                continue
+            
+            # Determine which metrics to process
+            if selected_metrics == 'all':
+                metric_keys_to_process = list(available_metrics.keys())
+            else:
+                metric_keys_to_process = [selected_metrics]
+            
+            # Run the appropriate mode
+            if mode == 'average':
+                run_average_mode(metric_data, available_metrics, metric_keys_to_process)
+            elif mode == 'by-period':
+                run_by_period_mode(metric_data, available_metrics, metric_keys_to_process)
+            elif mode == 'buckets':
+                run_buckets_mode(metric_data, available_metrics, metric_keys_to_process)
 
 
 if __name__ == "__main__":
