@@ -14,6 +14,7 @@ Relative PS = Current Price-to-Sales / 5-Year Average Price-to-Sales (20 quarter
 """
 import json
 import os
+import time
 from typing import Dict, List, Optional
 
 def load_data_from_jsonl(filename: str = "data.jsonl") -> List[Dict]:
@@ -487,6 +488,7 @@ def main():
     """
     Main function to load data from data.jsonl, calculate metrics, and save to metrics.json
     """
+    program_start_time = time.time()
     print("Calculating Metrics from data.jsonl")
     print("=" * 80)
     
@@ -496,16 +498,26 @@ def main():
     
     if not stocks:
         print("No stock data found in data.jsonl")
+        total_time = time.time() - program_start_time
+        print(f"\n{'='*80}")
+        print(f"Total program execution time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
         return
     
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
     print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS)...")
+    start_time = time.time()
     metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
+    elapsed_time = time.time() - start_time
+    print(f"Metrics calculation completed in {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
     
     if not metrics_data:
         print("\nNo metrics were successfully calculated.")
+        total_time = time.time() - program_start_time
+        print(f"\n{'='*80}")
+        print(f"Total program execution time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
+        print(f"{'='*80}")
         return
     
     # Save to metrics.json
@@ -560,6 +572,9 @@ def main():
         print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")
         print(f"  Forward Return 10y: {stats['forward_return_10y_data_points']:,}")
     
+    total_time = time.time() - program_start_time
+    print(f"{'='*80}")
+    print(f"Total program execution time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
     print(f"{'='*80}")
 
 if __name__ == "__main__":
