@@ -1,5 +1,5 @@
 """
-Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS) from data.jsonl
+Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year CAGR) from data.jsonl
 and save results to metrics.json
 forward_return = Annualized return from period j+1 to most recent period
 Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
@@ -11,6 +11,7 @@ Operating Margin = Operating Income / Revenue
 EV/EBIT = Enterprise Value / EBIT (Operating Income)
 Enterprise Value = Market Cap + Total Debt - Cash and Cash Equivalents
 Relative PS = Current Price-to-Sales / 5-Year Average Price-to-Sales (20 quarters)
+5-Year CAGR = Compound Annual Growth Rate over 5 years (20 quarters), calculated as ((Current Price / Price 5 Years Ago)^(1/5) - 1) * 100
 """
 import json
 import os
@@ -59,7 +60,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     
     Returns:
         Dictionary containing processed quarterly data with total_return, forward_return (total to end, annualized), 
-        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, and Relative PS
+        forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, and 5-Year CAGR
         forward_return = Annualized return from period j+1 to most recent period
         Forward returns 1y/3y/5y/10y are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
         EBIT/PPE = Operating Income / PPE (quarterly)
@@ -69,6 +70,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         EV/EBIT = Enterprise Value / EBIT (Operating Income)
         Enterprise Value = Market Cap + Total Debt - Cash and Cash Equivalents
         Relative PS = Current Price-to-Sales / 5-Year Average Price-to-Sales (20 quarters)
+        5-Year CAGR = Compound Annual Growth Rate over 5 years (20 quarters), calculated as ((Current Price / Price 5 Years Ago)^(1/5) - 1) * 100
     """
     if not stock_data or "data" not in stock_data:
         return None
@@ -334,6 +336,25 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         
         quarterly_data[j]["relative_ps"] = relative_ps
     
+    # Calculate 5-Year CAGR (Compound Annual Growth Rate)
+    # 5-Year CAGR = ((Current Price / Price 5 Years Ago)^(1/5) - 1) * 100
+    # 5 years = 20 quarters
+    for j in range(len(quarterly_data)):
+        cagr_5y = None
+        current_price = quarterly_data[j].get("price")
+        
+        # Need at least 20 quarters of data (j >= 20) to calculate 5-year CAGR
+        if j >= 20 and current_price is not None and current_price > 0:
+            # Get price from 5 years (20 quarters) ago
+            price_5y_ago = quarterly_data[j - 20].get("price")
+            
+            if price_5y_ago is not None and price_5y_ago > 0:
+                # Calculate CAGR: ((Ending Value / Beginning Value)^(1/5) - 1) * 100
+                ratio = current_price / price_5y_ago
+                cagr_5y = ((ratio ** (1.0 / 5.0)) - 1.0) * 100.0
+        
+        quarterly_data[j]["cagr_5y"] = cagr_5y
+    
     return {
         "symbol": symbol,
         "company_name": company_name,
@@ -365,6 +386,7 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
         "operating_margin_data_points": 0,
         "ev_ebit_data_points": 0,
         "relative_ps_data_points": 0,
+        "cagr_5y_data_points": 0,
         "forward_return_1y_data_points": 0,
         "forward_return_3y_data_points": 0,
         "forward_return_5y_data_points": 0,
@@ -402,6 +424,8 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
                         stats["ev_ebit_data_points"] += 1
                     if entry.get("relative_ps") is not None:
                         stats["relative_ps_data_points"] += 1
+                    if entry.get("cagr_5y") is not None:
+                        stats["cagr_5y_data_points"] += 1
                     if entry.get("forward_return_1y") is not None:
                         stats["forward_return_1y_data_points"] += 1
                     if entry.get("forward_return_3y") is not None:
@@ -445,7 +469,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
         filename: Output filename
     """
     try:
-        # Create output data with period, total_return, forward_return, roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, ev_ebit, and relative_ps
+        # Create output data with period, total_return, forward_return, roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, ev_ebit, relative_ps, and cagr_5y
         output_data = []
         for stock_data in metrics_data:
             output_stock = {
@@ -454,7 +478,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 "data": []
             }
             
-            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, ev_ebit, and relative_ps in the output
+            # Include period, total_return, forward_return (total to end, annualized), forward returns (1y, 3y, 5y, 10y, all annualized), roa, ebit_ppe, ebit_ppe_ttm, gross_margin, operating_margin, ev_ebit, relative_ps, and cagr_5y in the output
             for entry in stock_data.get("data", []):
                 output_entry = {
                     "period": entry.get("period"),
@@ -470,7 +494,8 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                     "gross_margin": entry.get("gross_margin"),  # (Revenue - COGS) / Revenue
                     "operating_margin": entry.get("operating_margin"),  # Operating Income / Revenue
                     "ev_ebit": entry.get("ev_ebit"),  # Enterprise Value / EBIT (Operating Income)
-                    "relative_ps": entry.get("relative_ps")  # Current Price-to-Sales / 5-Year Average Price-to-Sales
+                    "relative_ps": entry.get("relative_ps"),  # Current Price-to-Sales / 5-Year Average Price-to-Sales
+                    "cagr_5y": entry.get("cagr_5y")  # 5-Year Compound Annual Growth Rate
                 }
                 output_stock["data"].append(output_entry)
             
@@ -506,7 +531,7 @@ def main():
     print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
     
     # Calculate metrics for all stocks
-    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS)...")
+    print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year CAGR)...")
     start_time = time.time()
     metrics_data, stats = calculate_metrics_for_all_stocks(stocks)
     elapsed_time = time.time() - start_time
@@ -567,6 +592,7 @@ def main():
         print(f"  Operating Margin: {stats['operating_margin_data_points']:,}")
         print(f"  EV/EBIT: {stats['ev_ebit_data_points']:,}")
         print(f"  Relative PS: {stats['relative_ps_data_points']:,}")
+        print(f"  5-Year CAGR: {stats['cagr_5y_data_points']:,}")
         print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,}")
         print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,}")
         print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")
