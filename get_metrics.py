@@ -1,8 +1,9 @@
 """
 Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR) from data.jsonl
 and save results to metrics.json
-forward_return = Annualized return from period j+1 to most recent period
+forward_return = Annualized return from period j+2 to most recent period (skips j+1 to avoid look-ahead bias from financial reporting lag)
 Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
+All forward returns start at t+2 (not t+1) to avoid look-ahead bias, as t+1 includes the quarter when financial information from t would be released
 All forward returns are annualized
 EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment) - quarterly
 EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
@@ -61,8 +62,9 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     Returns:
         Dictionary containing processed quarterly data with total_return, forward_return (total to end, annualized), 
         forward returns (1y, 3y, 5y, 10y, all annualized), ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, and 5-Year CAGR
-        forward_return = Annualized return from period j+1 to most recent period
+        forward_return = Annualized return from period j+2 to most recent period (skips j+1 to avoid look-ahead bias from financial reporting lag)
         Forward returns 1y/3y/5y/10y are annualized returns for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
+        All forward returns start at t+2 (not t+1) to avoid look-ahead bias, as t+1 includes the quarter when financial information from t would be released
         EBIT/PPE = Operating Income / PPE (quarterly)
         EBIT/PPE TTM = Sum of Operating Income from quarters t, t-1, t-2, t-3 / Sum of PPE from quarters t, t-1, t-2, t-3
         Gross Margin = (Revenue - Cost of Goods Sold) / Revenue
@@ -188,6 +190,8 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     
     # Calculate forward returns for specific periods: 1y, 3y, 5y, 10y
     # Each period requires a specific number of quarters: 1y=4, 3y=12, 5y=20, 10y=40
+    # Forward returns start at t+2 (not t+1) to avoid look-ahead bias from financial reporting lag
+    # t+1 includes the quarter when financial information from t would be released
     forward_return_periods = {
         '1y': 4,
         '3y': 12,
@@ -202,14 +206,15 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         
         # Calculate forward return for each period
         for period_name, required_quarters in forward_return_periods.items():
-            # Check if we have enough future periods (need j+1 to j+required_quarters, so j+required_quarters < len)
-            if j + required_quarters < len(quarterly_data):
+            # Check if we have enough future periods (need j+2 to j+required_quarters+1, so j+required_quarters+1 < len)
+            if j + required_quarters + 1 < len(quarterly_data):
                 # Start with 100% and compound each future period's return
                 cumulative_value = 100.0
                 valid_returns = True
                 
-                # Compound returns from period j+1 to j+required_quarters (inclusive)
-                for k in range(j + 1, j + required_quarters + 1):
+                # Compound returns from period j+2 to j+required_quarters+1 (inclusive)
+                # This skips t+1 to avoid look-ahead bias from financial reporting lag
+                for k in range(j + 2, j + required_quarters + 2):
                     if k >= len(quarterly_data):
                         valid_returns = False
                         break
@@ -239,16 +244,19 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
                         forward_return = annualized_return_decimal * 100.0
                         quarterly_data[j][f"forward_return_{period_name}"] = forward_return
         
-        # Calculate total forward return (from period j+1 to most recent period, annualized)
+        # Calculate total forward return (from period j+2 to most recent period, annualized)
+        # Start at j+2 (not j+1) to avoid look-ahead bias from financial reporting lag
+        # j+1 includes the quarter when financial information from j would be released
         total_forward_return = None
-        if j < len(quarterly_data) - 1:
+        if j < len(quarterly_data) - 2:
             # Start with 100% and compound each future period's return
             cumulative_value = 100.0
             valid_returns = True
             num_quarters = 0
             
-            # Compound returns from period j+1 to the most recent period
-            for k in range(j + 1, len(quarterly_data)):
+            # Compound returns from period j+2 to the most recent period
+            # This skips j+1 to avoid look-ahead bias from financial reporting lag
+            for k in range(j + 2, len(quarterly_data)):
                 period_return = quarterly_data[k].get("total_return")
                 if period_return is not None and isinstance(period_return, (int, float)):
                     # Compound: multiply by (1 + return/100)
@@ -387,6 +395,7 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
         "ev_ebit_data_points": 0,
         "relative_ps_data_points": 0,
         "cagr_5y_data_points": 0,
+        "forward_return_data_points": 0,
         "forward_return_1y_data_points": 0,
         "forward_return_3y_data_points": 0,
         "forward_return_5y_data_points": 0,
@@ -426,6 +435,8 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
                         stats["relative_ps_data_points"] += 1
                     if entry.get("cagr_5y") is not None:
                         stats["cagr_5y_data_points"] += 1
+                    if entry.get("forward_return") is not None:
+                        stats["forward_return_data_points"] += 1
                     if entry.get("forward_return_1y") is not None:
                         stats["forward_return_1y_data_points"] += 1
                     if entry.get("forward_return_3y") is not None:
@@ -483,7 +494,7 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
                 output_entry = {
                     "period": entry.get("period"),
                     "total_return": entry.get("total_return"),
-                    "forward_return": entry.get("forward_return"),  # Annualized return from period j+1 to most recent period
+                    "forward_return": entry.get("forward_return"),  # Annualized return from period j+2 to most recent period (skips j+1 to avoid look-ahead bias)
                     "forward_return_1y": entry.get("forward_return_1y"),  # Annualized 1-year forward return
                     "forward_return_3y": entry.get("forward_return_3y"),  # Annualized 3-year forward return
                     "forward_return_5y": entry.get("forward_return_5y"),  # Annualized 5-year forward return
@@ -593,6 +604,7 @@ def main():
         print(f"  EV/EBIT: {stats['ev_ebit_data_points']:,}")
         print(f"  Relative PS: {stats['relative_ps_data_points']:,}")
         print(f"  5-Year CAGR: {stats['cagr_5y_data_points']:,}")
+        print(f"  Forward Return (Total): {stats['forward_return_data_points']:,}")
         print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,}")
         print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,}")
         print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")
