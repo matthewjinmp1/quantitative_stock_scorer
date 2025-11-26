@@ -1,6 +1,6 @@
 """
 Program to fetch quarterly financial data from QuickFS API for stocks listed
-in tickers.json. Uses concurrent threading to fetch multiple tickers in parallel,
+in nasdaq.json. Uses concurrent threading to fetch multiple tickers in parallel,
 appends data to JSON incrementally as each ticker is fetched, and skips already
 processed tickers to support resumable execution.
 """
@@ -390,16 +390,16 @@ def main():
     print("=" * 80)
     
     # Load tickers
-    tickers = load_tickers("nyse.json")
+    tickers = load_tickers("nasdaq.json")
     if not tickers:
-        print("No tickers found. Please check nyse.json")
+        print("No tickers found. Please check nasdaq.json")
         return
     
     print(f"\nFound {len(tickers)} ticker(s)\n")
     
     # Fetch data for all tickers individually (data is appended as fetched)
     # Fetching sequentially (one at a time) to measure baseline speed
-    all_results = fetch_all_tickers_individual(tickers, max_workers=1, output_file="data.jsonl")
+    all_results = fetch_all_tickers_individual(tickers, max_workers=1, output_file="nasdaq_data.jsonl")
     
     # Filter out None results for summary
     all_data = [stock_data for stock_data in all_results if stock_data]
@@ -411,7 +411,7 @@ def main():
     print(f"Successfully fetched data for {len(all_data)} stock(s) out of {len(tickers)}")
     if len(all_data) < len(tickers):
         print(f"Failed to fetch data for {len(tickers) - len(all_data)} stock(s)")
-    print(f"\nAll data has been saved to data.jsonl")
+    print(f"\nAll data has been saved to nasdaq_data.jsonl")
 
 if __name__ == "__main__":
     main()
