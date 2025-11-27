@@ -335,6 +335,48 @@ def calculate_bucket_difference(pairs: List[Tuple[float, float]]) -> Optional[fl
     return None
 
 
+def calculate_custom_bucket_stats(pairs: List[Tuple[float, float]], num_buckets: int) -> Optional[List[Dict]]:
+    """
+    Calculate median returns for custom number of buckets.
+    
+    Args:
+        pairs: List of (metric_value, forward_return) tuples
+        num_buckets: Number of buckets to split the data into
+    
+    Returns:
+        List of dictionaries with bucket info (bucket_num, median_return, count), or None if insufficient data
+    """
+    if len(pairs) < num_buckets:
+        return None
+    
+    metric_values = np.array([p[0] for p in pairs])
+    forward_returns = np.array([p[1] for p in pairs])
+    
+    # Sort by metric value to create buckets
+    sorted_indices = np.argsort(metric_values)
+    sorted_returns = forward_returns[sorted_indices]
+    
+    # Calculate bucket sizes
+    total_count = len(pairs)
+    bucket_size = total_count / num_buckets
+    
+    bucket_stats = []
+    for i in range(num_buckets):
+        start_idx = int(i * bucket_size)
+        end_idx = int((i + 1) * bucket_size) if i < num_buckets - 1 else total_count
+        
+        bucket_returns = sorted_returns[start_idx:end_idx]
+        
+        if len(bucket_returns) > 0:
+            bucket_stats.append({
+                'bucket_num': i + 1,
+                'median_return': float(np.median(bucket_returns)),
+                'count': len(bucket_returns)
+            })
+    
+    return bucket_stats if bucket_stats else None
+
+
 # ============================================================================
 # RANKING FUNCTIONS
 # ============================================================================
@@ -667,6 +709,37 @@ def get_metric_combination_selection(available_metrics: dict) -> Optional[List[T
             print(f"Error: {e}. Please try again.")
 
 
+def get_num_buckets() -> Optional[int]:
+    """
+    Get the number of buckets from the user.
+    
+    Returns:
+        Number of buckets as an integer, or None if user cancels
+    """
+    while True:
+        try:
+            choice = input("\nEnter number of buckets (must be >= 2): ").strip()
+            
+            if choice.lower() == 'exit':
+                return None
+            
+            num_buckets = int(choice)
+            
+            if num_buckets < 2:
+                print("Number of buckets must be at least 2. Please try again.")
+                continue
+            
+            return num_buckets
+            
+        except ValueError:
+            print("Invalid input. Please enter a valid number (>= 2) or 'exit'.")
+        except KeyboardInterrupt:
+            print("\n\nCancelling...")
+            return None
+        except Exception as e:
+            print(f"Error: {e}. Please try again.")
+
+
 def get_metric_selection(available_metrics: dict, mode: str = None, 
                         metric_data: Optional[MetricData] = None) -> str:
     """
@@ -777,12 +850,12 @@ def show_command_summary() -> str:
         Selected command mode or 'exit'
     """
     print("\n" + "="*80)
-    print("Available commands: 1. average  2. by-period  3. buckets  4. combine  5. exit")
+    print("Available commands: 1. average  2. by-period  3. buckets  4. custom-bucket  5. combine  6. exit")
     print("="*80)
     
     while True:
         try:
-            choice = input("\nEnter command (1-5) or command name: ").strip().lower()
+            choice = input("\nEnter command (1-6) or command name: ").strip().lower()
             
             # Handle numeric choices
             if choice == '1' or choice == 'average':
@@ -794,14 +867,17 @@ def show_command_summary() -> str:
             elif choice == '3' or choice == 'buckets':
                 return 'buckets'
             
-            elif choice == '4' or choice == 'combine':
+            elif choice == '4' or choice == 'custom-bucket' or choice == 'custombucket':
+                return 'custom-bucket'
+            
+            elif choice == '5' or choice == 'combine':
                 return 'combine'
             
-            elif choice == '5' or choice == 'exit':
+            elif choice == '6' or choice == 'exit':
                 return 'exit'
             
             else:
-                print(f"Invalid choice. Please enter 1-5, or a command name (average, by-period, buckets, combine, exit).")
+                print(f"Invalid choice. Please enter 1-6, or a command name (average, by-period, buckets, custom-bucket, combine, exit).")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return 'exit'
@@ -820,16 +896,17 @@ def show_command_menu() -> str:
     print("Correlation Analysis - Available Commands")
     print("="*80)
     print("\nAvailable commands:")
-    print("  1. average      - Calculate weighted average correlation across all time periods")
-    print("  2. by-period   - Show correlations for each individual time period")
-    print("  3. buckets      - Show median return for top 50% and bottom 50% of metric values")
-    print("  4. combine      - Combine multiple metrics by adding/subtracting their rankings")
-    print("  5. exit         - Exit the program")
+    print("  1. average         - Calculate weighted average correlation across all time periods")
+    print("  2. by-period      - Show correlations for each individual time period")
+    print("  3. buckets         - Show median return for top 50% and bottom 50% of metric values")
+    print("  4. custom-bucket   - Show median return for custom number of buckets (you specify the number)")
+    print("  5. combine         - Combine multiple metrics by adding/subtracting their rankings")
+    print("  6. exit            - Exit the program")
     print("="*80)
     
     while True:
         try:
-            choice = input("\nEnter command (1-5) or command name: ").strip().lower()
+            choice = input("\nEnter command (1-6) or command name: ").strip().lower()
             
             # Handle numeric choices
             if choice == '1' or choice == 'average':
@@ -841,14 +918,17 @@ def show_command_menu() -> str:
             elif choice == '3' or choice == 'buckets':
                 return 'buckets'
             
-            elif choice == '4' or choice == 'combine':
+            elif choice == '4' or choice == 'custom-bucket' or choice == 'custombucket':
+                return 'custom-bucket'
+            
+            elif choice == '5' or choice == 'combine':
                 return 'combine'
             
-            elif choice == '5' or choice == 'exit':
+            elif choice == '6' or choice == 'exit':
                 return 'exit'
             
             else:
-                print(f"Invalid choice. Please enter 1-5, or a command name (average, by-period, buckets, combine, exit).")
+                print(f"Invalid choice. Please enter 1-6, or a command name (average, by-period, buckets, custom-bucket, combine, exit).")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return 'exit'
@@ -1036,6 +1116,52 @@ def run_buckets_mode(metric_data: MetricData, available_metrics: dict, metric_ke
         print("="*100)
 
 
+def run_custom_buckets_mode(metric_data: MetricData, available_metrics: dict, metric_keys_to_process: List[str], num_buckets: int):
+    """
+    Run custom buckets mode - shows median return for custom number of buckets
+    
+    Args:
+        metric_data: MetricData object containing extracted data
+        available_metrics: Dictionary mapping metric keys to display names
+        metric_keys_to_process: List of metric keys to analyze
+        num_buckets: Number of buckets to split stocks into
+    """
+    for metric_key in metric_keys_to_process:
+        metric_name = available_metrics.get(metric_key, metric_key)
+        
+        # Print results for each forward return period
+        print("\n" + "="*100)
+        print(f"{metric_name} - Median Return by Metric Buckets ({num_buckets} buckets)")
+        print("="*100)
+        
+        # Create header with bucket columns
+        header = f"{'Forward Period':<20}"
+        for i in range(1, num_buckets + 1):
+            header += f" {'Bucket ' + str(i) + ' Median':<20}"
+        header += f" {'N Points':<15}"
+        print(header)
+        print("-"*100)
+        
+        for forward_period in FORWARD_RETURN_PERIODS:
+            pairs = metric_data.get_pairs(forward_period, metric_key)
+            
+            if len(pairs) < num_buckets:
+                continue
+            
+            # Calculate custom bucket stats
+            bucket_stats = calculate_custom_bucket_stats(pairs, num_buckets)
+            
+            if bucket_stats is not None:
+                period_display = format_forward_period_display(forward_period)
+                row = f"{period_display:<20}"
+                for stat in bucket_stats:
+                    row += f" {stat['median_return']:<20.2f}%"
+                row += f" {len(pairs):<15,}"
+                print(row)
+        
+        print("="*100)
+
+
 def calculate_combined_scores(metric_data: MetricData, metric_items: List[Tuple[str, int]], 
                               forward_period: str) -> List[Tuple[float, float]]:
     """
@@ -1213,11 +1339,12 @@ def run_combine_mode(metric_data: MetricData, available_metrics: dict):
 def main():
     """
     Main function to calculate and display correlation analysis by period
-    Supports four modes:
+    Supports five modes:
     1. average - weighted average correlation across all time periods
     2. by-period - correlations for each individual time period (total forward return only)
     3. buckets - median return for top/bottom 50% buckets
-    4. combine - combine multiple metrics by summing their ranks, then show buckets
+    4. custom-bucket - median return for custom number of buckets (user specifies number)
+    5. combine - combine multiple metrics by summing their ranks, then show buckets
     """
     parser = argparse.ArgumentParser(
         description='Calculate correlation between metrics and forward returns',
@@ -1227,14 +1354,15 @@ def main():
   python correlations.py average            # Average correlation across all periods
   python correlations.py by-period          # Show correlations for each time period
   python correlations.py buckets            # Show median return for top/bottom 50% buckets
+  python correlations.py custom-bucket       # Show median return for custom number of buckets
   python correlations.py combine            # Combine multiple metrics by summing ranks
         """
     )
     parser.add_argument(
         'mode',
-        choices=['average', 'by-period', 'buckets', 'combine'],
+        choices=['average', 'by-period', 'buckets', 'custom-bucket', 'combine'],
         nargs='?',
-        help='Analysis mode: "average" for weighted average across all periods, "by-period" for per-period correlations, "buckets" for median return by metric buckets, "combine" for combining multiple metrics'
+        help='Analysis mode: "average" for weighted average across all periods, "by-period" for per-period correlations, "buckets" for median return by metric buckets, "custom-bucket" for custom number of buckets, "combine" for combining multiple metrics'
     )
     
     args = parser.parse_args()
@@ -1266,6 +1394,28 @@ def main():
         # Run the appropriate mode
         if mode == 'combine':
             run_combine_mode(metric_data, available_metrics)
+        elif mode == 'custom-bucket':
+            # Get number of buckets from user
+            num_buckets = get_num_buckets()
+            if num_buckets is None:
+                print("Exiting program.")
+                return
+            
+            # Get user's metric selection
+            selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
+            
+            if selected_metrics == 'exit':
+                print("Exiting program.")
+                return
+            
+            # Determine which metrics to process
+            if selected_metrics == 'all':
+                metric_keys_to_process = list(available_metrics.keys())
+            else:
+                metric_keys_to_process = [selected_metrics]
+            
+            # Run custom buckets mode
+            run_custom_buckets_mode(metric_data, available_metrics, metric_keys_to_process, num_buckets)
         else:
             # Get user's metric selection for other modes
             selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
@@ -1332,6 +1482,28 @@ def main():
         # Run the appropriate mode
         if mode == 'combine':
             run_combine_mode(metric_data, available_metrics)
+        elif mode == 'custom-bucket':
+            # Get number of buckets from user
+            num_buckets = get_num_buckets()
+            if num_buckets is None:
+                # User cancelled, go back to command menu
+                continue
+            
+            # Get user's metric selection
+            selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
+            
+            if selected_metrics == 'exit':
+                # User exited from metric selection, go back to command menu
+                continue
+            
+            # Determine which metrics to process
+            if selected_metrics == 'all':
+                metric_keys_to_process = list(available_metrics.keys())
+            else:
+                metric_keys_to_process = [selected_metrics]
+            
+            # Run custom buckets mode
+            run_custom_buckets_mode(metric_data, available_metrics, metric_keys_to_process, num_buckets)
         else:
             # Get user's metric selection for other modes
             selected_metrics = get_metric_selection(available_metrics, mode, metric_data)
