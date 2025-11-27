@@ -1134,12 +1134,14 @@ def run_custom_buckets_mode(metric_data: MetricData, available_metrics: dict, me
         print(f"{metric_name} - Median Return by Metric Buckets ({num_buckets} buckets)")
         print("="*100)
         
-        # Create header with bucket columns
-        header = f"{'Forward Period':<20}"
+        # Create compact header with bucket columns (B1, B2, etc.)
+        # Use fixed column widths to ensure vertical alignment (9 chars per bucket including space)
+        header = f"{'Period':<20}"
         for i in range(1, num_buckets + 1):
-            header += f" {'Bucket ' + str(i) + ' Median':<20}"
-        header += f" {'N Points':<15}"
+            header += f"{'B' + str(i):>9}"
+        header += f"{'N':>10}"
         print(header)
+        print("(Values show difference vs overall median: +X.XX% or -X.XX%)")
         print("-"*100)
         
         for forward_period in FORWARD_RETURN_PERIODS:
@@ -1148,6 +1150,10 @@ def run_custom_buckets_mode(metric_data: MetricData, available_metrics: dict, me
             if len(pairs) < num_buckets:
                 continue
             
+            # Calculate overall median return for this period
+            forward_returns = np.array([p[1] for p in pairs])
+            overall_median = float(np.median(forward_returns))
+            
             # Calculate custom bucket stats
             bucket_stats = calculate_custom_bucket_stats(pairs, num_buckets)
             
@@ -1155,8 +1161,16 @@ def run_custom_buckets_mode(metric_data: MetricData, available_metrics: dict, me
                 period_display = format_forward_period_display(forward_period)
                 row = f"{period_display:<20}"
                 for stat in bucket_stats:
-                    row += f" {stat['median_return']:<20.2f}%"
-                row += f" {len(pairs):<15,}"
+                    # Show only the difference from overall median
+                    diff = stat['median_return'] - overall_median
+                    # Format the entire value (sign + number + %) as one unit, right-aligned
+                    # Use + sign for positive, - for negative, no space between sign and number
+                    if diff >= 0:
+                        value_str = f"+{diff:.2f}%"
+                    else:
+                        value_str = f"{diff:.2f}%"
+                    row += f"{value_str:>9}"
+                row += f"{len(pairs):>10,}"
                 print(row)
         
         print("="*100)
