@@ -182,6 +182,31 @@ class TestQuarterlyDataExtraction(unittest.TestCase):
         self.assertIsNone(result['data'][0]['roa'])
         self.assertIsNone(result['data'][0]['ebit_ppe'])
     
+    def test_extract_quarterly_data_handles_non_list_data(self):
+        """Test handling when data fields are not lists"""
+        stock_data = {
+            "symbol": "TEST",
+            "data": {
+                "period_end_date": ["2020-Q1", "2020-Q2"],
+                "period_end_price": [100.0, 110.0],
+                "dividends": None,  # Not a list
+                "roa": "invalid",  # Not a list
+                "operating_income": 1000.0,  # Not a list
+                "ppe_net": None,  # Not a list
+                "revenue": None,  # Not a list - should trigger line 125
+                "cost_of_goods_sold": None,  # Not a list - should trigger line 127
+                "enterprise_value": None,
+                "price_to_sales": None
+            }
+        }
+        
+        result = extract_quarterly_data(stock_data)
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result['data']), 2)
+        # Should handle gracefully with None values
+        self.assertIsNone(result['data'][0]['ebit_ppe'])
+        self.assertIsNone(result['data'][0]['gross_margin'])
+    
     def test_extract_quarterly_data_calculates_ebit_ppe_ttm(self):
         """Test EBIT/PPE TTM calculation"""
         # Need at least 4 quarters for TTM

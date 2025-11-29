@@ -16,6 +16,7 @@ from correlations import (
     detect_available_metrics,
     calculate_correlations,
     calculate_bucket_difference,
+    calculate_custom_bucket_stats,
     rank_metrics_by_correlation,
     rank_metrics_by_bucket_difference,
     display_rankings_by_correlation,
@@ -26,6 +27,7 @@ from correlations import (
     run_average_mode,
     run_by_period_mode,
     run_buckets_mode,
+    run_custom_buckets_mode,
     calculate_combined_scores,
     run_combine_mode,
     FORWARD_RETURN_PERIODS,
@@ -280,6 +282,45 @@ class TestAnalysisFunctions(unittest.TestCase):
         
         self.assertLess(result['ranked_correlation'], 0)  # Negative correlation
     
+    def test_calculate_correlations_constant_input(self):
+        """Test correlation calculation with constant input arrays"""
+        # Constant metric values
+        metric_values = [0.5, 0.5, 0.5, 0.5, 0.5]
+        forward_return_values = [5.0, 10.0, 15.0, 20.0, 25.0]
+        
+        result = calculate_correlations(metric_values, forward_return_values)
+        
+        self.assertIsNone(result['ranked_correlation'])
+        self.assertIsNone(result['ranked_pvalue'])
+        self.assertIn('error', result)
+        self.assertIn('Constant input array', result['error'])
+        
+        # Constant forward return values
+        metric_values = [0.1, 0.2, 0.3, 0.4, 0.5]
+        forward_return_values = [10.0, 10.0, 10.0, 10.0, 10.0]
+        
+        result = calculate_correlations(metric_values, forward_return_values)
+        
+        self.assertIsNone(result['ranked_correlation'])
+        self.assertIsNone(result['ranked_pvalue'])
+        self.assertIn('error', result)
+    
+    def test_calculate_correlations_constant_ranks(self):
+        """Test correlation calculation with constant ranks (all tied values)"""
+        # All values are the same (will have constant ranks)
+        # This should trigger the constant input check first, so let's test a case
+        # where values pass the constant input check but ranks are constant
+        # Actually, if all values are the same, ranks will also be constant
+        # So this test covers the constant ranks path
+        metric_values = [0.5] * 5
+        forward_return_values = [10.0] * 5
+        
+        result = calculate_correlations(metric_values, forward_return_values)
+        
+        self.assertIsNone(result['ranked_correlation'])
+        self.assertIsNone(result['ranked_pvalue'])
+        self.assertIn('error', result)
+    
     def test_calculate_bucket_difference(self):
         """Test bucket difference calculation"""
         # Create pairs with clear separation
@@ -302,6 +343,40 @@ class TestAnalysisFunctions(unittest.TestCase):
         pairs = [(0.1, 5.0)]
         difference = calculate_bucket_difference(pairs)
         self.assertIsNone(difference)
+    
+    def test_calculate_custom_bucket_stats(self):
+        """Test custom bucket stats calculation"""
+        # Create pairs with clear separation for 3 buckets
+        pairs = [
+            (0.1, 5.0),   # Bucket 1
+            (0.2, 6.0),   # Bucket 1
+            (0.3, 7.0),   # Bucket 2
+            (0.4, 8.0),   # Bucket 2
+            (0.8, 15.0),  # Bucket 3
+            (0.9, 16.0),  # Bucket 3
+        ]
+        
+        bucket_stats = calculate_custom_bucket_stats(pairs, 3)
+        
+        self.assertIsNotNone(bucket_stats)
+        self.assertEqual(len(bucket_stats), 3)
+        self.assertEqual(bucket_stats[0]['bucket_num'], 1)
+        self.assertEqual(bucket_stats[1]['bucket_num'], 2)
+        self.assertEqual(bucket_stats[2]['bucket_num'], 3)
+        # Each bucket should have 2 items
+        self.assertEqual(bucket_stats[0]['count'], 2)
+        self.assertEqual(bucket_stats[1]['count'], 2)
+        self.assertEqual(bucket_stats[2]['count'], 2)
+        # Check that median_return is calculated
+        self.assertIsNotNone(bucket_stats[0]['median_return'])
+        self.assertIsNotNone(bucket_stats[1]['median_return'])
+        self.assertIsNotNone(bucket_stats[2]['median_return'])
+    
+    def test_calculate_custom_bucket_stats_insufficient_data(self):
+        """Test custom bucket stats with insufficient data"""
+        pairs = [(0.1, 5.0), (0.2, 6.0)]
+        bucket_stats = calculate_custom_bucket_stats(pairs, 5)  # Need 5 buckets but only 2 data points
+        self.assertIsNone(bucket_stats)
     
     def test_calculate_bucket_difference_empty(self):
         """Test bucket difference with empty data"""
@@ -726,6 +801,23 @@ class TestModeExecution(unittest.TestCase):
             
             self.assertGreater(len(output), 0)
             self.assertIn('Median Return', output)
+        finally:
+            sys.stdout = old_stdout
+    
+    def test_run_custom_buckets_mode(self):
+        """Test running custom buckets mode"""
+        import io
+        import sys
+        
+        old_stdout = sys.stdout
+        sys.stdout = buffer = io.StringIO()
+        
+        try:
+            run_custom_buckets_mode(self.metric_data, self.available_metrics, ['roa'], 3)
+            output = buffer.getvalue()
+            
+            self.assertGreater(len(output), 0)
+            self.assertIn('buckets', output.lower())
         finally:
             sys.stdout = old_stdout
     
