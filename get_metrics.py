@@ -1,5 +1,5 @@
 """
-Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR) from nyse_data.jsonl and nasdaq_data.jsonl
+Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR) from nasdaq_data.jsonl
 and save results to metrics.json
 forward_return = Annualized return from period j+2 to most recent period (skips j+1 to avoid look-ahead bias from financial reporting lag)
 Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
@@ -522,32 +522,24 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
 
 def main():
     """
-    Main function to load data from nyse_data.jsonl and nasdaq_data.jsonl, calculate metrics, and save to metrics.json
+    Main function to load data from nasdaq_data.jsonl, calculate metrics, and save to metrics.json
     """
     program_start_time = time.time()
-    print("Calculating Metrics from nyse_data.jsonl and nasdaq_data.jsonl")
+    print("Calculating Metrics from nasdaq_data.jsonl")
     print("=" * 80)
     
-    # Load data from both NYSE and NASDAQ files
-    print("\nLoading data from nyse_data.jsonl...")
-    nyse_stocks = load_data_from_jsonl("nyse_data.jsonl")
-    print(f"Found {len(nyse_stocks)} stock(s) in nyse_data.jsonl")
-    
+    # Load data from NASDAQ file
     print("\nLoading data from nasdaq_data.jsonl...")
-    nasdaq_stocks = load_data_from_jsonl("nasdaq_data.jsonl")
-    print(f"Found {len(nasdaq_stocks)} stock(s) in nasdaq_data.jsonl")
-    
-    # Combine both lists
-    stocks = nyse_stocks + nasdaq_stocks
+    stocks = load_data_from_jsonl("nasdaq_data.jsonl")
     
     if not stocks:
-        print("\nNo stock data found in either file")
+        print("No stock data found in nasdaq_data.jsonl")
         total_time = time.time() - program_start_time
         print(f"\n{'='*80}")
         print(f"Total program execution time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
         return
     
-    print(f"\nTotal: {len(stocks)} stock(s) from both exchanges\n")
+    print(f"Found {len(stocks)} stock(s) in nasdaq_data.jsonl\n")
     
     # Calculate metrics for all stocks
     print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR)...")

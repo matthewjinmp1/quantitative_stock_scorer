@@ -275,30 +275,31 @@ class TestForwardReturns(unittest.TestCase):
     
     def test_forward_return_1y_calculation(self):
         """Test 1-year forward return calculation"""
-        # Need at least 5 quarters (current + 4 future quarters)
+        # Need at least 6 quarters: current (j=0) + skip 1 (j+1) + 4 future quarters (j+2 to j+5)
+        # Forward returns start at t+2 to avoid look-ahead bias
         stock_data = {
             "symbol": "TEST",
             "data": {
-                "period_end_date": ["2020-Q1", "2020-Q2", "2020-Q3", "2020-Q4", "2021-Q1"],
-                "period_end_price": [100.0, 105.0, 110.0, 115.0, 120.0],
-                "dividends": [0.0, 0.0, 0.0, 0.0, 0.0],
-                "operating_income": [1000.0] * 5,
-                "ppe_net": [5000.0] * 5,
-                "revenue": [2000.0] * 5,
-                "cost_of_goods_sold": [1200.0] * 5,
-                "enterprise_value": [10000.0] * 5,
-                "price_to_sales": [2.0] * 5
+                "period_end_date": ["2020-Q1", "2020-Q2", "2020-Q3", "2020-Q4", "2021-Q1", "2021-Q2"],
+                "period_end_price": [100.0, 105.0, 110.0, 115.0, 120.0, 125.0],
+                "dividends": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "operating_income": [1000.0] * 6,
+                "ppe_net": [5000.0] * 6,
+                "revenue": [2000.0] * 6,
+                "cost_of_goods_sold": [1200.0] * 6,
+                "enterprise_value": [10000.0] * 6,
+                "price_to_sales": [2.0] * 6
             }
         }
         
         result = extract_quarterly_data(stock_data)
         
         # First quarter should have forward_return_1y calculated
-        # (needs 4 future quarters)
+        # (needs j+2 to j+5, which is indices 2, 3, 4, 5 - 4 quarters)
         self.assertIsNotNone(result['data'][0]['forward_return_1y'])
         
         # Last quarter should not have it (no future quarters)
-        self.assertIsNone(result['data'][4]['forward_return_1y'])
+        self.assertIsNone(result['data'][5]['forward_return_1y'])
     
     def test_forward_return_total_calculation(self):
         """Test total forward return calculation"""
