@@ -52,7 +52,7 @@ def load_data_from_jsonl(filename: str = "nyse_data.jsonl") -> List[Dict]:
     
     return stocks
 
-def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
+def extract_quarterly_data(stock_data: Dict, track_null_reasons: bool = False) -> Optional[Dict]:
     """
     Extract and process quarterly data from stock data dictionary
     
@@ -139,10 +139,28 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
         
         # Calculate operating income / PPE (EBIT/PPE metric)
         ebit_ppe = None
-        if (j < len(operating_income) and j < len(ppe_net) and 
-            operating_income[j] is not None and ppe_net[j] is not None and 
-            ppe_net[j] != 0):
-            ebit_ppe = operating_income[j] / ppe_net[j]
+        ebit_ppe_null_reason = None
+        if j < len(operating_income) and j < len(ppe_net):
+            # Both arrays have data at this index
+            if operating_income[j] is not None and ppe_net[j] is not None:
+                if ppe_net[j] != 0:
+                    ebit_ppe = operating_income[j] / ppe_net[j]
+                elif track_null_reasons:
+                    ebit_ppe_null_reason = "ppe_zero"
+            elif track_null_reasons:
+                # Array has entry but value is None
+                if operating_income[j] is None:
+                    ebit_ppe_null_reason = "missing_operating_income"
+                elif ppe_net[j] is None:
+                    ebit_ppe_null_reason = "missing_ppe"
+        elif track_null_reasons:
+            # Array is shorter than period_dates - no data for this quarter
+            if j >= len(operating_income) and j >= len(ppe_net):
+                ebit_ppe_null_reason = "both_arrays_too_short"
+            elif j >= len(operating_income):
+                ebit_ppe_null_reason = "operating_income_array_too_short"
+            elif j >= len(ppe_net):
+                ebit_ppe_null_reason = "ppe_array_too_short"
         
         # Calculate gross margin = (Revenue - Cost of Goods Sold) / Revenue
         gross_margin = None
@@ -176,7 +194,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             if prev_price > 0 and current_price > 0:
                 total_return = ((current_price - prev_price + current_dividend) / prev_price) * 100
         
-        quarterly_data.append({
+        entry = {
             "period": period_dates[j],
             "price": current_price,
             "dividends": current_dividend,
@@ -186,7 +204,10 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
             "operating_margin": operating_margin,  # Operating Income / Revenue
             "ev_ebit": ev_ebit,  # Enterprise Value / EBIT (Operating Income)
             "total_return": total_return
-        })
+        }
+        if track_null_reasons and ebit_ppe_null_reason:
+            entry["_ebit_ppe_null_reason"] = ebit_ppe_null_reason
+        quarterly_data.append(entry)
     
     # Calculate forward returns for specific periods: 1y, 3y, 5y, 10y
     # Each period requires a specific number of quarters: 1y=4, 3y=12, 5y=20, 10y=40
@@ -388,18 +409,39 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
         "total_quarters": 0,
         "quarters_per_stock": [],
         "roa_data_points": 0,
+        "roa_null_points": 0,
         "ebit_ppe_data_points": 0,
+        "ebit_ppe_null_points": 0,
+        "ebit_ppe_null_reasons": {
+            "missing_operating_income": 0,
+            "missing_ppe": 0,
+            "ppe_zero": 0,
+            "operating_income_array_too_short": 0,
+            "ppe_array_too_short": 0,
+            "both_arrays_too_short": 0
+        },
         "ebit_ppe_ttm_data_points": 0,
+        "ebit_ppe_ttm_null_points": 0,
         "gross_margin_data_points": 0,
+        "gross_margin_null_points": 0,
         "operating_margin_data_points": 0,
+        "operating_margin_null_points": 0,
         "ev_ebit_data_points": 0,
+        "ev_ebit_null_points": 0,
         "relative_ps_data_points": 0,
+        "relative_ps_null_points": 0,
         "cagr_5y_data_points": 0,
+        "cagr_5y_null_points": 0,
         "forward_return_data_points": 0,
+        "forward_return_null_points": 0,
         "forward_return_1y_data_points": 0,
+        "forward_return_1y_null_points": 0,
         "forward_return_3y_data_points": 0,
+        "forward_return_3y_null_points": 0,
         "forward_return_5y_data_points": 0,
-        "forward_return_10y_data_points": 0
+        "forward_return_5y_null_points": 0,
+        "forward_return_10y_data_points": 0,
+        "forward_return_10y_null_points": 0
     }
     
     # Track errors for reporting
@@ -409,7 +451,7 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
     for stock_data in stocks:
         symbol = stock_data.get("symbol", "Unknown")
         try:
-            processed_data = extract_quarterly_data(stock_data)
+            processed_data = extract_quarterly_data(stock_data, track_null_reasons=True)
             if processed_data:
                 results.append(processed_data)
                 stats["processed"] += 1
@@ -417,34 +459,77 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
                 stats["total_quarters"] += num_quarters
                 stats["quarters_per_stock"].append(num_quarters)
                 
-                # Count data completeness
+                # Count data completeness (values and nulls)
                 for entry in processed_data.get("data", []):
+                    # ROA
                     if entry.get("roa") is not None:
                         stats["roa_data_points"] += 1
+                    else:
+                        stats["roa_null_points"] += 1
+                    # EBIT/PPE
                     if entry.get("ebit_ppe") is not None:
                         stats["ebit_ppe_data_points"] += 1
+                    else:
+                        stats["ebit_ppe_null_points"] += 1
+                        # Track the reason if available
+                        null_reason = entry.get("_ebit_ppe_null_reason")
+                        if null_reason and null_reason in stats["ebit_ppe_null_reasons"]:
+                            stats["ebit_ppe_null_reasons"][null_reason] += 1
+                    # EBIT/PPE TTM
                     if entry.get("ebit_ppe_ttm") is not None:
                         stats["ebit_ppe_ttm_data_points"] += 1
+                    else:
+                        stats["ebit_ppe_ttm_null_points"] += 1
+                    # Gross Margin
                     if entry.get("gross_margin") is not None:
                         stats["gross_margin_data_points"] += 1
+                    else:
+                        stats["gross_margin_null_points"] += 1
+                    # Operating Margin
                     if entry.get("operating_margin") is not None:
                         stats["operating_margin_data_points"] += 1
+                    else:
+                        stats["operating_margin_null_points"] += 1
+                    # EV/EBIT
                     if entry.get("ev_ebit") is not None:
                         stats["ev_ebit_data_points"] += 1
+                    else:
+                        stats["ev_ebit_null_points"] += 1
+                    # Relative PS
                     if entry.get("relative_ps") is not None:
                         stats["relative_ps_data_points"] += 1
+                    else:
+                        stats["relative_ps_null_points"] += 1
+                    # 5-Year CAGR
                     if entry.get("cagr_5y") is not None:
                         stats["cagr_5y_data_points"] += 1
+                    else:
+                        stats["cagr_5y_null_points"] += 1
+                    # Forward Return (Total)
                     if entry.get("forward_return") is not None:
                         stats["forward_return_data_points"] += 1
+                    else:
+                        stats["forward_return_null_points"] += 1
+                    # Forward Return 1y
                     if entry.get("forward_return_1y") is not None:
                         stats["forward_return_1y_data_points"] += 1
+                    else:
+                        stats["forward_return_1y_null_points"] += 1
+                    # Forward Return 3y
                     if entry.get("forward_return_3y") is not None:
                         stats["forward_return_3y_data_points"] += 1
+                    else:
+                        stats["forward_return_3y_null_points"] += 1
+                    # Forward Return 5y
                     if entry.get("forward_return_5y") is not None:
                         stats["forward_return_5y_data_points"] += 1
+                    else:
+                        stats["forward_return_5y_null_points"] += 1
+                    # Forward Return 10y
                     if entry.get("forward_return_10y") is not None:
                         stats["forward_return_10y_data_points"] += 1
+                    else:
+                        stats["forward_return_10y_null_points"] += 1
             else:
                 stats["skipped"] += 1
         except Exception as e:
@@ -596,19 +681,35 @@ def main():
             print(f"  Max quarters per stock: {max(quarters_list)}")
         
         print(f"\nData Completeness (data points across all stocks/quarters):")
-        print(f"  ROA: {stats['roa_data_points']:,}")
-        print(f"  EBIT/PPE (quarterly): {stats['ebit_ppe_data_points']:,}")
-        print(f"  EBIT/PPE (TTM): {stats['ebit_ppe_ttm_data_points']:,}")
-        print(f"  Gross Margin: {stats['gross_margin_data_points']:,}")
-        print(f"  Operating Margin: {stats['operating_margin_data_points']:,}")
-        print(f"  EV/EBIT: {stats['ev_ebit_data_points']:,}")
-        print(f"  Relative PS: {stats['relative_ps_data_points']:,}")
-        print(f"  5-Year CAGR: {stats['cagr_5y_data_points']:,}")
-        print(f"  Forward Return (Total): {stats['forward_return_data_points']:,}")
-        print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,}")
-        print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,}")
-        print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,}")
-        print(f"  Forward Return 10y: {stats['forward_return_10y_data_points']:,}")
+        print(f"  ROA: {stats['roa_data_points']:,} values, {stats['roa_null_points']:,} nulls")
+        print(f"  EBIT/PPE (quarterly): {stats['ebit_ppe_data_points']:,} values, {stats['ebit_ppe_null_points']:,} nulls")
+        if stats.get('ebit_ppe_null_reasons'):
+            reasons = stats['ebit_ppe_null_reasons']
+            if any(reasons.values()):
+                print(f"    EBIT/PPE null reasons:")
+                if reasons.get('missing_operating_income', 0) > 0:
+                    print(f"      - Missing operating_income (None value): {reasons['missing_operating_income']:,}")
+                if reasons.get('missing_ppe', 0) > 0:
+                    print(f"      - Missing ppe_net (None value): {reasons['missing_ppe']:,}")
+                if reasons.get('ppe_zero', 0) > 0:
+                    print(f"      - PPE = 0 (division by zero): {reasons['ppe_zero']:,}")
+                if reasons.get('operating_income_array_too_short', 0) > 0:
+                    print(f"      - operating_income array too short (no data for this quarter): {reasons['operating_income_array_too_short']:,}")
+                if reasons.get('ppe_array_too_short', 0) > 0:
+                    print(f"      - ppe_net array too short (no data for this quarter): {reasons['ppe_array_too_short']:,}")
+                if reasons.get('both_arrays_too_short', 0) > 0:
+                    print(f"      - Both arrays too short (no data for this quarter): {reasons['both_arrays_too_short']:,}")
+        print(f"  EBIT/PPE (TTM): {stats['ebit_ppe_ttm_data_points']:,} values, {stats['ebit_ppe_ttm_null_points']:,} nulls")
+        print(f"  Gross Margin: {stats['gross_margin_data_points']:,} values, {stats['gross_margin_null_points']:,} nulls")
+        print(f"  Operating Margin: {stats['operating_margin_data_points']:,} values, {stats['operating_margin_null_points']:,} nulls")
+        print(f"  EV/EBIT: {stats['ev_ebit_data_points']:,} values, {stats['ev_ebit_null_points']:,} nulls")
+        print(f"  Relative PS: {stats['relative_ps_data_points']:,} values, {stats['relative_ps_null_points']:,} nulls")
+        print(f"  5-Year CAGR: {stats['cagr_5y_data_points']:,} values, {stats['cagr_5y_null_points']:,} nulls")
+        print(f"  Forward Return (Total): {stats['forward_return_data_points']:,} values, {stats['forward_return_null_points']:,} nulls")
+        print(f"  Forward Return 1y: {stats['forward_return_1y_data_points']:,} values, {stats['forward_return_1y_null_points']:,} nulls")
+        print(f"  Forward Return 3y: {stats['forward_return_3y_data_points']:,} values, {stats['forward_return_3y_null_points']:,} nulls")
+        print(f"  Forward Return 5y: {stats['forward_return_5y_data_points']:,} values, {stats['forward_return_5y_null_points']:,} nulls")
+        print(f"  Forward Return 10y: {stats['forward_return_10y_data_points']:,} values, {stats['forward_return_10y_null_points']:,} nulls")
     
     total_time = time.time() - program_start_time
     print(f"{'='*80}")
