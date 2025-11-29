@@ -12,6 +12,7 @@ from scipy.stats import pearsonr, spearmanr, rankdata
 from typing import List, Tuple, Dict, Optional
 import argparse
 import re
+import warnings
 
 # ============================================================================
 # CONSTANTS
@@ -282,6 +283,16 @@ def calculate_correlations(metric_values: List[float], forward_return_values: Li
     metric_array = np.array(metric_values)
     forward_return_array = np.array(forward_return_values)
     
+    # Check if either array is constant (all values are the same)
+    # If so, correlation is not defined
+    if np.all(metric_array == metric_array[0]) or np.all(forward_return_array == forward_return_array[0]):
+        return {
+            "n_pairs": len(metric_values),
+            "ranked_correlation": None,
+            "ranked_pvalue": None,
+            "error": "Constant input array - correlation not defined"
+        }
+    
     # Rank the data before correlating
     # Rankdata assigns ranks from 1 to n (where n = number of data points)
     # Average ranks are used for tied values
@@ -289,9 +300,33 @@ def calculate_correlations(metric_values: List[float], forward_return_values: Li
     metric_ranks = rankdata(metric_array, method='average')
     forward_return_ranks = rankdata(forward_return_array, method='average')
     
+    # Check if ranks are constant (can happen if all values are tied)
+    if np.all(metric_ranks == metric_ranks[0]) or np.all(forward_return_ranks == forward_return_ranks[0]):
+        return {
+            "n_pairs": len(metric_values),
+            "ranked_correlation": None,
+            "ranked_pvalue": None,
+            "error": "Constant ranks - correlation not defined"
+        }
+    
     # Calculate correlation on RANKED data (not absolute values)
     # This measures how well the ranking of metrics predicts the ranking of returns
-    ranked_corr, ranked_p = pearsonr(metric_ranks, forward_return_ranks)
+    # Suppress ConstantInputWarning since we already check for constant arrays above
+    with warnings.catch_warnings():
+        # Filter out ConstantInputWarning from scipy.stats.pearsonr
+        # This warning is raised when input arrays are constant
+        warnings.filterwarnings('ignore', message='.*An input array is constant.*')
+        warnings.filterwarnings('ignore', message='.*constant.*')
+        try:
+            ranked_corr, ranked_p = pearsonr(metric_ranks, forward_return_ranks)
+        except (ValueError, RuntimeWarning) as e:
+            # Handle edge cases where correlation calculation fails
+            return {
+                "n_pairs": len(metric_values),
+                "ranked_correlation": None,
+                "ranked_pvalue": None,
+                "error": f"Correlation calculation failed: {str(e)}"
+            }
     
     return {
         "n_pairs": len(metric_values),
