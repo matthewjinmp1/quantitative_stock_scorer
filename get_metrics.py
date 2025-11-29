@@ -1,5 +1,5 @@
 """
-Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR) from data.jsonl
+Program to calculate metrics (total return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR) from nyse_data.jsonl
 and save results to metrics.json
 forward_return = Annualized return from period j+2 to most recent period (skips j+1 to avoid look-ahead bias from financial reporting lag)
 Forward returns 1y/3y/5y/10y are annualized returns calculated for 1 year (4 quarters), 3 years (12 quarters), 5 years (20 quarters), and 10 years (40 quarters)
@@ -19,7 +19,7 @@ import os
 import time
 from typing import Dict, List, Optional
 
-def load_data_from_jsonl(filename: str = "data.jsonl") -> List[Dict]:
+def load_data_from_jsonl(filename: str = "nyse_data.jsonl") -> List[Dict]:
     """
     Load stock data from JSONL file (one JSON object per line)
     
@@ -57,7 +57,7 @@ def extract_quarterly_data(stock_data: Dict) -> Optional[Dict]:
     Extract and process quarterly data from stock data dictionary
     
     Args:
-        stock_data: Dictionary containing stock data from data.jsonl
+        stock_data: Dictionary containing stock data from nyse_data.jsonl
     
     Returns:
         Dictionary containing processed quarterly data with total_return, forward_return (total to end, annualized), 
@@ -374,7 +374,7 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
     Calculate metrics (total_return, forward_return) for all stocks
     
     Args:
-        stocks: List of stock data dictionaries from data.jsonl
+        stocks: List of stock data dictionaries from nyse_data.jsonl
     
     Returns:
         Tuple of (results list, statistics dictionary)
@@ -522,24 +522,24 @@ def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json
 
 def main():
     """
-    Main function to load data from data.jsonl, calculate metrics, and save to metrics.json
+    Main function to load data from nyse_data.jsonl, calculate metrics, and save to metrics.json
     """
     program_start_time = time.time()
-    print("Calculating Metrics from data.jsonl")
+    print("Calculating Metrics from nyse_data.jsonl")
     print("=" * 80)
     
-    # Load data from data.jsonl
-    print("\nLoading data from data.jsonl...")
-    stocks = load_data_from_jsonl("data.jsonl")
+    # Load data from nyse_data.jsonl
+    print("\nLoading data from nyse_data.jsonl...")
+    stocks = load_data_from_jsonl("nyse_data.jsonl")
     
     if not stocks:
-        print("No stock data found in data.jsonl")
+        print("No stock data found in nyse_data.jsonl")
         total_time = time.time() - program_start_time
         print(f"\n{'='*80}")
         print(f"Total program execution time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
         return
     
-    print(f"Found {len(stocks)} stock(s) in data.jsonl\n")
+    print(f"Found {len(stocks)} stock(s) in nyse_data.jsonl\n")
     
     # Calculate metrics for all stocks
     print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR)...")

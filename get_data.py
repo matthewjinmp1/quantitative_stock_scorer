@@ -121,7 +121,7 @@ def fetch_single_ticker(ticker: str, max_retries: int = 3) -> Optional[Dict]:
     return None
 
 def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25, 
-                                  output_file: str = "data.jsonl") -> List[Optional[Dict]]:
+                                  output_file: str = "nyse_data.jsonl") -> List[Optional[Dict]]:
     """
     Fetch data for all tickers one at a time, sequentially (no threading)
     Appends data to JSON file as each ticker is fetched
@@ -189,7 +189,7 @@ def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25,
     
     return results
 
-def load_existing_data(filename: str = "data.jsonl") -> Tuple[List[Dict], Set[str]]:
+def load_existing_data(filename: str = "nyse_data.jsonl") -> Tuple[List[Dict], Set[str]]:
     """
     Load existing data from JSONL file (one JSON object per line) and return set of already processed tickers
     Safely handles incomplete or corrupted lines (e.g., from interrupted writes)
@@ -254,7 +254,7 @@ def format_stock_data_for_json(stock_data: Dict) -> Dict:
     
     return output_stock
 
-def append_stock_to_json(stock_data: Dict, filename: str = "data.jsonl", file_lock: threading.Lock = None):
+def append_stock_to_json(stock_data: Dict, filename: str = "nyse_data.jsonl", file_lock: threading.Lock = None):
     """
     Append a single stock's data to JSONL file (one JSON object per line)
     If ticker already exists, replaces it by rewriting the file atomically
@@ -359,7 +359,7 @@ def append_stock_to_json(stock_data: Dict, filename: str = "data.jsonl", file_lo
     except Exception as e:
         print(f"  Error appending {stock_data.get('symbol', 'unknown')} to {filename}: {e}")
 
-def save_to_json(all_data: List[Dict], filename: str = "data.jsonl"):
+def save_to_json(all_data: List[Dict], filename: str = "nyse_data.jsonl"):
     """
     Save all quarterly data to JSONL file (one JSON object per line)
     
