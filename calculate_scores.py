@@ -2,6 +2,10 @@
 Program to calculate EBIT/PPE scores and percentiles for stocks from both NYSE and NASDAQ data files.
 Gets the most recent quarter's EBIT/PPE for each stock, ranks them, calculates percentiles, and saves to scores.json.
 EBIT/PPE = Operating Income / PPE (Property, Plant, and Equipment)
+
+Usage:
+    python calculate_scores.py calc        - Calculate and save scores for all stocks
+    python calculate_scores.py <symbol>     - Look up percentile rank for a specific stock (e.g., AAPL)
 """
 import json
 import os
@@ -190,9 +194,71 @@ def save_scores_to_json(scores_data: List[Dict], filename: str = "scores.json"):
     except Exception as e:
         print(f"Error saving to {filename}: {e}")
 
-def main():
+def load_scores_from_json(filename: str = "scores.json") -> Optional[Dict]:
     """
-    Main function to load data from both NYSE and NASDAQ files, calculate EBIT/PPE scores and percentiles, and save to scores.json
+    Load scores from JSON file
+    
+    Args:
+        filename: Path to scores JSON file
+    
+    Returns:
+        Dictionary containing scores data or None if file doesn't exist
+    """
+    if not os.path.exists(filename):
+        return None
+    
+    try:
+        with open(filename, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error reading {filename}: {e}")
+        return None
+
+def lookup_stock(symbol: str, filename: str = "scores.json") -> Optional[Dict]:
+    """
+    Look up a stock's percentile rank by symbol
+    
+    Args:
+        symbol: Stock symbol to look up (case-insensitive)
+        filename: Path to scores JSON file
+    
+    Returns:
+        Dictionary containing stock score data or None if not found
+    """
+    scores_data = load_scores_from_json(filename)
+    if not scores_data:
+        print(f"Error: {filename} not found. Please run 'calc' command first.")
+        return None
+    
+    scores = scores_data.get("scores", [])
+    symbol_upper = symbol.upper()
+    
+    for stock in scores:
+        if stock.get("symbol", "").upper() == symbol_upper:
+            return stock
+    
+    return None
+
+def display_stock_info(stock: Dict):
+    """
+    Display stock percentile rank information
+    
+    Args:
+        stock: Dictionary containing stock score data
+    """
+    print(f"\n{'='*80}")
+    print(f"Stock: {stock['symbol']} - {stock['company_name']}")
+    print(f"{'='*80}")
+    print(f"Exchange: {stock.get('exchange', 'N/A')}")
+    print(f"Period: {stock.get('period', 'N/A')}")
+    print(f"EBIT/PPE: {stock['ebit_ppe']:.4f}")
+    print(f"Rank: {stock['rank']:,} out of {stock.get('total_stocks', 'N/A')}")
+    print(f"Percentile: {stock['percentile']:.2f}")
+    print(f"{'='*80}\n")
+
+def run_calculate_command():
+    """
+    Execute the 'calc' command to calculate and save scores for all stocks
     """
     program_start_time = time.time()
     print("Calculating EBIT/PPE Scores and Percentiles")
@@ -262,6 +328,83 @@ def main():
     print(f"{'='*80}")
     print(f"Total program execution time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
     print(f"{'='*80}")
+
+def run_lookup_command(symbol: str):
+    """
+    Execute the stock lookup command to display percentile rank for a specific stock
+    
+    Args:
+        symbol: Stock symbol to look up
+    """
+    stock = lookup_stock(symbol)
+    if stock:
+        # Get total stocks count from metadata
+        scores_data = load_scores_from_json()
+        if scores_data:
+            total_stocks = scores_data.get("metadata", {}).get("total_stocks", 0)
+            stock["total_stocks"] = total_stocks
+        display_stock_info(stock)
+    else:
+        print(f"\nStock '{symbol}' not found in scores.json")
+        print("Make sure you've run 'calc' first, and that the stock symbol is correct.\n")
+
+def print_help():
+    """Print help message with available commands"""
+    print("\n" + "=" * 80)
+    print("Available Commands:")
+    print("=" * 80)
+    print("  calc                   - Calculate and save scores for all stocks")
+    print("  <symbol>               - Look up percentile rank for a stock (e.g., AAPL, MSFT)")
+    print("  help                   - Show this help message")
+    print("  exit / quit            - Exit the program")
+    print("=" * 80 + "\n")
+
+def main():
+    """
+    Main function with interactive command terminal
+    
+    Commands:
+        calc        - Calculate and save scores for all stocks
+        <symbol>    - Look up percentile rank for a specific stock (e.g., AAPL)
+        help        - Show help message
+        exit/quit   - Exit the program
+    """
+    print("=" * 80)
+    print("EBIT/PPE Stock Scorer - Interactive Terminal")
+    print("=" * 80)
+    print_help()
+    
+    while True:
+        try:
+            # Get user input
+            user_input = input("Enter command: ").strip()
+            
+            if not user_input:
+                continue
+            
+            command = user_input.lower()
+            
+            # Handle commands
+            if command == "exit" or command == "quit":
+                print("\nExiting program. Goodbye!\n")
+                break
+            elif command == "help":
+                print_help()
+            elif command == "calc":
+                run_calculate_command()
+                print()  # Add blank line after command
+            else:
+                # Treat as stock symbol lookup
+                run_lookup_command(user_input)
+        
+        except KeyboardInterrupt:
+            print("\n\nExiting program. Goodbye!\n")
+            break
+        except EOFError:
+            print("\n\nExiting program. Goodbye!\n")
+            break
+        except Exception as e:
+            print(f"\nError: {e}\n")
 
 if __name__ == "__main__":
     main()
