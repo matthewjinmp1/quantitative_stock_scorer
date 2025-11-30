@@ -535,12 +535,76 @@ def run_lookup_command(symbol: str):
         print(f"\nStock '{symbol}' not found in scores.json")
         print("Make sure you've run 'calc' first, and that the stock symbol is correct.\n")
 
+def run_view_command(limit: Optional[int] = None):
+    """
+    Display all stocks ranked by total percentile (or individual percentiles if total not available)
+    
+    Args:
+        limit: Optional limit on number of stocks to display (None = all)
+    """
+    scores_data = load_scores_from_json()
+    if not scores_data:
+        print(f"Error: scores.json not found. Please run 'calc' command first.\n")
+        return
+    
+    scores = scores_data.get("scores", [])
+    if not scores:
+        print("No stock scores found in scores.json\n")
+        return
+    
+    # Sort stocks: prioritize total_percentile, then ebit_ppe_percentile, then operating_margin_percentile
+    def get_sort_key(stock):
+        # Use total_percentile if available, otherwise use the best available percentile
+        if stock.get("total_percentile") is not None:
+            return (0, -stock["total_percentile"])  # Negative for descending sort
+        elif stock.get("ebit_ppe_percentile") is not None:
+            return (1, -stock["ebit_ppe_percentile"])
+        elif stock.get("operating_margin_percentile") is not None:
+            return (2, -stock["operating_margin_percentile"])
+        else:
+            return (3, 0)
+    
+    sorted_scores = sorted(scores, key=get_sort_key)
+    
+    # Apply limit if specified
+    if limit:
+        sorted_scores = sorted_scores[:limit]
+    
+    print(f"\n{'='*120}")
+    print(f"All Stocks Ranked by Percentile" + (f" (showing top {limit})" if limit else ""))
+    print(f"{'='*120}")
+    print(f"{'Rank':<6} {'Symbol':<8} {'Company Name':<40} {'Total %':<10} {'EBIT/PPE %':<12} {'Op Margin %':<12} {'Exchange':<8}")
+    print(f"{'-'*120}")
+    
+    for idx, stock in enumerate(sorted_scores, start=1):
+        symbol = stock.get("symbol", "N/A")
+        company_name = stock.get("company_name", "N/A")
+        # Truncate company name if too long
+        if len(company_name) > 38:
+            company_name = company_name[:35] + "..."
+        
+        total_pct = f"{stock.get('total_percentile', 0):.2f}" if stock.get("total_percentile") is not None else "N/A"
+        ebit_ppe_pct = f"{stock.get('ebit_ppe_percentile', 0):.2f}" if stock.get("ebit_ppe_percentile") is not None else "N/A"
+        op_margin_pct = f"{stock.get('operating_margin_percentile', 0):.2f}" if stock.get("operating_margin_percentile") is not None else "N/A"
+        exchange = stock.get("exchange", "N/A")
+        
+        print(f"{idx:<6} {symbol:<8} {company_name:<40} {total_pct:<10} {ebit_ppe_pct:<12} {op_margin_pct:<12} {exchange:<8}")
+    
+    print(f"{'='*120}")
+    print(f"\nTotal stocks displayed: {len(sorted_scores)}")
+    if limit and len(scores) > limit:
+        print(f"Total stocks in database: {len(scores)}")
+        print(f"Use 'view' without a number to see all stocks, or 'view <number>' to see top N stocks.\n")
+    else:
+        print()
+
 def print_help():
     """Print help message with available commands"""
     print("\n" + "=" * 80)
     print("Available Commands:")
     print("=" * 80)
     print("  calc                   - Calculate and save scores for all stocks")
+    print("  view [N]               - View all stocks ranked by percentile (optionally show top N)")
     print("  <symbol>               - Look up percentile rank for a stock (e.g., AAPL, MSFT)")
     print("  help                   - Show this help message")
     print("  exit / quit            - Exit the program")
@@ -552,6 +616,7 @@ def main():
     
     Commands:
         calc        - Calculate and save scores for all stocks
+        view [N]    - View all stocks ranked by percentile (optionally show top N)
         <symbol>    - Look up percentile rank for a specific stock (e.g., AAPL)
         help        - Show help message
         exit/quit   - Exit the program
@@ -569,7 +634,8 @@ def main():
             if not user_input:
                 continue
             
-            command = user_input.lower()
+            command_parts = user_input.split()
+            command = command_parts[0].lower()
             
             # Handle commands
             if command == "exit" or command == "quit":
@@ -580,6 +646,18 @@ def main():
             elif command == "calc":
                 run_calculate_command()
                 print()  # Add blank line after command
+            elif command == "view":
+                # Check if user specified a limit
+                limit = None
+                if len(command_parts) > 1:
+                    try:
+                        limit = int(command_parts[1])
+                        if limit <= 0:
+                            print("Limit must be a positive number. Showing all stocks.\n")
+                            limit = None
+                    except ValueError:
+                        print(f"Invalid limit '{command_parts[1]}'. Showing all stocks.\n")
+                run_view_command(limit)
             else:
                 # Treat as stock symbol lookup
                 run_lookup_command(user_input)
