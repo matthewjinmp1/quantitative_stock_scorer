@@ -176,6 +176,81 @@ def _calc_growth_consistency(stock_data: Dict) -> Optional[Tuple[str, str, float
                 return (symbol, company_name, stdev, period_dates[j])
     return None
 
+def _calc_operating_margin_growth(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
+    """Calculate Operating Margin Growth = (Operating Margin of last 10 quarters) / (Operating Margin of first 10 quarters) over 20 quarters"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    symbol = stock_data.get("symbol")
+    company_name = stock_data.get("company_name", symbol)
+    data = stock_data.get("data", {})
+    period_dates = _get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    operating_income = data.get("operating_income", [])
+    revenue = data.get("revenue", [])
+    
+    if not isinstance(operating_income, list) or not isinstance(revenue, list):
+        return None
+    
+    if len(operating_income) < 20 or len(revenue) < 20:
+        return None
+    
+    # Find the most recent position where we have 20 quarters of data
+    for j in range(len(period_dates) - 1, 18, -1):
+        if j >= 19:
+            # Calculate operating margin for first 10 quarters (indices j-19 to j-10)
+            sum_oi_first = 0.0
+            sum_rev_first = 0.0
+            valid_data = True
+            
+            for k in range(j - 19, j - 9):
+                if k < len(operating_income) and k < len(revenue):
+                    oi = operating_income[k] if operating_income[k] is not None else None
+                    rev = revenue[k] if revenue[k] is not None else None
+                    if oi is not None and rev is not None:
+                        sum_oi_first += float(oi)
+                        sum_rev_first += float(rev)
+                    else:
+                        valid_data = False
+                        break
+                else:
+                    valid_data = False
+                    break
+            
+            if not valid_data:
+                continue
+            
+            # Calculate operating margin for last 10 quarters (indices j-9 to j)
+            sum_oi_last = 0.0
+            sum_rev_last = 0.0
+            
+            for k in range(j - 9, j + 1):
+                if k < len(operating_income) and k < len(revenue):
+                    oi = operating_income[k] if operating_income[k] is not None else None
+                    rev = revenue[k] if revenue[k] is not None else None
+                    if oi is not None and rev is not None:
+                        sum_oi_last += float(oi)
+                        sum_rev_last += float(rev)
+                    else:
+                        valid_data = False
+                        break
+                else:
+                    valid_data = False
+                    break
+            
+            if valid_data and sum_rev_first != 0 and sum_rev_last != 0:
+                # Operating margin = Total Operating Income / Total Revenue
+                operating_margin_first = sum_oi_first / sum_rev_first
+                operating_margin_last = sum_oi_last / sum_rev_last
+                
+                # Operating margin growth = last 10 quarters margin / first 10 quarters margin
+                if operating_margin_first != 0:
+                    operating_margin_growth = operating_margin_last / operating_margin_first
+                    return (symbol, company_name, operating_margin_growth, period_dates[j])
+    return None
+
 # ============================================================================
 # METRIC REGISTRY - ADD NEW METRICS HERE
 # ============================================================================
@@ -211,6 +286,14 @@ METRICS: List[MetricConfig] = [
         description="Growth Consistency = Standard deviation of year-over-year revenue growth rates over 20 quarters (5 years). Lower is better (more consistent).",
         calculator=_calc_growth_consistency,
         sort_descending=False,  # Lower stdev is better
+        include_in_total=True
+    ),
+    MetricConfig(
+        key="operating_margin_growth",
+        display_name="Operating Margin Growth",
+        description="Operating Margin Growth = (Operating Margin of last 10 quarters) / (Operating Margin of first 10 quarters) over 20 quarters (5 years). Operating Margin = Total Operating Income / Total Revenue for each 10-quarter period.",
+        calculator=_calc_operating_margin_growth,
+        sort_descending=True,
         include_in_total=True
     ),
 ]
