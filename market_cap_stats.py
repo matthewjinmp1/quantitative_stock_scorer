@@ -1,10 +1,11 @@
 """
 Program to calculate median market cap for NYSE and NASDAQ stocks across all data points.
 Extracts all market cap values from all quarters for all stocks and calculates the median for each exchange.
+Also shows the top 10 market cap instances with ticker, company, and date.
 """
 import json
 import os
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 def load_data_from_jsonl(filename: str) -> List[Dict]:
     """
@@ -39,18 +40,19 @@ def load_data_from_jsonl(filename: str) -> List[Dict]:
     
     return stocks
 
-def extract_all_market_caps(stocks: List[Dict], exchange_name: str) -> List[float]:
+def extract_all_market_caps_with_info(stocks: List[Dict], exchange_name: str) -> Tuple[List[float], List[Tuple[float, str, str, str]]]:
     """
-    Extract all market cap values from all stocks and all quarters
+    Extract all market cap values from all stocks and all quarters, with associated information
     
     Args:
         stocks: List of stock data dictionaries
         exchange_name: Name of the exchange (for display purposes)
     
     Returns:
-        List of all market cap values (floats)
+        Tuple of (list of market cap values, list of tuples with (market_cap, symbol, company_name, period))
     """
     all_market_caps = []
+    market_caps_with_info = []
     
     print(f"Processing {len(stocks)} {exchange_name} stocks...")
     
@@ -58,24 +60,40 @@ def extract_all_market_caps(stocks: List[Dict], exchange_name: str) -> List[floa
         if not stock_data or "data" not in stock_data:
             continue
         
+        symbol = stock_data.get("symbol", "N/A")
+        company_name = stock_data.get("company_name", symbol)
         data = stock_data.get("data", {})
+        
+        # Get period dates
+        period_dates = None
+        for date_key in ["period_end_date", "fiscal_quarter_key", "original_filing_date"]:
+            if date_key in data and data[date_key]:
+                period_dates = data[date_key]
+                break
+        
+        if not period_dates or not isinstance(period_dates, list):
+            continue
+        
         market_caps = data.get("market_cap", [])
         
         # Ensure it's a list
         if not isinstance(market_caps, list):
             continue
         
-        # Extract all non-None market cap values
-        for market_cap in market_caps:
+        # Extract all non-None market cap values with their associated info
+        for idx, market_cap in enumerate(market_caps):
             if market_cap is not None:
                 try:
                     market_cap_float = float(market_cap)
                     if market_cap_float > 0:  # Only include positive values
                         all_market_caps.append(market_cap_float)
+                        # Get the period for this index
+                        period = period_dates[idx] if idx < len(period_dates) else "N/A"
+                        market_caps_with_info.append((market_cap_float, symbol, company_name, period))
                 except (ValueError, TypeError):
                     continue
     
-    return all_market_caps
+    return all_market_caps, market_caps_with_info
 
 def calculate_median(values: List[float]) -> float:
     """
@@ -144,10 +162,10 @@ def main():
         print("\nNo stock data found in either file")
         return
     
-    # Extract all market caps
+    # Extract all market caps with info
     print("\nExtracting market cap values...")
-    nyse_market_caps = extract_all_market_caps(nyse_stocks, "NYSE")
-    nasdaq_market_caps = extract_all_market_caps(nasdaq_stocks, "NASDAQ")
+    nyse_market_caps, nyse_market_caps_info = extract_all_market_caps_with_info(nyse_stocks, "NYSE")
+    nasdaq_market_caps, nasdaq_market_caps_info = extract_all_market_caps_with_info(nasdaq_stocks, "NASDAQ")
     
     # Calculate statistics
     print("\n" + "=" * 80)
@@ -185,7 +203,8 @@ def main():
         print(f"\nNASDAQ: No market cap data found")
     
     # Combined statistics
-    if nyse_market_caps and nasdaq_market_caps:
+    all_market_caps_info = nyse_market_caps_info + nasdaq_market_caps_info
+    if all_market_caps_info:
         all_market_caps = nyse_market_caps + nasdaq_market_caps
         combined_median = calculate_median(all_market_caps)
         combined_mean = sum(all_market_caps) / len(all_market_caps)
@@ -194,8 +213,26 @@ def main():
         print(f"  Total data points: {len(all_market_caps):,}")
         print(f"  Median: {format_number(combined_median)} ({combined_median:,.0f})")
         print(f"  Mean: {format_number(combined_mean)} ({combined_mean:,.0f})")
+        
+        # Sort by market cap (descending) and get top 10
+        all_market_caps_info_sorted = sorted(all_market_caps_info, key=lambda x: x[0], reverse=True)
+        top_10 = all_market_caps_info_sorted[:10]
+        
+        print(f"\n{'=' * 80}")
+        print("Top 10 Market Cap Instances (All Exchanges)")
+        print(f"{'=' * 80}")
+        print(f"{'Rank':<6} {'Market Cap':<20} {'Ticker':<10} {'Company Name':<40} {'Date':<15}")
+        print(f"{'-' * 80}")
+        
+        for rank, (market_cap, symbol, company_name, period) in enumerate(top_10, start=1):
+            # Truncate company name if too long
+            display_company = company_name if len(company_name) <= 38 else company_name[:35] + "..."
+            market_cap_str = format_number(market_cap)
+            print(f"{rank:<6} {market_cap_str:<20} {symbol:<10} {display_company:<40} {period:<15}")
+        
+        print(f"{'=' * 80}")
     
-    print("\n" + "=" * 80)
+    print()
 
 if __name__ == "__main__":
     main()
