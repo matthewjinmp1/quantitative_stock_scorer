@@ -704,21 +704,6 @@ def run_calculate_command():
         print(f"\nBy Exchange:")
         print(f"  NYSE: {nyse_count} stocks")
         print(f"  NASDAQ: {nasdaq_count} stocks")
-        
-        # Show top 10 by Total Percentile
-        total_metrics = [m for m in METRICS if m.include_in_total]
-        stocks_with_total = [s for s in scores_data if s.get("total_percentile") is not None]
-        stocks_with_total.sort(key=lambda x: x.get("total_percentile", 0), reverse=True)
-        
-        if stocks_with_total:
-            metric_names = ', '.join([m.display_name for m in total_metrics])
-            print(f"\nTop 10 Stocks by Total Percentile (combines {metric_names}):")
-            for i, stock in enumerate(stocks_with_total[:10], 1):
-                metric_values = []
-                for metric in total_metrics:
-                    val = stock.get(metric.key)
-                    metric_values.append(f"{metric.display_name}: {val:.4f}" if val is not None else f"{metric.display_name}: N/A")
-                print(f"  {i}. {stock['symbol']} ({stock['company_name']}): Total Percentile {stock['total_percentile']:.2f} ({', '.join(metric_values)})")
     
     total_time = time.time() - program_start_time
     print(f"{'='*80}")
