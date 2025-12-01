@@ -204,6 +204,58 @@ def _calc_growth_consistency(stock_data: Dict) -> Optional[Tuple[str, str, float
                 return (symbol, company_name, stdev, period_dates[j])
     return None
 
+def _calc_operating_margin_consistency(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
+    """Calculate Operating Margin Consistency = Standard deviation of operating margins over 20 quarters"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    symbol = stock_data.get("symbol")
+    company_name = stock_data.get("company_name", symbol)
+    data = stock_data.get("data", {})
+    period_dates = _get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    operating_income = data.get("operating_income", [])
+    revenue = data.get("revenue", [])
+    
+    if not isinstance(operating_income, list) or not isinstance(revenue, list):
+        return None
+    
+    if len(operating_income) < 20 or len(revenue) < 20:
+        return None
+    
+    # Find the most recent position where we have 20 quarters of data
+    for j in range(len(period_dates) - 1, 18, -1):
+        if j >= 19:
+            # Calculate operating margin for each of the last 20 quarters (indices j-19 to j)
+            operating_margins = []
+            valid_data = True
+            
+            for k in range(j - 19, j + 1):
+                if k < len(operating_income) and k < len(revenue):
+                    oi = operating_income[k] if operating_income[k] is not None else None
+                    rev = revenue[k] if revenue[k] is not None else None
+                    
+                    if oi is not None and rev is not None and rev != 0:
+                        operating_margin = oi / rev
+                        operating_margins.append(operating_margin)
+                    else:
+                        # Missing data - we need all 20 quarters for consistency
+                        valid_data = False
+                        break
+                else:
+                    valid_data = False
+                    break
+            
+            if valid_data and len(operating_margins) == 20:
+                # Calculate standard deviation of operating margins
+                mean_margin = sum(operating_margins) / len(operating_margins)
+                variance = sum((x - mean_margin) ** 2 for x in operating_margins) / len(operating_margins)
+                stdev = math.sqrt(variance)
+                return (symbol, company_name, stdev, period_dates[j])
+    return None
+
 def _calc_operating_margin_growth(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
     """Calculate Operating Margin Growth = (Operating Margin of last 10 quarters) / (Operating Margin of first 10 quarters) over 20 quarters"""
     if not stock_data or "data" not in stock_data:
@@ -330,6 +382,14 @@ METRICS: List[MetricConfig] = [
         description="Operating Margin Growth = (Operating Margin of last 10 quarters) / (Operating Margin of first 10 quarters) over 20 quarters (5 years). Operating Margin = Total Operating Income / Total Revenue for each 10-quarter period.",
         calculator=_calc_operating_margin_growth,
         sort_descending=True,
+        include_in_total=True
+    ),
+    MetricConfig(
+        key="operating_margin_consistency",
+        display_name="Operating Margin Consistency",
+        description="Operating Margin Consistency = Standard deviation of operating margins over 20 quarters (5 years). Lower is better (more consistent).",
+        calculator=_calc_operating_margin_consistency,
+        sort_descending=False,  # Lower stdev is better
         include_in_total=True
     ),
 ]
@@ -739,6 +799,38 @@ def run_view_command(limit: Optional[int] = None):
     else:
         print()
 
+def run_metrics_command():
+    """Display all current metrics being calculated"""
+    print("\n" + "=" * 80)
+    print("Current Metrics")
+    print("=" * 80)
+    
+    total_metrics = [m for m in METRICS if m.include_in_total]
+    
+    print(f"\nTotal Metrics: {len(METRICS)}")
+    print(f"Metrics Included in Total Percentile: {len(total_metrics)}")
+    
+    print(f"\n{'='*80}")
+    print("Metric Details:")
+    print(f"{'='*80}")
+    
+    for idx, metric in enumerate(METRICS, start=1):
+        print(f"\n{idx}. {metric.display_name}")
+        print(f"   Key: {metric.key}")
+        print(f"   Description: {metric.description}")
+        print(f"   Sort Direction: {'Descending (Higher is better)' if metric.sort_descending else 'Ascending (Lower is better)'}")
+        print(f"   Included in Total Percentile: {'Yes' if metric.include_in_total else 'No'}")
+    
+    if total_metrics:
+        print(f"\n{'='*80}")
+        print("Total Percentile Calculation:")
+        print(f"{'='*80}")
+        print(f"The total percentile is calculated as the average rank of the following metrics:")
+        for idx, metric in enumerate(total_metrics, start=1):
+            print(f"  {idx}. {metric.display_name}")
+    
+    print(f"\n{'='*80}\n")
+
 def print_help():
     """Print help message with available commands"""
     print("\n" + "=" * 80)
@@ -746,6 +838,7 @@ def print_help():
     print("=" * 80)
     print("  calc                   - Calculate and save scores for all stocks")
     print("  view [N]               - View all stocks ranked by percentile (optionally show top N)")
+    print("  metrics                - Show all current metrics being calculated")
     print("  <symbol>               - Look up percentile rank for a stock (e.g., AAPL, MSFT)")
     print("  help                   - Show this help message")
     print("  exit / quit            - Exit the program")
@@ -776,6 +869,8 @@ def main():
             elif command == "calc":
                 run_calculate_command()
                 print()
+            elif command == "metrics":
+                run_metrics_command()
             elif command == "view":
                 limit = None
                 if len(command_parts) > 1:
