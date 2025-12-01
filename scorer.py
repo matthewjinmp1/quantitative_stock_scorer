@@ -63,6 +63,34 @@ def _calc_ebit_ppe(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
                 return (symbol, company_name, ebit_ppe, period_dates[j])
     return None
 
+def _calc_gross_margin(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
+    """Calculate Gross Margin = (Revenue - Cost of Goods Sold) / Revenue"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    symbol = stock_data.get("symbol")
+    company_name = stock_data.get("company_name", symbol)
+    data = stock_data.get("data", {})
+    period_dates = _get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    revenue = data.get("revenue", [])
+    cost_of_goods_sold = data.get("cost_of_goods_sold", [])
+    # Also try alternative key name
+    if not cost_of_goods_sold:
+        cost_of_goods_sold = data.get("cogs", [])
+    
+    if not isinstance(revenue, list) or not isinstance(cost_of_goods_sold, list):
+        return None
+    
+    for j in range(len(period_dates) - 1, -1, -1):
+        if j < len(revenue) and j < len(cost_of_goods_sold):
+            if revenue[j] is not None and cost_of_goods_sold[j] is not None and revenue[j] != 0:
+                gross_margin = (revenue[j] - cost_of_goods_sold[j]) / revenue[j]
+                return (symbol, company_name, gross_margin, period_dates[j])
+    return None
+
 def _calc_operating_margin(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
     """Calculate Operating Margin = Operating Income / Revenue"""
     if not stock_data or "data" not in stock_data:
@@ -261,6 +289,14 @@ METRICS: List[MetricConfig] = [
         display_name="EBIT/PPE",
         description="EBIT/PPE = Operating Income / PPE (most recent quarter)",
         calculator=_calc_ebit_ppe,
+        sort_descending=True,
+        include_in_total=True
+    ),
+    MetricConfig(
+        key="gross_margin",
+        display_name="Gross Margin",
+        description="Gross Margin = (Revenue - Cost of Goods Sold) / Revenue (most recent quarter)",
+        calculator=_calc_gross_margin,
         sort_descending=True,
         include_in_total=True
     ),
