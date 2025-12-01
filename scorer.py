@@ -809,6 +809,10 @@ def run_metrics_command():
     
     print(f"\n{'='*80}\n")
 
+def run_clear_command():
+    """Clear the screen"""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 def print_help():
     """Print help message with available commands"""
     print("\n" + "=" * 80)
@@ -819,7 +823,8 @@ def print_help():
     print("  metrics                - Show all current metrics being calculated")
     print("  <symbol>               - Look up percentile rank for a stock (e.g., AAPL, MSFT)")
     print("  help                   - Show this help message")
-    print("  exit / quit            - Exit the program")
+    print("  clear                  - Clear the screen")
+    print("  exit                   - Exit the program")
     print("=" * 80 + "\n")
 
 def main():
@@ -839,7 +844,7 @@ def main():
             command_parts = user_input.split()
             command = command_parts[0].lower()
             
-            if command == "exit" or command == "quit":
+            if command == "exit":
                 print("\nExiting program. Goodbye!\n")
                 break
             elif command == "help":
@@ -849,6 +854,8 @@ def main():
                 print()
             elif command == "metrics":
                 run_metrics_command()
+            elif command == "clear":
+                run_clear_command()
             elif command == "view":
                 limit = None
                 if len(command_parts) > 1:
