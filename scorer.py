@@ -748,16 +748,13 @@ def run_view_command(limit: Optional[int] = None):
         sorted_scores = sorted_scores[:limit]
     
     # Build header
-    header_parts = ['Rank', 'Symbol', 'Company Name', 'Total %']
-    for metric in METRICS:
-        header_parts.append(f'{metric.display_name} %')
-    header_parts.append('Exchange')
+    header_parts = ['Rank', 'Symbol', 'Company Name', 'Total %', 'Exchange']
     
-    print(f"\n{'='*120}")
+    print(f"\n{'='*80}")
     print(f"All Stocks Ranked by Percentile" + (f" (showing top {limit})" if limit else ""))
-    print(f"{'='*120}")
+    print(f"{'='*80}")
     print(' '.join(f"{h:<15}" for h in header_parts))
-    print(f"{'-'*120}")
+    print(f"{'-'*80}")
     
     for idx, stock in enumerate(sorted_scores, start=1):
         row_parts = [str(idx), stock.get("symbol", "N/A")]
@@ -769,14 +766,10 @@ def run_view_command(limit: Optional[int] = None):
         total_pct = f"{stock.get('total_percentile', 0):.2f}" if stock.get("total_percentile") is not None else "N/A"
         row_parts.append(total_pct)
         
-        for metric in METRICS:
-            pct = stock.get(f"{metric.key}_percentile")
-            row_parts.append(f"{pct:.2f}" if pct is not None else "N/A")
-        
         row_parts.append(stock.get("exchange", "N/A"))
         print(' '.join(f"{p:<15}" for p in row_parts))
     
-    print(f"{'='*120}")
+    print(f"{'='*80}")
     print(f"\nTotal stocks displayed: {len(sorted_scores)}")
     if limit and len(scores) > limit:
         print(f"Total stocks in database: {len(scores)}")
