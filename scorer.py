@@ -377,24 +377,49 @@ def _calc_net_debt_to_ttm_operating_income(stock_data: Dict) -> Optional[Tuple[s
             original_net_debt = current_net_debt
             original_ttm_oi = ttm_operating_income
             
-            # Handle edge cases as specified in notes
-            # If both are negative, set it to 0
+            # Handle edge cases to ensure consistent scoring (lower is better for reverse score)
+            # Best to worst scenarios:
+            # 1. Net cash (negative debt) + positive income = BEST (negative ratio, ranked best)
+            # 2. Net cash + negative income = GOOD (0, ranked well)
+            # 3. Zero debt + positive income = GOOD (0, ranked well)
+            # 4. Zero debt + negative income = OK (0, ranked well)
+            # 5. Net debt + positive income = NORMAL (positive ratio, lower is better)
+            # 6. Net debt + negative income = WORST (very high value, ranked worst)
+            
+            # Case 1: Net cash (negative debt) + positive income = BEST
+            if original_net_debt < 0 and original_ttm_oi > 0:
+                # Negative ratio indicates net cash position, which is best
+                # For reverse score, negative values rank best (lowest)
+                ratio = original_net_debt / original_ttm_oi
+                return (symbol, company_name, ratio, period_dates[j])
+            
+            # Case 2: Net cash + negative income = GOOD (better than debt + negative income)
             if original_net_debt < 0 and original_ttm_oi < 0:
+                # Net cash position even with losses is better than debt
+                # Return 0 for reverse score (ranks well)
                 return (symbol, company_name, 0.0, period_dates[j])
             
-            # If net debt is negative, set it to 0
-            if original_net_debt < 0:
-                current_net_debt = 0
+            # Case 3 & 4: Zero debt scenarios
+            if original_net_debt == 0:
+                # No debt is good regardless of income situation
+                # Return 0 for reverse score (ranks well)
+                return (symbol, company_name, 0.0, period_dates[j])
             
-            # If operating income is negative, set it to 1000
-            if original_ttm_oi < 0:
-                ttm_operating_income = 1000
-            
-            # If both are positive, use the actual ratio
-            # Also handle case where net_debt was negative (now 0) or operating_income was negative (now 1000)
-            if ttm_operating_income > 0:
-                ratio = current_net_debt / ttm_operating_income
+            # Case 5: Net debt + positive income = NORMAL
+            if original_net_debt > 0 and original_ttm_oi > 0:
+                # Standard ratio, lower is better for reverse score
+                ratio = original_net_debt / original_ttm_oi
                 return (symbol, company_name, ratio, period_dates[j])
+            
+            # Case 6: Net debt + negative income = WORST
+            if original_net_debt > 0 and original_ttm_oi < 0:
+                # Having debt while losing money is the worst scenario
+                # Return a very high value so it ranks worst in reverse score
+                # Use a large multiplier to ensure it's always worse than normal ratios
+                # abs(operating_income) to get magnitude, then invert and multiply by net_debt
+                # This ensures higher debt and larger losses = worse score
+                worst_value = original_net_debt / abs(original_ttm_oi) * 1000
+                return (symbol, company_name, worst_value, period_dates[j])
     return None
 
 # ============================================================================
