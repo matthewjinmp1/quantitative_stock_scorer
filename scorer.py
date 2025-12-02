@@ -3,9 +3,10 @@ Program to calculate stock metrics and percentiles for stocks from both NYSE and
 Uses a metric-based architecture that makes it easy to add new metrics.
 
 Usage:
-    python scorer.py calc        - Calculate and save scores for all stocks
-    python scorer.py <symbol>   - Look up percentile rank for a specific stock (e.g., AAPL)
-    python scorer.py view [N]   - View all stocks ranked by percentile (optionally show top N)
+    python scorer.py calc              - Calculate and save scores for all stocks
+    python scorer.py <symbol>         - Look up percentile rank for a specific stock (e.g., AAPL)
+    python scorer.py view [N]         - View all stocks ranked by percentile (optionally show top N)
+    python scorer.py view [N] over [X] - View top N stocks with market cap over X billion (e.g., view 50 over 10)
 """
 import json
 import math
@@ -566,8 +567,20 @@ def _process_stock(stock_data: Dict, exchange: str) -> Optional[Dict]:
         "symbol": symbol,
         "company_name": company_name,
         "exchange": exchange,
-        "period": None
+        "period": None,
+        "market_cap": None
     }
+    
+    # Extract market cap from most recent quarter
+    if stock_data and "data" in stock_data:
+        data = stock_data.get("data", {})
+        market_caps = data.get("market_cap", [])
+        if isinstance(market_caps, list) and len(market_caps) > 0:
+            # Get the most recent market cap (last element)
+            for j in range(len(market_caps) - 1, -1, -1):
+                if j < len(market_caps) and market_caps[j] is not None:
+                    stock_entry["market_cap"] = market_caps[j]
+                    break
     
     # Initialize all metrics to None
     for metric in METRICS:
@@ -818,8 +831,8 @@ def run_lookup_command(symbol: str):
         print(f"\nStock '{symbol}' not found in scores.json")
         print("Make sure you've run 'calc' first, and that the stock symbol is correct.\n")
 
-def run_view_command(limit: Optional[int] = None):
-    """Display all stocks ranked by total percentile"""
+def run_view_command(limit: Optional[int] = None, min_market_cap: Optional[float] = None):
+    """Display all stocks ranked by total percentile, optionally filtered by market cap"""
     scores_data = load_scores_from_json()
     if not scores_data:
         print(f"Error: scores.json not found. Please run 'calc' command first.\n")
@@ -829,6 +842,14 @@ def run_view_command(limit: Optional[int] = None):
     if not scores:
         print("No stock scores found in scores.json\n")
         return
+    
+    # Filter by market cap if specified (market cap is in dollars, min_market_cap is in billions)
+    if min_market_cap is not None:
+        min_market_cap_dollars = min_market_cap * 1_000_000_000  # Convert billions to dollars
+        scores = [s for s in scores if s.get("market_cap") is not None and s.get("market_cap") >= min_market_cap_dollars]
+        if not scores:
+            print(f"No stocks found with market cap over ${min_market_cap}B\n")
+            return
     
     # Sort by total percentile
     def get_sort_key(stock):
@@ -848,9 +869,16 @@ def run_view_command(limit: Optional[int] = None):
     
     # Build header
     header_parts = ['Rank', 'Symbol', 'Company Name', 'Total %', 'Exchange']
+    if min_market_cap is not None:
+        header_parts.append('Market Cap (B)')
     
     print(f"\n{'='*80}")
-    print(f"All Stocks Ranked by Percentile" + (f" (showing top {limit})" if limit else ""))
+    title = "All Stocks Ranked by Percentile"
+    if limit:
+        title += f" (showing top {limit})"
+    if min_market_cap is not None:
+        title += f" (market cap > ${min_market_cap}B)"
+    print(title)
     print(f"{'='*80}")
     print(' '.join(f"{h:<15}" for h in header_parts))
     print(f"{'-'*80}")
@@ -866,6 +894,15 @@ def run_view_command(limit: Optional[int] = None):
         row_parts.append(total_pct)
         
         row_parts.append(stock.get("exchange", "N/A"))
+        
+        if min_market_cap is not None:
+            market_cap = stock.get("market_cap")
+            if market_cap is not None:
+                market_cap_b = market_cap / 1_000_000_000
+                row_parts.append(f"${market_cap_b:.2f}")
+            else:
+                row_parts.append("N/A")
+        
         print(' '.join(f"{p:<15}" for p in row_parts))
     
     print(f"{'='*80}")
@@ -919,6 +956,7 @@ def print_help():
     print("=" * 80)
     print("  calc                   - Calculate and save scores for all stocks")
     print("  view [N]               - View all stocks ranked by percentile (optionally show top N)")
+    print("  view [N] over [X]      - View top N stocks with market cap over X billion (e.g., 'view 50 over 10')")
     print("  metrics                - Show all current metrics being calculated")
     print("  <symbol>               - Look up percentile rank for a stock (e.g., AAPL, MSFT)")
     print("  help                   - Show this help message")
@@ -957,15 +995,43 @@ def main():
                 run_clear_command()
             elif command == "view":
                 limit = None
+                min_market_cap = None
+                
                 if len(command_parts) > 1:
-                    try:
-                        limit = int(command_parts[1])
-                        if limit <= 0:
-                            print("Limit must be a positive number. Showing all stocks.\n")
-                            limit = None
-                    except ValueError:
-                        print(f"Invalid limit '{command_parts[1]}'. Showing all stocks.\n")
-                run_view_command(limit)
+                    # Check for "over" keyword to filter by market cap
+                    if "over" in command_parts:
+                        over_index = command_parts.index("over")
+                        
+                        # Parse limit (number before "over")
+                        if over_index > 1:
+                            try:
+                                limit = int(command_parts[1])
+                                if limit <= 0:
+                                    print("Limit must be a positive number. Showing all stocks.\n")
+                                    limit = None
+                            except ValueError:
+                                print(f"Invalid limit '{command_parts[1]}'. Showing all stocks.\n")
+                        
+                        # Parse market cap threshold (number after "over")
+                        if over_index + 1 < len(command_parts):
+                            try:
+                                min_market_cap = float(command_parts[over_index + 1])
+                                if min_market_cap < 0:
+                                    print("Market cap threshold must be non-negative. Ignoring filter.\n")
+                                    min_market_cap = None
+                            except ValueError:
+                                print(f"Invalid market cap threshold '{command_parts[over_index + 1]}'. Ignoring filter.\n")
+                    else:
+                        # No "over" keyword, just parse limit
+                        try:
+                            limit = int(command_parts[1])
+                            if limit <= 0:
+                                print("Limit must be a positive number. Showing all stocks.\n")
+                                limit = None
+                        except ValueError:
+                            print(f"Invalid limit '{command_parts[1]}'. Showing all stocks.\n")
+                
+                run_view_command(limit, min_market_cap)
             else:
                 run_lookup_command(user_input)
         
