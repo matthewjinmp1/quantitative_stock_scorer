@@ -1,0 +1,435 @@
+"""
+Portfolio Backtest: EBIT/PPE Weighted S&P 500 Portfolio (2000)
+
+This script:
+1. Loads S&P 500 tickers from 2000
+2. Gets EBIT/PPE for each stock around 2000
+3. Ranks stocks by EBIT/PPE
+4. Adjusts market cap weights based on ranking (0.5x to 2.0x multiplier)
+5. Calculates total returns with dividends reinvested
+6. Shows portfolio performance chart from 2000 to present
+"""
+import json
+import os
+from datetime import datetime
+from typing import Dict, List, Optional, Tuple
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from collections import defaultdict
+
+def load_data_from_jsonl(filename: str) -> List[Dict]:
+    """Load stock data from JSONL file"""
+    if not os.path.exists(filename):
+        return []
+    
+    stocks = []
+    try:
+        with open(filename, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    stock = json.loads(line)
+                    stocks.append(stock)
+                except json.JSONDecodeError:
+                    continue
+    except Exception as e:
+        print(f"Error reading {filename}: {e}")
+        return []
+    
+    return stocks
+
+def get_period_dates(data: Dict) -> Optional[List]:
+    """Extract period dates from data dictionary"""
+    for date_key in ["period_end_date", "fiscal_quarter_key", "original_filing_date"]:
+        if date_key in data and data[date_key]:
+            return data[date_key]
+    return None
+
+def parse_date(date_str: str) -> Optional[datetime]:
+    """Parse date string to datetime object"""
+    if not date_str or date_str == "-":
+        return None
+    
+    # Try different date formats
+    formats = ["%Y-%m-%d", "%Y-%m", "%Y", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"]
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str[:len(fmt)], fmt)
+        except (ValueError, IndexError):
+            continue
+    return None
+
+def find_quarter_near_date(period_dates: List, target_year: int = 2000) -> Optional[int]:
+    """Find the index of the quarter closest to the target year"""
+    if not period_dates:
+        return None
+    
+    target_date = datetime(target_year, 1, 1)
+    best_idx = None
+    min_diff = float('inf')
+    
+    for idx, date_str in enumerate(period_dates):
+        date_obj = parse_date(date_str)
+        if date_obj:
+            diff = abs((date_obj - target_date).days)
+            if diff < min_diff:
+                min_diff = diff
+                best_idx = idx
+    
+    return best_idx
+
+def get_ebit_ppe_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get EBIT/PPE for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates:
+        return None
+    
+    operating_income = data.get("operating_income", [])
+    ppe_net = data.get("ppe_net", [])
+    
+    if not isinstance(operating_income, list) or not isinstance(ppe_net, list):
+        return None
+    
+    # Find quarter near target year
+    quarter_idx = find_quarter_near_date(period_dates, target_year)
+    if quarter_idx is None:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters
+    for offset in [0, 1, -1, 2, -2, 3, -3]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates):
+            if (idx < len(operating_income) and idx < len(ppe_net) and
+                operating_income[idx] is not None and ppe_net[idx] is not None and
+                ppe_net[idx] != 0):
+                ebit_ppe = operating_income[idx] / ppe_net[idx]
+                return (ebit_ppe, period_dates[idx])
+    
+    return None
+
+def get_market_cap_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get market cap for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates:
+        return None
+    
+    market_caps = data.get("market_cap", [])
+    if not isinstance(market_caps, list):
+        return None
+    
+    # Find quarter near target year
+    quarter_idx = find_quarter_near_date(period_dates, target_year)
+    if quarter_idx is None:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters
+    for offset in [0, 1, -1, 2, -2, 3, -3]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates) and idx < len(market_caps):
+            if market_caps[idx] is not None and market_caps[idx] > 0:
+                return (market_caps[idx], period_dates[idx])
+    
+    return None
+
+def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 2000) -> Optional[List[Tuple[datetime, float]]]:
+    """
+    Calculate cumulative total return with dividends reinvested
+    Returns list of (date, cumulative_return) tuples
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates:
+        return None
+    
+    prices = data.get("period_end_price", [])
+    dividends = data.get("dividends", [])
+    
+    if not isinstance(prices, list) or not isinstance(dividends, list):
+        return None
+    
+    # Find starting index near 2000
+    start_idx = find_quarter_near_date(period_dates, start_year)
+    if start_idx is None or start_idx >= len(prices) or prices[start_idx] is None:
+        return None
+    
+    start_price = float(prices[start_idx])
+    if start_price <= 0:
+        return None
+    
+    returns = []
+    shares = 1.0  # Start with 1 share
+    
+    for i in range(start_idx, len(period_dates)):
+        if i >= len(prices) or prices[i] is None:
+            continue
+        
+        current_price = float(prices[i])
+        if current_price <= 0:
+            continue
+        
+        # Get dividend for this period
+        dividend = float(dividends[i]) if i < len(dividends) and dividends[i] is not None else 0.0
+        
+        # Reinvest dividend by buying more shares
+        if dividend > 0:
+            shares += dividend * shares / current_price
+        
+        # Calculate cumulative return
+        current_value = shares * current_price
+        cumulative_return = (current_value / start_price - 1.0) * 100  # As percentage
+        
+        date_str = period_dates[i]
+        date_obj = parse_date(date_str)
+        if date_obj:
+            returns.append((date_obj, cumulative_return))
+    
+    return returns if returns else None
+
+def load_stock_data_by_symbol(tickers: List[str]) -> Dict[str, Dict]:
+    """Load all stock data and index by symbol"""
+    print("Loading stock data from nyse_data.jsonl and nasdaq_data.jsonl...")
+    
+    nyse_stocks = load_data_from_jsonl("nyse_data.jsonl")
+    nasdaq_stocks = load_data_from_jsonl("nasdaq_data.jsonl")
+    
+    all_stocks = nyse_stocks + nasdaq_stocks
+    stock_dict = {}
+    
+    for stock in all_stocks:
+        symbol = stock.get("symbol", "").upper()
+        if symbol:
+            stock_dict[symbol] = stock
+    
+    print(f"Loaded data for {len(stock_dict)} unique stocks")
+    return stock_dict
+
+def main():
+    """Main function"""
+    print("=" * 80)
+    print("EBIT/PPE Weighted Portfolio Backtest (2000)")
+    print("=" * 80)
+    
+    # Load S&P 500 tickers from 2000
+    print("\n1. Loading S&P 500 tickers from 2000...")
+    try:
+        with open("sp500_2000.json", 'r') as f:
+            sp500_data = json.load(f)
+            tickers = [t.upper() for t in sp500_data.get("tickers", [])]
+        print(f"   Found {len(tickers)} tickers")
+    except FileNotFoundError:
+        print("   Error: sp500_2000.json not found. Please run get_sp500_2000.py first.")
+        return
+    
+    # Load stock data
+    stock_dict = load_stock_data_by_symbol(tickers)
+    
+    # Get EBIT/PPE and market cap for each ticker around 2000
+    print("\n2. Calculating EBIT/PPE and market cap for 2000...")
+    stock_info = []
+    
+    for ticker in tickers:
+        if ticker not in stock_dict:
+            continue
+        
+        stock_data = stock_dict[ticker]
+        ebit_ppe_result = get_ebit_ppe_at_date(stock_data, 2000)
+        market_cap_result = get_market_cap_at_date(stock_data, 2000)
+        
+        if ebit_ppe_result and market_cap_result:
+            ebit_ppe, ebit_date = ebit_ppe_result
+            market_cap, mc_date = market_cap_result
+            
+            stock_info.append({
+                'ticker': ticker,
+                'ebit_ppe': ebit_ppe,
+                'market_cap': market_cap,
+                'ebit_date': ebit_date,
+                'mc_date': mc_date,
+                'stock_data': stock_data
+            })
+    
+    print(f"   Found data for {len(stock_info)} stocks")
+    
+    if not stock_info:
+        print("   Error: No stocks found with EBIT/PPE and market cap data for 2000")
+        return
+    
+    # Rank by EBIT/PPE
+    print("\n3. Ranking stocks by EBIT/PPE...")
+    stock_info.sort(key=lambda x: x['ebit_ppe'], reverse=True)
+    
+    # Calculate initial market cap weights
+    total_market_cap = sum(s['market_cap'] for s in stock_info)
+    for stock in stock_info:
+        stock['initial_weight'] = (stock['market_cap'] / total_market_cap) * 100
+    
+    # Apply multiplier based on rank (0.5 for worst, 2.0 for best)
+    print("\n4. Applying EBIT/PPE-based weight adjustments...")
+    n_stocks = len(stock_info)
+    for i, stock in enumerate(stock_info):
+        # Linear interpolation: rank 0 (best) gets 2.0, rank n-1 (worst) gets 0.5
+        if n_stocks > 1:
+            multiplier = 2.0 - (i / (n_stocks - 1)) * 1.5  # 2.0 to 0.5
+        else:
+            multiplier = 1.0
+        
+        stock['multiplier'] = multiplier
+        stock['adjusted_weight'] = stock['initial_weight'] * multiplier
+    
+    # Normalize weights to sum to 100%
+    total_adjusted = sum(s['adjusted_weight'] for s in stock_info)
+    for stock in stock_info:
+        stock['final_weight'] = (stock['adjusted_weight'] / total_adjusted) * 100
+    
+    print(f"   Total adjusted weight before normalization: {total_adjusted:.2f}%")
+    print(f"   Total final weight after normalization: {sum(s['final_weight'] for s in stock_info):.2f}%")
+    
+    # Show top 10 and bottom 10
+    print("\n   Top 10 by EBIT/PPE:")
+    for i, stock in enumerate(stock_info[:10], 1):
+        print(f"   {i:2d}. {stock['ticker']:6s} - EBIT/PPE: {stock['ebit_ppe']:8.4f}, "
+              f"MC: ${stock['market_cap']/1e9:6.2f}B, "
+              f"Initial: {stock['initial_weight']:5.2f}%, "
+              f"Final: {stock['final_weight']:5.2f}%")
+    
+    print("\n   Bottom 10 by EBIT/PPE:")
+    for i, stock in enumerate(stock_info[-10:], n_stocks - 9):
+        print(f"   {i:2d}. {stock['ticker']:6s} - EBIT/PPE: {stock['ebit_ppe']:8.4f}, "
+              f"MC: ${stock['market_cap']/1e9:6.2f}B, "
+              f"Initial: {stock['initial_weight']:5.2f}%, "
+              f"Final: {stock['final_weight']:5.2f}%")
+    
+    # Calculate total returns with dividends reinvested
+    print("\n5. Calculating total returns with dividends reinvested...")
+    
+    # Collect all return data by date
+    all_dates = set()
+    stock_returns_by_date = {}  # ticker -> {date: return_pct}
+    
+    for stock in stock_info:
+        returns = calculate_total_return_with_dividends(stock['stock_data'], 2000)
+        if returns:
+            ticker = stock['ticker']
+            stock_returns_by_date[ticker] = {}
+            for date, return_pct in returns:
+                all_dates.add(date)
+                stock_returns_by_date[ticker][date] = return_pct
+    
+    if not all_dates:
+        print("   Error: No return data calculated")
+        return
+    
+    # Sort dates and calculate weighted portfolio returns
+    sorted_dates = sorted(all_dates)
+    cumulative_returns = []
+    
+    for date in sorted_dates:
+        # Calculate portfolio value at this date
+        # Portfolio value = sum of (weight * (1 + cumulative_return)) for each stock
+        portfolio_value = 0.0
+        
+        for stock in stock_info:
+            ticker = stock['ticker']
+            weight = stock['final_weight'] / 100.0  # Weight as fraction
+            
+            if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
+                # Get the cumulative return for this stock at this date
+                stock_return_pct = stock_returns_by_date[ticker][date]
+                stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
+                portfolio_value += weight * stock_value_multiplier
+            else:
+                # If stock doesn't have data for this date, use last known value or 1.0
+                # Find the most recent return before this date
+                last_return = 0.0
+                if ticker in stock_returns_by_date:
+                    for prev_date, prev_return in stock_returns_by_date[ticker].items():
+                        if prev_date <= date:
+                            last_return = prev_return
+                stock_value_multiplier = 1.0 + (last_return / 100.0)
+                portfolio_value += weight * stock_value_multiplier
+        
+        # Calculate cumulative return percentage
+        cumulative_return = (portfolio_value - 1.0) * 100
+        cumulative_returns.append(cumulative_return)
+    
+    print(f"   Calculated returns for {len(sorted_dates)} time periods")
+    print(f"   Start date: {sorted_dates[0].strftime('%Y-%m-%d')}")
+    print(f"   End date: {sorted_dates[-1].strftime('%Y-%m-%d')}")
+    print(f"   Total return: {cumulative_returns[-1]:.2f}%")
+    
+    # Create chart
+    print("\n6. Creating performance chart...")
+    plt.figure(figsize=(14, 8))
+    plt.plot(sorted_dates, cumulative_returns, linewidth=2, color='#2E86AB')
+    plt.title('EBIT/PPE Weighted Portfolio Performance (2000 - Present)\n'
+              'S&P 500 Stocks Weighted by EBIT/PPE Ranking with Dividends Reinvested',
+              fontsize=14, fontweight='bold')
+    plt.xlabel('Date', fontsize=12)
+    plt.ylabel('Cumulative Return (%)', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    
+    # Format x-axis dates
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    plt.gca().xaxis.set_major_locator(mdates.YearLocator(5))
+    plt.xticks(rotation=45)
+    
+    # Add zero line
+    plt.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+    
+    plt.tight_layout()
+    plt.savefig('ebit_ppe_portfolio_backtest.png', dpi=300, bbox_inches='tight')
+    print("   Chart saved to ebit_ppe_portfolio_backtest.png")
+    plt.show()
+    
+    # Save results to JSON
+    print("\n7. Saving results...")
+    results = {
+        'start_year': 2000,
+        'total_stocks': len(stock_info),
+        'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
+        'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
+        'total_return_pct': cumulative_returns[-1],
+        'portfolio_weights': [
+            {
+                'ticker': s['ticker'],
+                'ebit_ppe': s['ebit_ppe'],
+                'market_cap': s['market_cap'],
+                'initial_weight_pct': s['initial_weight'],
+                'multiplier': s['multiplier'],
+                'final_weight_pct': s['final_weight']
+            }
+            for s in stock_info
+        ],
+        'returns': [
+            {
+                'date': d.strftime('%Y-%m-%d'),
+                'cumulative_return_pct': r
+            }
+            for d, r in zip(sorted_dates, cumulative_returns)
+        ]
+    }
+    
+    with open('ebit_ppe_portfolio_results.json', 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    print("   Results saved to ebit_ppe_portfolio_results.json")
+    print("\n" + "=" * 80)
+    print("Backtest Complete!")
+    print("=" * 80)
+
+if __name__ == "__main__":
+    main()
+
