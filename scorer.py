@@ -331,6 +331,72 @@ def _calc_operating_margin_growth(stock_data: Dict) -> Optional[Tuple[str, str, 
                     return (symbol, company_name, operating_margin_growth, period_dates[j])
     return None
 
+def _calc_net_debt_to_ttm_operating_income(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
+    """Calculate Net Debt to TTM Operating Income = Net Debt / (Sum of Operating Income for last 4 quarters)"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    symbol = stock_data.get("symbol")
+    company_name = stock_data.get("company_name", symbol)
+    data = stock_data.get("data", {})
+    period_dates = _get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    net_debt = data.get("net_debt", [])
+    operating_income = data.get("operating_income", [])
+    
+    if not isinstance(net_debt, list) or not isinstance(operating_income, list):
+        return None
+    
+    # Need at least 4 quarters of data for TTM calculation
+    if len(period_dates) < 4:
+        return None
+    
+    # Find the most recent position where we have at least 4 quarters of data
+    for j in range(len(period_dates) - 1, 3, -1):
+        if j < len(net_debt) and net_debt[j] is not None:
+            # Get net debt from most recent quarter
+            current_net_debt = net_debt[j]
+            
+            # Calculate TTM operating income (sum of last 4 quarters)
+            ttm_operating_income = 0.0
+            valid_ttm = True
+            
+            for k in range(max(0, j - 3), j + 1):
+                if k < len(operating_income) and operating_income[k] is not None:
+                    ttm_operating_income += float(operating_income[k])
+                else:
+                    valid_ttm = False
+                    break
+            
+            if not valid_ttm:
+                continue
+            
+            # Store original values for edge case checking
+            original_net_debt = current_net_debt
+            original_ttm_oi = ttm_operating_income
+            
+            # Handle edge cases as specified in notes
+            # If both are negative, set it to 0
+            if original_net_debt < 0 and original_ttm_oi < 0:
+                return (symbol, company_name, 0.0, period_dates[j])
+            
+            # If net debt is negative, set it to 0
+            if original_net_debt < 0:
+                current_net_debt = 0
+            
+            # If operating income is negative, set it to 1000
+            if original_ttm_oi < 0:
+                ttm_operating_income = 1000
+            
+            # If both are positive, use the actual ratio
+            # Also handle case where net_debt was negative (now 0) or operating_income was negative (now 1000)
+            if ttm_operating_income > 0:
+                ratio = current_net_debt / ttm_operating_income
+                return (symbol, company_name, ratio, period_dates[j])
+    return None
+
 # ============================================================================
 # METRIC REGISTRY - ADD NEW METRICS HERE
 # ============================================================================
@@ -390,6 +456,14 @@ METRICS: List[MetricConfig] = [
         description="Operating Margin Consistency = Standard deviation of operating margins over 20 quarters (5 years). Lower is better (more consistent).",
         calculator=_calc_operating_margin_consistency,
         sort_descending=False,  # Lower stdev is better
+        include_in_total=True
+    ),
+    MetricConfig(
+        key="net_debt_to_ttm_operating_income",
+        display_name="Net Debt to TTM Operating Income",
+        description="Net Debt to TTM Operating Income = Net Debt / (Sum of Operating Income for last 4 quarters). Lower is better. Edge cases: negative net debt set to 0, negative operating income set to 1000, both negative set to 0.",
+        calculator=_calc_net_debt_to_ttm_operating_income,
+        sort_descending=False,  # Lower debt is better
         include_in_total=True
     ),
 ]

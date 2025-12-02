@@ -15,3 +15,5 @@ new architeture for get metrics
 different correl types
 
 add more metrics
+
+add a net debt to TTM operating income metric. youll need to handle edge cases here. if net debt is negative, then set it to 0. if operating income is negative, set it to 1000. if both are negative, set it to 0. if both are positive, then we can just use the actual ratio  
