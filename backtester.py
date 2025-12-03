@@ -389,8 +389,8 @@ def main():
     # Create stock_dict for return calculations
     stock_dict = {s['ticker']: s['stock_data'] for s in stock_info}
     
-    # We already have stock_info with revenue and EBIT/PPE from 2002
-    print("\n2. Using revenue and EBIT/PPE from 2002 period...")
+    # We already have stock_info with revenue and both metrics from 2002
+    print("\n2. Using revenue and metrics from 2002 period...")
     
     # Track earliest year
     earliest_year_found = None
@@ -406,12 +406,21 @@ def main():
         print(f"   Using data from {len(stock_info)} stocks")
     
     if not stock_info:
-        print("   Error: No stocks found with EBIT/PPE and market cap data for 2000")
+        print("   Error: No stocks found with required data for 2002")
         return
     
-    # Rank by EBIT/PPE
-    print("\n3. Ranking stocks by EBIT/PPE...")
-    stock_info.sort(key=lambda x: x['ebit_ppe'], reverse=True)
+    # Rank by selected metric
+    print(f"\n3. Ranking stocks by {metric_name}...")
+    if selected_metric == "ebit_ppe":
+        stock_info.sort(key=lambda x: x['ebit_ppe'], reverse=True)
+        # Store the metric value for each stock
+        for stock in stock_info:
+            stock['metric_value'] = stock['ebit_ppe']
+    else:  # operating_margin
+        stock_info.sort(key=lambda x: x['operating_margin'], reverse=True)
+        # Store the metric value for each stock
+        for stock in stock_info:
+            stock['metric_value'] = stock['operating_margin']
     
     # Calculate initial revenue weights
     total_revenue = sum(s['revenue'] for s in stock_info)
