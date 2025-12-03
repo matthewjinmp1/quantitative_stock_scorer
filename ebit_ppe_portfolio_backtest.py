@@ -266,75 +266,78 @@ def main():
     print("EBIT/PPE Weighted Portfolio Backtest (2000)")
     print("=" * 80)
     
-    # Load S&P 500 tickers from 2000
-    print("\n1. Loading S&P 500 tickers from 2000...")
-    try:
-        with open("sp500_2000.json", 'r') as f:
-            sp500_data = json.load(f)
-            tickers = [t.upper() for t in sp500_data.get("tickers", [])]
-        print(f"   Found {len(tickers)} tickers")
-    except FileNotFoundError:
-        print("   Error: sp500_2000.json not found. Please run get_sp500_2000.py first.")
-        return
+    # Instead of using current S&P 500 list, we'll find stocks that:
+    # 1. Have data available around 2000-2002
+    # 2. Were large cap at that time (top 500 by market cap)
+    # This approximates the S&P 500 at that time
     
-    # Load stock data
-    stock_dict = load_stock_data_by_symbol(tickers)
+    print("\n1. Finding S&P 500-like stocks from 2000-2002...")
+    print("   (Using stocks with data from that period, ranked by market cap)")
     
-    # Get EBIT/PPE and market cap for each ticker around 2000 (or earliest available)
-    print("\n2. Calculating EBIT/PPE and market cap for 2000 (or earliest available)...")
-    stock_info = []
-    earliest_year_found = None
-    processed = 0
+    # Load ALL stock data first
+    print("   Loading all stock data...")
+    all_stocks_list = load_data_from_jsonl("nyse_data.jsonl") + load_data_from_jsonl("nasdaq_data.jsonl")
+    print(f"   Loaded {len(all_stocks_list)} stocks")
     
-    for ticker in tickers:
-        if ticker not in stock_dict:
-            continue
-        
-        processed += 1
-        if processed % 50 == 0:
-            print(f"   Processed {processed}/{len(tickers)} tickers, found {len(stock_info)} with data...")
-        
-        stock_data = stock_dict[ticker]
-        
-        # Try years 2000-2005 to find earliest available data
-        ebit_ppe_result = None
+    # Find stocks with data around 2000-2002 and get their market caps
+    print("   Finding stocks with data from 2000-2002...")
+    stocks_with_data = []
+    
+    for stock_data in all_stocks_list:
+        # Try to get market cap and EBIT/PPE around 2000-2002
         market_cap_result = None
-        found_year = None
+        ebit_ppe_result = None
         
-        for year in range(2000, 2006):
-            if not ebit_ppe_result:
-                ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
+        # Try years 2000-2002
+        for year in range(2000, 2003):
             if not market_cap_result:
                 market_cap_result = get_market_cap_at_date(stock_data, year)
-            
-            if ebit_ppe_result and market_cap_result:
-                found_year = year
+            if not ebit_ppe_result:
+                ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
+            if market_cap_result and ebit_ppe_result:
                 break
         
-        if ebit_ppe_result and market_cap_result:
-            ebit_ppe, ebit_date = ebit_ppe_result
+        if market_cap_result and ebit_ppe_result:
             market_cap, mc_date = market_cap_result
+            ebit_ppe, ebit_date = ebit_ppe_result
             
-            # Track earliest year
-            ebit_date_obj = parse_date(ebit_date)
-            if ebit_date_obj:
-                if earliest_year_found is None or ebit_date_obj.year < earliest_year_found:
-                    earliest_year_found = ebit_date_obj.year
-            
-            stock_info.append({
-                'ticker': ticker,
-                'ebit_ppe': ebit_ppe,
-                'market_cap': market_cap,
-                'ebit_date': ebit_date,
-                'mc_date': mc_date,
-                'stock_data': stock_data,
-                'found_year': found_year
-            })
+            # Only include stocks with meaningful market cap (at least $1B to approximate S&P 500)
+            if market_cap >= 1_000_000_000:  # $1B minimum
+                stocks_with_data.append({
+                    'stock_data': stock_data,
+                    'ticker': stock_data.get("symbol", "").upper(),
+                    'market_cap': market_cap,
+                    'ebit_ppe': ebit_ppe,
+                    'ebit_date': ebit_date,
+                    'mc_date': mc_date
+                })
+    
+    print(f"   Found {len(stocks_with_data)} stocks with data and market cap >= $1B")
+    
+    # Sort by market cap and take top 500 (approximate S&P 500)
+    stocks_with_data.sort(key=lambda x: x['market_cap'], reverse=True)
+    stock_info = stocks_with_data[:500]
+    
+    print(f"   Selected top {len(stock_info)} stocks by market cap (S&P 500 approximation)")
+    
+    # Create stock_dict for return calculations
+    stock_dict = {s['ticker']: s['stock_data'] for s in stock_info}
+    
+    # We already have stock_info with market cap and EBIT/PPE from 2000-2002
+    print("\n2. Using market cap and EBIT/PPE from 2000-2002 period...")
+    
+    # Track earliest year
+    earliest_year_found = None
+    for stock in stock_info:
+        ebit_date_obj = parse_date(stock['ebit_date'])
+        if ebit_date_obj:
+            if earliest_year_found is None or ebit_date_obj.year < earliest_year_found:
+                earliest_year_found = ebit_date_obj.year
     
     if earliest_year_found:
-        print(f"   Found data for {len(stock_info)} stocks (earliest data from {earliest_year_found})")
+        print(f"   Using data from {len(stock_info)} stocks (earliest data from {earliest_year_found})")
     else:
-        print(f"   Found data for {len(stock_info)} stocks")
+        print(f"   Using data from {len(stock_info)} stocks")
     
     if not stock_info:
         print("   Error: No stocks found with EBIT/PPE and market cap data for 2000")
