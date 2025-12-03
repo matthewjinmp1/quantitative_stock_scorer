@@ -389,6 +389,24 @@ def main():
               f"Initial: {stock['initial_weight']:5.2f}%, "
               f"Final: {stock['final_weight']:5.2f}%")
     
+    # Display all stocks ranked by final weight
+    print("\n" + "=" * 80)
+    print("ALL STOCKS RANKED BY FINAL WEIGHT")
+    print("=" * 80)
+    
+    # Sort by final weight (descending)
+    stocks_by_weight = sorted(stock_info, key=lambda x: x['final_weight'], reverse=True)
+    
+    print(f"\n{'Rank':<6} {'Ticker':<8} {'Final Weight %':<15} {'Market Cap (B)':<15} {'EBIT/PPE':<12} {'Initial Weight %':<15}")
+    print("-" * 80)
+    
+    for rank, stock in enumerate(stocks_by_weight, 1):
+        print(f"{rank:<6} {stock['ticker']:<8} {stock['final_weight']:>13.4f}% "
+              f"${stock['market_cap']/1e9:>13.2f}B {stock['ebit_ppe']:>11.4f} "
+              f"{stock['initial_weight']:>14.4f}%")
+    
+    print("\n" + "=" * 80)
+    
     # Calculate total returns with dividends reinvested
     print("\n5. Calculating total returns with dividends reinvested...")
     
