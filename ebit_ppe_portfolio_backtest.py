@@ -409,22 +409,26 @@ def main():
     
     # Sort dates and calculate weighted portfolio returns
     sorted_dates = sorted(all_dates)
-    cumulative_returns = []
+    cumulative_returns_ebit_weighted = []
+    cumulative_returns_market_cap = []
     
     for date in sorted_dates:
-        # Calculate portfolio value at this date
-        # Portfolio value = sum of (weight * (1 + cumulative_return)) for each stock
-        portfolio_value = 0.0
+        # Calculate EBIT/PPE weighted portfolio value
+        portfolio_value_ebit = 0.0
+        # Calculate market cap weighted portfolio value
+        portfolio_value_mc = 0.0
         
         for stock in stock_info:
             ticker = stock['ticker']
-            weight = stock['final_weight'] / 100.0  # Weight as fraction
+            ebit_weight = stock['final_weight'] / 100.0  # EBIT/PPE adjusted weight
+            mc_weight = stock['initial_weight'] / 100.0   # Market cap weight
             
             if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
                 # Get the cumulative return for this stock at this date
                 stock_return_pct = stock_returns_by_date[ticker][date]
                 stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
-                portfolio_value += weight * stock_value_multiplier
+                portfolio_value_ebit += ebit_weight * stock_value_multiplier
+                portfolio_value_mc += mc_weight * stock_value_multiplier
             else:
                 # If stock doesn't have data for this date, use last known value or 1.0
                 # Find the most recent return before this date
@@ -434,27 +438,38 @@ def main():
                         if prev_date <= date:
                             last_return = prev_return
                 stock_value_multiplier = 1.0 + (last_return / 100.0)
-                portfolio_value += weight * stock_value_multiplier
+                portfolio_value_ebit += ebit_weight * stock_value_multiplier
+                portfolio_value_mc += mc_weight * stock_value_multiplier
         
-        # Calculate cumulative return percentage
-        cumulative_return = (portfolio_value - 1.0) * 100
-        cumulative_returns.append(cumulative_return)
+        # Calculate cumulative return percentages
+        cumulative_return_ebit = (portfolio_value_ebit - 1.0) * 100
+        cumulative_return_mc = (portfolio_value_mc - 1.0) * 100
+        cumulative_returns_ebit_weighted.append(cumulative_return_ebit)
+        cumulative_returns_market_cap.append(cumulative_return_mc)
     
     print(f"   Calculated returns for {len(sorted_dates)} time periods")
     print(f"   Start date: {sorted_dates[0].strftime('%Y-%m-%d')}")
     print(f"   End date: {sorted_dates[-1].strftime('%Y-%m-%d')}")
-    print(f"   Total return: {cumulative_returns[-1]:.2f}%")
+    print(f"   EBIT/PPE Weighted Total return: {cumulative_returns_ebit_weighted[-1]:.2f}%")
+    print(f"   Market Cap Weighted Total return: {cumulative_returns_market_cap[-1]:.2f}%")
     
     # Create chart
     print("\n6. Creating performance chart...")
     plt.figure(figsize=(14, 8))
-    plt.plot(sorted_dates, cumulative_returns, linewidth=2, color='#2E86AB')
-    plt.title('EBIT/PPE Weighted Portfolio Performance (2000 - Present)\n'
-              'S&P 500 Stocks Weighted by EBIT/PPE Ranking with Dividends Reinvested',
+    
+    # Plot both lines
+    plt.plot(sorted_dates, cumulative_returns_ebit_weighted, linewidth=2, 
+             color='#2E86AB', label='EBIT/PPE Weighted Portfolio')
+    plt.plot(sorted_dates, cumulative_returns_market_cap, linewidth=2, 
+             color='#A23B72', label='Market Cap Weighted Portfolio', linestyle='--')
+    
+    plt.title('Portfolio Performance Comparison (2000 - Present)\n'
+              'EBIT/PPE Weighted vs Market Cap Weighted S&P 500 with Dividends Reinvested',
               fontsize=14, fontweight='bold')
     plt.xlabel('Date', fontsize=12)
     plt.ylabel('Cumulative Return (%)', fontsize=12)
     plt.grid(True, alpha=0.3)
+    plt.legend(loc='upper left', fontsize=11)
     
     # Format x-axis dates
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
@@ -476,7 +491,8 @@ def main():
         'total_stocks': len(stock_info),
         'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
         'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
-        'total_return_pct': cumulative_returns[-1],
+        'ebit_weighted_total_return_pct': cumulative_returns_ebit_weighted[-1],
+        'market_cap_weighted_total_return_pct': cumulative_returns_market_cap[-1],
         'portfolio_weights': [
             {
                 'ticker': s['ticker'],
@@ -488,12 +504,19 @@ def main():
             }
             for s in stock_info
         ],
-        'returns': [
+        'ebit_weighted_returns': [
             {
                 'date': d.strftime('%Y-%m-%d'),
                 'cumulative_return_pct': r
             }
-            for d, r in zip(sorted_dates, cumulative_returns)
+            for d, r in zip(sorted_dates, cumulative_returns_ebit_weighted)
+        ],
+        'market_cap_weighted_returns': [
+            {
+                'date': d.strftime('%Y-%m-%d'),
+                'cumulative_return_pct': r
+            }
+            for d, r in zip(sorted_dates, cumulative_returns_market_cap)
         ]
     }
     
