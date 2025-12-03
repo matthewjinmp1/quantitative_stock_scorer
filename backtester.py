@@ -143,6 +143,39 @@ def get_ebit_ppe_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[
     
     return None
 
+def get_operating_margin_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Operating Margin for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    operating_income = data.get("operating_income", [])
+    revenue = data.get("revenue", [])
+    
+    if not isinstance(operating_income, list) or not isinstance(revenue, list):
+        return None
+    
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates):
+            if (idx < len(operating_income) and idx < len(revenue) and
+                operating_income[idx] is not None and revenue[idx] is not None and
+                revenue[idx] != 0):
+                operating_margin = operating_income[idx] / revenue[idx]
+                return (operating_margin, period_dates[idx])
+    
+    return None
+
 def get_revenue_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get revenue for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -263,8 +296,34 @@ def load_stock_data_by_symbol(tickers: List[str]) -> Dict[str, Dict]:
 def main():
     """Main function"""
     print("=" * 80)
-    print("EBIT/PPE Weighted Portfolio Backtest (Starting 2002)")
+    print("Metric-Weighted Portfolio Backtest (Starting 2002)")
     print("=" * 80)
+    
+    # Allow user to select metric
+    print("\nSelect metric for portfolio weighting:")
+    print("  1. EBIT/PPE (Operating Income / PPE)")
+    print("  2. Operating Margin (Operating Income / Revenue)")
+    
+    while True:
+        try:
+            choice = input("\nEnter choice (1 or 2): ").strip()
+            if choice == "1":
+                selected_metric = "ebit_ppe"
+                metric_name = "EBIT/PPE"
+                metric_display_name = "EBIT/PPE"
+                break
+            elif choice == "2":
+                selected_metric = "operating_margin"
+                metric_name = "Operating Margin"
+                metric_display_name = "Operating Margin"
+                break
+            else:
+                print("Invalid choice. Please enter 1 or 2.")
+        except (EOFError, KeyboardInterrupt):
+            print("\nExiting...")
+            return
+    
+    print(f"\nSelected metric: {metric_name}")
     
     # Instead of using current S&P 500 list, we'll find stocks that:
     # 1. Have data available around 2002 (when data coverage significantly increases)
@@ -280,14 +339,15 @@ def main():
     all_stocks_list = load_data_from_jsonl("nyse_data.jsonl") + load_data_from_jsonl("nasdaq_data.jsonl")
     print(f"   Loaded {len(all_stocks_list)} stocks")
     
-    # Find stocks with data around 2002 and get their revenue
+    # Find stocks with data around 2002 and get their revenue and metrics
     print("   Finding stocks with data from 2002...")
     stocks_with_data = []
     
     for stock_data in all_stocks_list:
-        # Try to get revenue and EBIT/PPE around 2002
+        # Try to get revenue, EBIT/PPE, and Operating Margin around 2002
         revenue_result = None
         ebit_ppe_result = None
+        operating_margin_result = None
         
         # Try years 2002-2003 (focus on 2002 when data coverage jumps)
         for year in range(2002, 2004):
@@ -295,12 +355,15 @@ def main():
                 revenue_result = get_revenue_at_date(stock_data, year)
             if not ebit_ppe_result:
                 ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
-            if revenue_result and ebit_ppe_result:
+            if not operating_margin_result:
+                operating_margin_result = get_operating_margin_at_date(stock_data, year)
+            if revenue_result and ebit_ppe_result and operating_margin_result:
                 break
         
-        if revenue_result and ebit_ppe_result:
+        if revenue_result and ebit_ppe_result and operating_margin_result:
             revenue, rev_date = revenue_result
             ebit_ppe, ebit_date = ebit_ppe_result
+            operating_margin, om_date = operating_margin_result
             
             # Only include stocks with meaningful revenue (at least $100M to approximate S&P 500)
             if revenue >= 100_000_000:  # $100M minimum
@@ -309,8 +372,10 @@ def main():
                     'ticker': stock_data.get("symbol", "").upper(),
                     'revenue': revenue,
                     'ebit_ppe': ebit_ppe,
+                    'operating_margin': operating_margin,
                     'ebit_date': ebit_date,
-                    'revenue_date': rev_date
+                    'revenue_date': rev_date,
+                    'om_date': om_date
                 })
     
     print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
@@ -354,7 +419,7 @@ def main():
         stock['initial_weight'] = (stock['revenue'] / total_revenue) * 100
     
     # Apply multiplier based on rank (0.5 for worst, 2.0 for best)
-    print("\n4. Applying EBIT/PPE-based weight adjustments...")
+    print(f"\n4. Applying {metric_name}-based weight adjustments...")
     n_stocks = len(stock_info)
     for i, stock in enumerate(stock_info):
         # Linear interpolation: rank 0 (best) gets 2.0, rank n-1 (worst) gets 0.5
@@ -375,16 +440,18 @@ def main():
     print(f"   Total final weight after normalization: {sum(s['final_weight'] for s in stock_info):.2f}%")
     
     # Show top 10 and bottom 10
-    print("\n   Top 10 by EBIT/PPE:")
+    print(f"\n   Top 10 by {metric_name}:")
     for i, stock in enumerate(stock_info[:10], 1):
-        print(f"   {i:2d}. {stock['ticker']:6s} - EBIT/PPE: {stock['ebit_ppe']:8.4f}, "
+        metric_val = stock['metric_value']
+        print(f"   {i:2d}. {stock['ticker']:6s} - {metric_display_name}: {metric_val:8.4f}, "
               f"Revenue: ${stock['revenue']/1e9:6.2f}B, "
               f"Initial: {stock['initial_weight']:5.2f}%, "
               f"Final: {stock['final_weight']:5.2f}%")
     
-    print("\n   Bottom 10 by EBIT/PPE:")
+    print(f"\n   Bottom 10 by {metric_name}:")
     for i, stock in enumerate(stock_info[-10:], n_stocks - 9):
-        print(f"   {i:2d}. {stock['ticker']:6s} - EBIT/PPE: {stock['ebit_ppe']:8.4f}, "
+        metric_val = stock['metric_value']
+        print(f"   {i:2d}. {stock['ticker']:6s} - {metric_display_name}: {metric_val:8.4f}, "
               f"Revenue: ${stock['revenue']/1e9:6.2f}B, "
               f"Initial: {stock['initial_weight']:5.2f}%, "
               f"Final: {stock['final_weight']:5.2f}%")
@@ -397,12 +464,13 @@ def main():
     # Sort by final weight (descending)
     stocks_by_weight = sorted(stock_info, key=lambda x: x['final_weight'], reverse=True)
     
-    print(f"\n{'Rank':<6} {'Ticker':<8} {'Final Weight %':<15} {'Revenue (B)':<15} {'EBIT/PPE':<12} {'Initial Weight %':<15}")
+    print(f"\n{'Rank':<6} {'Ticker':<8} {'Final Weight %':<15} {'Revenue (B)':<15} {metric_display_name:<12} {'Initial Weight %':<15}")
     print("-" * 80)
     
     for rank, stock in enumerate(stocks_by_weight, 1):
+        metric_val = stock['metric_value']
         print(f"{rank:<6} {stock['ticker']:<8} {stock['final_weight']:>13.4f}% "
-              f"${stock['revenue']/1e9:>13.2f}B {stock['ebit_ppe']:>11.4f} "
+              f"${stock['revenue']/1e9:>13.2f}B {metric_val:>11.4f} "
               f"{stock['initial_weight']:>14.4f}%")
     
     print("\n" + "=" * 80)
@@ -472,7 +540,7 @@ def main():
     print(f"   Calculated returns for {len(sorted_dates)} time periods")
     print(f"   Start date: {sorted_dates[0].strftime('%Y-%m-%d')}")
     print(f"   End date: {sorted_dates[-1].strftime('%Y-%m-%d')}")
-    print(f"   EBIT/PPE Weighted Total return: {cumulative_returns_ebit_weighted[-1]:.2f}%")
+    print(f"   {metric_name} Weighted Total return: {cumulative_returns_ebit_weighted[-1]:.2f}%")
     print(f"   Revenue Weighted Total return: {cumulative_returns_market_cap[-1]:.2f}%")
     
     # Create chart
@@ -481,12 +549,12 @@ def main():
     
     # Plot both lines
     plt.plot(sorted_dates, cumulative_returns_ebit_weighted, linewidth=2, 
-             color='#2E86AB', label='EBIT/PPE Weighted Portfolio')
+             color='#2E86AB', label=f'{metric_name} Weighted Portfolio')
     plt.plot(sorted_dates, cumulative_returns_market_cap, linewidth=2, 
              color='#A23B72', label='Revenue Weighted Portfolio', linestyle='--')
     
-    plt.title('Portfolio Performance Comparison (2002 - Present)\n'
-              'EBIT/PPE Weighted vs Revenue Weighted S&P 500 with Dividends Reinvested',
+    plt.title(f'Portfolio Performance Comparison (2002 - Present)\n'
+              f'{metric_name} Weighted vs Revenue Weighted S&P 500 with Dividends Reinvested',
               fontsize=14, fontweight='bold')
     plt.xlabel('Date', fontsize=12)
     plt.ylabel('Cumulative Return (%)', fontsize=12)
@@ -510,15 +578,19 @@ def main():
     print("\n7. Saving results...")
     results = {
         'start_year': 2002,
+        'selected_metric': selected_metric,
+        'metric_name': metric_name,
         'total_stocks': len(stock_info),
         'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
         'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
-        'ebit_weighted_total_return_pct': cumulative_returns_ebit_weighted[-1],
+        'metric_weighted_total_return_pct': cumulative_returns_ebit_weighted[-1],
         'revenue_weighted_total_return_pct': cumulative_returns_market_cap[-1],
         'portfolio_weights': [
             {
                 'ticker': s['ticker'],
-                'ebit_ppe': s['ebit_ppe'],
+                'metric_value': s['metric_value'],
+                'ebit_ppe': s.get('ebit_ppe'),
+                'operating_margin': s.get('operating_margin'),
                 'revenue': s['revenue'],
                 'initial_weight_pct': s['initial_weight'],
                 'multiplier': s['multiplier'],
@@ -526,7 +598,7 @@ def main():
             }
             for s in stock_info
         ],
-        'ebit_weighted_returns': [
+        'metric_weighted_returns': [
             {
                 'date': d.strftime('%Y-%m-%d'),
                 'cumulative_return_pct': r
