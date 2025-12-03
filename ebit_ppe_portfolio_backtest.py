@@ -52,16 +52,34 @@ def parse_date(date_str: str) -> Optional[datetime]:
     if not date_str or date_str == "-":
         return None
     
-    # Try different date formats
-    formats = ["%Y-%m-%d", "%Y-%m", "%Y", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"]
+    # Try different date formats - order matters, try most specific first
+    formats = [
+        "%Y-%m-%d",      # 2000-01-15
+        "%Y-%m-%dT%H:%M:%S",  # ISO format with time
+        "%Y-%m-%d %H:%M:%S",  # Space separated
+        "%Y-%m",         # 2000-03 (YYYY-MM)
+        "%Y",            # 2000
+    ]
+    
     for fmt in formats:
         try:
-            return datetime.strptime(date_str[:len(fmt)], fmt)
+            # For formats that might have extra characters, try to match exactly
+            if fmt == "%Y-%m":  # Special handling for YYYY-MM
+                if len(date_str) >= 7 and date_str[4] == '-' and date_str[6] in '0123456789':
+                    return datetime.strptime(date_str[:7], fmt)
+            elif fmt == "%Y":  # Special handling for YYYY
+                if len(date_str) >= 4:
+                    return datetime.strptime(date_str[:4], fmt)
+            else:
+                # For other formats, try to match the full format length
+                if len(date_str) >= len(fmt):
+                    return datetime.strptime(date_str[:len(fmt)], fmt)
         except (ValueError, IndexError):
             continue
+    
     return None
 
-def find_quarter_near_date(period_dates: List, target_year: int = 2000) -> Optional[int]:
+def find_quarter_near_date(period_dates: List, target_year: int = 2000, allow_earlier: bool = True) -> Optional[int]:
     """Find the index of the quarter closest to the target year"""
     if not period_dates:
         return None
@@ -73,10 +91,22 @@ def find_quarter_near_date(period_dates: List, target_year: int = 2000) -> Optio
     for idx, date_str in enumerate(period_dates):
         date_obj = parse_date(date_str)
         if date_obj:
+            # If allow_earlier is False, only consider dates >= target_year
+            if not allow_earlier and date_obj.year < target_year:
+                continue
+            
             diff = abs((date_obj - target_date).days)
             if diff < min_diff:
                 min_diff = diff
                 best_idx = idx
+    
+    # If no exact match and allow_earlier, try to find earliest available date
+    if best_idx is None and allow_earlier:
+        for idx, date_str in enumerate(period_dates):
+            date_obj = parse_date(date_str)
+            if date_obj:
+                best_idx = idx
+                break
     
     return best_idx
 
@@ -87,7 +117,7 @@ def get_ebit_ppe_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[
     
     data = stock_data.get("data", {})
     period_dates = get_period_dates(data)
-    if not period_dates:
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
         return None
     
     operating_income = data.get("operating_income", [])
@@ -96,13 +126,13 @@ def get_ebit_ppe_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[
     if not isinstance(operating_income, list) or not isinstance(ppe_net, list):
         return None
     
-    # Find quarter near target year
-    quarter_idx = find_quarter_near_date(period_dates, target_year)
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
     if quarter_idx is None:
         return None
     
-    # Try to get data at that quarter, or nearby quarters
-    for offset in [0, 1, -1, 2, -2, 3, -3]:
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
         idx = quarter_idx + offset
         if 0 <= idx < len(period_dates):
             if (idx < len(operating_income) and idx < len(ppe_net) and
@@ -120,20 +150,20 @@ def get_market_cap_at_date(stock_data: Dict, target_year: int = 2000) -> Optiona
     
     data = stock_data.get("data", {})
     period_dates = get_period_dates(data)
-    if not period_dates:
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
         return None
     
     market_caps = data.get("market_cap", [])
     if not isinstance(market_caps, list):
         return None
     
-    # Find quarter near target year
-    quarter_idx = find_quarter_near_date(period_dates, target_year)
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
     if quarter_idx is None:
         return None
     
-    # Try to get data at that quarter, or nearby quarters
-    for offset in [0, 1, -1, 2, -2, 3, -3]:
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
         idx = quarter_idx + offset
         if 0 <= idx < len(period_dates) and idx < len(market_caps):
             if market_caps[idx] is not None and market_caps[idx] > 0:
@@ -141,7 +171,7 @@ def get_market_cap_at_date(stock_data: Dict, target_year: int = 2000) -> Optiona
     
     return None
 
-def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 2000) -> Optional[List[Tuple[datetime, float]]]:
+def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 2000, start_date_str: Optional[str] = None) -> Optional[List[Tuple[datetime, float]]]:
     """
     Calculate cumulative total return with dividends reinvested
     Returns list of (date, cumulative_return) tuples
@@ -160,8 +190,22 @@ def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 20
     if not isinstance(prices, list) or not isinstance(dividends, list):
         return None
     
-    # Find starting index near 2000
-    start_idx = find_quarter_near_date(period_dates, start_year)
+    # Find starting index - use provided date string if available, otherwise use year
+    if start_date_str:
+        # Find exact date match first
+        start_idx = None
+        for idx, date_str in enumerate(period_dates):
+            if date_str == start_date_str:
+                start_idx = idx
+                break
+        # If no exact match, find nearest
+        if start_idx is None:
+            start_date_obj = parse_date(start_date_str)
+            if start_date_obj:
+                start_idx = find_quarter_near_date(period_dates, start_date_obj.year)
+    else:
+        start_idx = find_quarter_near_date(period_dates, start_year)
+    
     if start_idx is None or start_idx >= len(prices) or prices[start_idx] is None:
         return None
     
@@ -236,21 +280,46 @@ def main():
     # Load stock data
     stock_dict = load_stock_data_by_symbol(tickers)
     
-    # Get EBIT/PPE and market cap for each ticker around 2000
-    print("\n2. Calculating EBIT/PPE and market cap for 2000...")
+    # Get EBIT/PPE and market cap for each ticker around 2000 (or earliest available)
+    print("\n2. Calculating EBIT/PPE and market cap for 2000 (or earliest available)...")
     stock_info = []
+    earliest_year_found = None
+    processed = 0
     
     for ticker in tickers:
         if ticker not in stock_dict:
             continue
         
+        processed += 1
+        if processed % 50 == 0:
+            print(f"   Processed {processed}/{len(tickers)} tickers, found {len(stock_info)} with data...")
+        
         stock_data = stock_dict[ticker]
-        ebit_ppe_result = get_ebit_ppe_at_date(stock_data, 2000)
-        market_cap_result = get_market_cap_at_date(stock_data, 2000)
+        
+        # Try years 2000-2005 to find earliest available data
+        ebit_ppe_result = None
+        market_cap_result = None
+        found_year = None
+        
+        for year in range(2000, 2006):
+            if not ebit_ppe_result:
+                ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
+            if not market_cap_result:
+                market_cap_result = get_market_cap_at_date(stock_data, year)
+            
+            if ebit_ppe_result and market_cap_result:
+                found_year = year
+                break
         
         if ebit_ppe_result and market_cap_result:
             ebit_ppe, ebit_date = ebit_ppe_result
             market_cap, mc_date = market_cap_result
+            
+            # Track earliest year
+            ebit_date_obj = parse_date(ebit_date)
+            if ebit_date_obj:
+                if earliest_year_found is None or ebit_date_obj.year < earliest_year_found:
+                    earliest_year_found = ebit_date_obj.year
             
             stock_info.append({
                 'ticker': ticker,
@@ -258,10 +327,14 @@ def main():
                 'market_cap': market_cap,
                 'ebit_date': ebit_date,
                 'mc_date': mc_date,
-                'stock_data': stock_data
+                'stock_data': stock_data,
+                'found_year': found_year
             })
     
-    print(f"   Found data for {len(stock_info)} stocks")
+    if earliest_year_found:
+        print(f"   Found data for {len(stock_info)} stocks (earliest data from {earliest_year_found})")
+    else:
+        print(f"   Found data for {len(stock_info)} stocks")
     
     if not stock_info:
         print("   Error: No stocks found with EBIT/PPE and market cap data for 2000")
@@ -320,7 +393,9 @@ def main():
     stock_returns_by_date = {}  # ticker -> {date: return_pct}
     
     for stock in stock_info:
-        returns = calculate_total_return_with_dividends(stock['stock_data'], 2000)
+        # Use the actual date from EBIT/PPE calculation as start date
+        start_date = stock.get('ebit_date')
+        returns = calculate_total_return_with_dividends(stock['stock_data'], 2000, start_date)
         if returns:
             ticker = stock['ticker']
             stock_returns_by_date[ticker] = {}
