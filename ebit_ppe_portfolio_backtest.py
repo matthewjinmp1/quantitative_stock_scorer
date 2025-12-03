@@ -143,8 +143,8 @@ def get_ebit_ppe_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[
     
     return None
 
-def get_market_cap_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
-    """Get market cap for a stock at a specific date"""
+def get_revenue_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get revenue for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
         return None
     
@@ -153,8 +153,8 @@ def get_market_cap_at_date(stock_data: Dict, target_year: int = 2000) -> Optiona
     if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
         return None
     
-    market_caps = data.get("market_cap", [])
-    if not isinstance(market_caps, list):
+    revenues = data.get("revenue", [])
+    if not isinstance(revenues, list):
         return None
     
     # Find quarter near target year (allow earlier dates)
@@ -165,9 +165,9 @@ def get_market_cap_at_date(stock_data: Dict, target_year: int = 2000) -> Optiona
     # Try to get data at that quarter, or nearby quarters (search wider range)
     for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
         idx = quarter_idx + offset
-        if 0 <= idx < len(period_dates) and idx < len(market_caps):
-            if market_caps[idx] is not None and market_caps[idx] > 0:
-                return (market_caps[idx], period_dates[idx])
+        if 0 <= idx < len(period_dates) and idx < len(revenues):
+            if revenues[idx] is not None and revenues[idx] > 0:
+                return (revenues[idx], period_dates[idx])
     
     return None
 
@@ -280,52 +280,52 @@ def main():
     all_stocks_list = load_data_from_jsonl("nyse_data.jsonl") + load_data_from_jsonl("nasdaq_data.jsonl")
     print(f"   Loaded {len(all_stocks_list)} stocks")
     
-    # Find stocks with data around 2002 and get their market caps
+    # Find stocks with data around 2002 and get their revenue
     print("   Finding stocks with data from 2002...")
     stocks_with_data = []
     
     for stock_data in all_stocks_list:
-        # Try to get market cap and EBIT/PPE around 2002
-        market_cap_result = None
+        # Try to get revenue and EBIT/PPE around 2002
+        revenue_result = None
         ebit_ppe_result = None
         
         # Try years 2002-2003 (focus on 2002 when data coverage jumps)
         for year in range(2002, 2004):
-            if not market_cap_result:
-                market_cap_result = get_market_cap_at_date(stock_data, year)
+            if not revenue_result:
+                revenue_result = get_revenue_at_date(stock_data, year)
             if not ebit_ppe_result:
                 ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
-            if market_cap_result and ebit_ppe_result:
+            if revenue_result and ebit_ppe_result:
                 break
         
-        if market_cap_result and ebit_ppe_result:
-            market_cap, mc_date = market_cap_result
+        if revenue_result and ebit_ppe_result:
+            revenue, rev_date = revenue_result
             ebit_ppe, ebit_date = ebit_ppe_result
             
-            # Only include stocks with meaningful market cap (at least $1B to approximate S&P 500)
-            if market_cap >= 1_000_000_000:  # $1B minimum
+            # Only include stocks with meaningful revenue (at least $100M to approximate S&P 500)
+            if revenue >= 100_000_000:  # $100M minimum
                 stocks_with_data.append({
                     'stock_data': stock_data,
                     'ticker': stock_data.get("symbol", "").upper(),
-                    'market_cap': market_cap,
+                    'revenue': revenue,
                     'ebit_ppe': ebit_ppe,
                     'ebit_date': ebit_date,
-                    'mc_date': mc_date
+                    'revenue_date': rev_date
                 })
     
-    print(f"   Found {len(stocks_with_data)} stocks with data and market cap >= $1B")
+    print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
     
-    # Sort by market cap and take top 500 (approximate S&P 500)
-    stocks_with_data.sort(key=lambda x: x['market_cap'], reverse=True)
+    # Sort by revenue and take top 500 (approximate S&P 500)
+    stocks_with_data.sort(key=lambda x: x['revenue'], reverse=True)
     stock_info = stocks_with_data[:500]
     
-    print(f"   Selected top {len(stock_info)} stocks by market cap (S&P 500 approximation)")
+    print(f"   Selected top {len(stock_info)} stocks by revenue (S&P 500 approximation)")
     
     # Create stock_dict for return calculations
     stock_dict = {s['ticker']: s['stock_data'] for s in stock_info}
     
-    # We already have stock_info with market cap and EBIT/PPE from 2002
-    print("\n2. Using market cap and EBIT/PPE from 2002 period...")
+    # We already have stock_info with revenue and EBIT/PPE from 2002
+    print("\n2. Using revenue and EBIT/PPE from 2002 period...")
     
     # Track earliest year
     earliest_year_found = None
@@ -348,10 +348,10 @@ def main():
     print("\n3. Ranking stocks by EBIT/PPE...")
     stock_info.sort(key=lambda x: x['ebit_ppe'], reverse=True)
     
-    # Calculate initial market cap weights
-    total_market_cap = sum(s['market_cap'] for s in stock_info)
+    # Calculate initial revenue weights
+    total_revenue = sum(s['revenue'] for s in stock_info)
     for stock in stock_info:
-        stock['initial_weight'] = (stock['market_cap'] / total_market_cap) * 100
+        stock['initial_weight'] = (stock['revenue'] / total_revenue) * 100
     
     # Apply multiplier based on rank (0.5 for worst, 2.0 for best)
     print("\n4. Applying EBIT/PPE-based weight adjustments...")
@@ -378,14 +378,14 @@ def main():
     print("\n   Top 10 by EBIT/PPE:")
     for i, stock in enumerate(stock_info[:10], 1):
         print(f"   {i:2d}. {stock['ticker']:6s} - EBIT/PPE: {stock['ebit_ppe']:8.4f}, "
-              f"MC: ${stock['market_cap']/1e9:6.2f}B, "
+              f"Revenue: ${stock['revenue']/1e9:6.2f}B, "
               f"Initial: {stock['initial_weight']:5.2f}%, "
               f"Final: {stock['final_weight']:5.2f}%")
     
     print("\n   Bottom 10 by EBIT/PPE:")
     for i, stock in enumerate(stock_info[-10:], n_stocks - 9):
         print(f"   {i:2d}. {stock['ticker']:6s} - EBIT/PPE: {stock['ebit_ppe']:8.4f}, "
-              f"MC: ${stock['market_cap']/1e9:6.2f}B, "
+              f"Revenue: ${stock['revenue']/1e9:6.2f}B, "
               f"Initial: {stock['initial_weight']:5.2f}%, "
               f"Final: {stock['final_weight']:5.2f}%")
     
@@ -397,12 +397,12 @@ def main():
     # Sort by final weight (descending)
     stocks_by_weight = sorted(stock_info, key=lambda x: x['final_weight'], reverse=True)
     
-    print(f"\n{'Rank':<6} {'Ticker':<8} {'Final Weight %':<15} {'Market Cap (B)':<15} {'EBIT/PPE':<12} {'Initial Weight %':<15}")
+    print(f"\n{'Rank':<6} {'Ticker':<8} {'Final Weight %':<15} {'Revenue (B)':<15} {'EBIT/PPE':<12} {'Initial Weight %':<15}")
     print("-" * 80)
     
     for rank, stock in enumerate(stocks_by_weight, 1):
         print(f"{rank:<6} {stock['ticker']:<8} {stock['final_weight']:>13.4f}% "
-              f"${stock['market_cap']/1e9:>13.2f}B {stock['ebit_ppe']:>11.4f} "
+              f"${stock['revenue']/1e9:>13.2f}B {stock['ebit_ppe']:>11.4f} "
               f"{stock['initial_weight']:>14.4f}%")
     
     print("\n" + "=" * 80)
@@ -473,7 +473,7 @@ def main():
     print(f"   Start date: {sorted_dates[0].strftime('%Y-%m-%d')}")
     print(f"   End date: {sorted_dates[-1].strftime('%Y-%m-%d')}")
     print(f"   EBIT/PPE Weighted Total return: {cumulative_returns_ebit_weighted[-1]:.2f}%")
-    print(f"   Market Cap Weighted Total return: {cumulative_returns_market_cap[-1]:.2f}%")
+    print(f"   Revenue Weighted Total return: {cumulative_returns_market_cap[-1]:.2f}%")
     
     # Create chart
     print("\n6. Creating performance chart...")
@@ -483,10 +483,10 @@ def main():
     plt.plot(sorted_dates, cumulative_returns_ebit_weighted, linewidth=2, 
              color='#2E86AB', label='EBIT/PPE Weighted Portfolio')
     plt.plot(sorted_dates, cumulative_returns_market_cap, linewidth=2, 
-             color='#A23B72', label='Market Cap Weighted Portfolio', linestyle='--')
+             color='#A23B72', label='Revenue Weighted Portfolio', linestyle='--')
     
     plt.title('Portfolio Performance Comparison (2002 - Present)\n'
-              'EBIT/PPE Weighted vs Market Cap Weighted S&P 500 with Dividends Reinvested',
+              'EBIT/PPE Weighted vs Revenue Weighted S&P 500 with Dividends Reinvested',
               fontsize=14, fontweight='bold')
     plt.xlabel('Date', fontsize=12)
     plt.ylabel('Cumulative Return (%)', fontsize=12)
@@ -514,12 +514,12 @@ def main():
         'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
         'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
         'ebit_weighted_total_return_pct': cumulative_returns_ebit_weighted[-1],
-        'market_cap_weighted_total_return_pct': cumulative_returns_market_cap[-1],
+        'revenue_weighted_total_return_pct': cumulative_returns_market_cap[-1],
         'portfolio_weights': [
             {
                 'ticker': s['ticker'],
                 'ebit_ppe': s['ebit_ppe'],
-                'market_cap': s['market_cap'],
+                'revenue': s['revenue'],
                 'initial_weight_pct': s['initial_weight'],
                 'multiplier': s['multiplier'],
                 'final_weight_pct': s['final_weight']
@@ -533,7 +533,7 @@ def main():
             }
             for d, r in zip(sorted_dates, cumulative_returns_ebit_weighted)
         ],
-        'market_cap_weighted_returns': [
+        'revenue_weighted_returns': [
             {
                 'date': d.strftime('%Y-%m-%d'),
                 'cumulative_return_pct': r
