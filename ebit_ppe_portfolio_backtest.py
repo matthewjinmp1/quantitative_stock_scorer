@@ -263,33 +263,34 @@ def load_stock_data_by_symbol(tickers: List[str]) -> Dict[str, Dict]:
 def main():
     """Main function"""
     print("=" * 80)
-    print("EBIT/PPE Weighted Portfolio Backtest (2000)")
+    print("EBIT/PPE Weighted Portfolio Backtest (Starting 2002)")
     print("=" * 80)
     
     # Instead of using current S&P 500 list, we'll find stocks that:
-    # 1. Have data available around 2000-2002
+    # 1. Have data available around 2002 (when data coverage significantly increases)
     # 2. Were large cap at that time (top 500 by market cap)
     # This approximates the S&P 500 at that time
     
-    print("\n1. Finding S&P 500-like stocks from 2000-2002...")
-    print("   (Using stocks with data from that period, ranked by market cap)")
+    print("\n1. Finding S&P 500-like stocks from 2002...")
+    print("   (Using stocks with data from 2002, ranked by market cap)")
+    print("   (2002 is when data coverage significantly increases)")
     
     # Load ALL stock data first
     print("   Loading all stock data...")
     all_stocks_list = load_data_from_jsonl("nyse_data.jsonl") + load_data_from_jsonl("nasdaq_data.jsonl")
     print(f"   Loaded {len(all_stocks_list)} stocks")
     
-    # Find stocks with data around 2000-2002 and get their market caps
-    print("   Finding stocks with data from 2000-2002...")
+    # Find stocks with data around 2002 and get their market caps
+    print("   Finding stocks with data from 2002...")
     stocks_with_data = []
     
     for stock_data in all_stocks_list:
-        # Try to get market cap and EBIT/PPE around 2000-2002
+        # Try to get market cap and EBIT/PPE around 2002
         market_cap_result = None
         ebit_ppe_result = None
         
-        # Try years 2000-2002
-        for year in range(2000, 2003):
+        # Try years 2002-2003 (focus on 2002 when data coverage jumps)
+        for year in range(2002, 2004):
             if not market_cap_result:
                 market_cap_result = get_market_cap_at_date(stock_data, year)
             if not ebit_ppe_result:
@@ -323,8 +324,8 @@ def main():
     # Create stock_dict for return calculations
     stock_dict = {s['ticker']: s['stock_data'] for s in stock_info}
     
-    # We already have stock_info with market cap and EBIT/PPE from 2000-2002
-    print("\n2. Using market cap and EBIT/PPE from 2000-2002 period...")
+    # We already have stock_info with market cap and EBIT/PPE from 2002
+    print("\n2. Using market cap and EBIT/PPE from 2002 period...")
     
     # Track earliest year
     earliest_year_found = None
@@ -398,7 +399,7 @@ def main():
     for stock in stock_info:
         # Use the actual date from EBIT/PPE calculation as start date
         start_date = stock.get('ebit_date')
-        returns = calculate_total_return_with_dividends(stock['stock_data'], 2000, start_date)
+        returns = calculate_total_return_with_dividends(stock['stock_data'], 2002, start_date)
         if returns:
             ticker = stock['ticker']
             stock_returns_by_date[ticker] = {}
@@ -466,7 +467,7 @@ def main():
     plt.plot(sorted_dates, cumulative_returns_market_cap, linewidth=2, 
              color='#A23B72', label='Market Cap Weighted Portfolio', linestyle='--')
     
-    plt.title('Portfolio Performance Comparison (2000 - Present)\n'
+    plt.title('Portfolio Performance Comparison (2002 - Present)\n'
               'EBIT/PPE Weighted vs Market Cap Weighted S&P 500 with Dividends Reinvested',
               fontsize=14, fontweight='bold')
     plt.xlabel('Date', fontsize=12)
@@ -490,7 +491,7 @@ def main():
     # Save results to JSON
     print("\n7. Saving results...")
     results = {
-        'start_year': 2000,
+        'start_year': 2002,
         'total_stocks': len(stock_info),
         'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
         'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
