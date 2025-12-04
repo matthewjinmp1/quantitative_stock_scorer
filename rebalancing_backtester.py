@@ -707,36 +707,6 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"      Chart saved to {chart_filename}")
     plt.close()
     
-    # Save results
-    print(f"\n   Saving results...")
-    json_filename = f'{output_folder}/{metric_filename}_rebalancing_results.json'
-    
-    results = {
-        'start_year': start_year,
-        'selected_metric': selected_metric,
-        'metric_name': metric_name,
-        'total_stocks': len(stock_info),
-        'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
-        'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
-        'rebalance_years': rebalance_years,
-        'metric_weighted_total_return_pct': cumulative_returns_metric_weighted[-1],
-        'revenue_weighted_total_return_pct': cumulative_returns_revenue_weighted[-1],
-        'metric_weighted_annualized_return_pct': annualized_return_metric,
-        'revenue_weighted_annualized_return_pct': annualized_return_revenue,
-        'metric_weighted_returns': [
-            {'date': d.strftime('%Y-%m-%d'), 'cumulative_return_pct': r}
-            for d, r in zip(sorted_dates, cumulative_returns_metric_weighted)
-        ],
-        'revenue_weighted_returns': [
-            {'date': d.strftime('%Y-%m-%d'), 'cumulative_return_pct': r}
-            for d, r in zip(sorted_dates, cumulative_returns_revenue_weighted)
-        ]
-    }
-    
-    with open(json_filename, 'w') as f:
-        json.dump(results, f, indent=2)
-    
-    print(f"      Results saved to {json_filename}")
     print(f"\n   Completed rebalancing backtest for {metric_name}")
 
 def main():

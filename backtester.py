@@ -771,64 +771,6 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     print(f"      Chart saved to {chart_filename}")
     plt.close()  # Close figure instead of showing
     
-    # Save results to JSON
-    print(f"\n   Saving results...")
-    
-    # Create filename based on selected metric
-    metric_filename = selected_metric.replace('/', '_').replace(' ', '_').lower()
-    json_filename = f'{output_folder}/{metric_filename}_portfolio_results.json'
-    
-    # Determine start year for results
-    metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
-    results_start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
-    
-    results = {
-        'start_year': results_start_year,
-        'selected_metric': selected_metric,
-        'metric_name': metric_name,
-        'total_stocks': len(stock_info),
-        'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
-        'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
-        'metric_weighted_total_return_pct': cumulative_returns_ebit_weighted[-1],
-        'revenue_weighted_total_return_pct': cumulative_returns_market_cap[-1],
-        'portfolio_weights': [
-            {
-                'ticker': s['ticker'],
-                'metric_value': s['metric_value'],
-                'ebit_ppe': s.get('ebit_ppe'),
-                'operating_margin': s.get('operating_margin'),
-                'gross_margin': s.get('gross_margin'),
-                '5y_revenue_cagr': s.get('5y_revenue_cagr'),
-                'ev_to_ebit': s.get('ev_to_ebit'),
-                'roa': s.get('roa'),
-                'relative_ps': s.get('relative_ps'),
-                'revenue': s['revenue'],
-                'initial_weight_pct': s['initial_weight'],
-                'multiplier': s['multiplier'],
-                'final_weight_pct': s['final_weight']
-            }
-            for s in stock_info
-        ],
-        'metric_weighted_returns': [
-            {
-                'date': d.strftime('%Y-%m-%d'),
-                'cumulative_return_pct': r
-            }
-            for d, r in zip(sorted_dates, cumulative_returns_ebit_weighted)
-        ],
-        'revenue_weighted_returns': [
-            {
-                'date': d.strftime('%Y-%m-%d'),
-                'cumulative_return_pct': r
-            }
-            for d, r in zip(sorted_dates, cumulative_returns_market_cap)
-        ]
-    }
-    
-    with open(json_filename, 'w') as f:
-        json.dump(results, f, indent=2)
-    
-    print(f"      Results saved to {json_filename}")
     print(f"\n   Completed backtest for {metric_name}")
 
 def main():
