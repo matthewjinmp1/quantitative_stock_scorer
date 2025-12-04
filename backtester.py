@@ -676,19 +676,34 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
-    # Get final total returns for legend
+    # Calculate annualized returns for legend
+    start_date = sorted_dates[0]
+    end_date = sorted_dates[-1]
+    years = (end_date - start_date).days / 365.25
+    
     metric_weighted_total_return = cumulative_returns_ebit_weighted[-1]
     revenue_weighted_total_return = cumulative_returns_market_cap[-1]
+    
+    # Annualized return = ((1 + total_return/100)^(1/years) - 1) * 100
+    if years > 0:
+        metric_weighted_annualized = ((1 + metric_weighted_total_return / 100) ** (1 / years) - 1) * 100
+        revenue_weighted_annualized = ((1 + revenue_weighted_total_return / 100) ** (1 / years) - 1) * 100
+    else:
+        metric_weighted_annualized = 0.0
+        revenue_weighted_annualized = 0.0
+    
+    print(f"      {metric_name} Weighted Annualized return: {metric_weighted_annualized:.2f}%")
+    print(f"      Revenue Weighted Annualized return: {revenue_weighted_annualized:.2f}%")
     
     # Create chart
     print(f"\n   Creating performance chart...")
     plt.figure(figsize=(14, 8))
     
-    # Plot both lines with total returns in labels
+    # Plot both lines with annualized returns in labels
     plt.plot(sorted_dates, cumulative_returns_ebit_weighted, linewidth=2, 
-             color='#2E86AB', label=f'{metric_name} Weighted Portfolio ({metric_weighted_total_return:+.1f}%)')
+             color='#2E86AB', label=f'{metric_name} Weighted Portfolio ({metric_weighted_annualized:+.1f}% ann.)')
     plt.plot(sorted_dates, cumulative_returns_market_cap, linewidth=2, 
-             color='#A23B72', label=f'Revenue Weighted Portfolio ({revenue_weighted_total_return:+.1f}%)', linestyle='--')
+             color='#A23B72', label=f'Revenue Weighted Portfolio ({revenue_weighted_annualized:+.1f}% ann.)', linestyle='--')
     
     # Determine start year for title
     metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
