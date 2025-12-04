@@ -12,7 +12,6 @@ import json
 import os
 import math
 import time
-import glob
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
@@ -432,27 +431,10 @@ def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 20
     
     return returns if returns else None
 
-def load_summary_data(folder: str) -> List[Dict]:
-    """Load all summary JSON files from a folder"""
-    summary_files = glob.glob(os.path.join(folder, "summary_*.json"))
-    results = []
-    
-    for file in summary_files:
-        try:
-            with open(file, 'r') as f:
-                data = json.load(f)
-                results.append(data)
-        except Exception as e:
-            print(f"Error loading {file}: {e}")
-    
-    return results
-
-def create_comparison_chart(output_folder: str, chart_type: str):
+def create_comparison_chart(results: List[Dict], output_folder: str, chart_type: str):
     """Create a comparison chart showing excess returns vs benchmark"""
-    results = load_summary_data(output_folder)
-    
     if not results:
-        print(f"   No summary data found in {output_folder}")
+        print(f"   No summary data to create comparison chart")
         return
     
     # Sort by excess return (how much they beat the benchmark)
@@ -463,58 +445,63 @@ def create_comparison_chart(output_folder: str, chart_type: str):
     metric_returns = [r.get('metric_weighted_annualized', 0) for r in results]
     benchmark_returns = [r.get('revenue_weighted_annualized', 0) for r in results]
     
-    # Create the chart
-    fig, ax = plt.subplots(figsize=(14, 8))
+    # Create the chart - more square aspect ratio
+    fig, ax = plt.subplots(figsize=(10, 10))
     
     # Create bar chart
     x_pos = np.arange(len(metrics))
-    colors = ['green' if x > 0 else 'red' for x in excess_returns]
+    colors = ['#2d8659' if x > 0 else '#c44e52' for x in excess_returns]  # Better colors
     
-    bars = ax.barh(x_pos, excess_returns, color=colors, alpha=0.7, edgecolor='black', linewidth=1)
+    bars = ax.barh(x_pos, excess_returns, color=colors, alpha=0.8, edgecolor='white', linewidth=1.5, height=0.7)
     
     # Add value labels on bars
     for i, (bar, val) in enumerate(zip(bars, excess_returns)):
         width = bar.get_width()
-        label_x = width + (0.5 if width >= 0 else -0.5)
+        label_x = width + (0.02 if width >= 0 else -0.02)
         ax.text(label_x, bar.get_y() + bar.get_height()/2, 
                 f'{val:+.2f}%', 
                 ha='left' if width >= 0 else 'right',
-                va='center', fontweight='bold', fontsize=10)
+                va='center', fontweight='bold', fontsize=11)
     
-    # Add metric and benchmark return labels
+    # Add metric and benchmark return labels on the left
+    max_negative = min(excess_returns) if excess_returns else 0
+    label_x_pos = max_negative - abs(max_negative) * 0.15 if max_negative < 0 else -0.1
     for i, (metric_ret, bench_ret) in enumerate(zip(metric_returns, benchmark_returns)):
-        ax.text(-0.5, i, f'{metric_ret:.1f}% / {bench_ret:.1f}%', 
-                va='center', fontsize=9, style='italic', color='gray')
+        ax.text(label_x_pos, i, f'{metric_ret:.1f}% / {bench_ret:.1f}%', 
+                va='center', fontsize=10, style='italic', color='#666666',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='gray', linewidth=0.5))
     
     # Customize chart
     ax.set_yticks(x_pos)
-    ax.set_yticklabels(metrics, fontsize=11)
-    ax.set_xlabel('Excess Annualized Return vs Revenue-Weighted Benchmark (%)', fontsize=12, fontweight='bold')
+    ax.set_yticklabels(metrics, fontsize=12, fontweight='medium')
+    ax.set_xlabel('Excess Annualized Return vs Revenue-Weighted Benchmark (%)', 
+                  fontsize=13, fontweight='bold', labelpad=10)
     ax.set_title(f'Metric Performance Comparison ({chart_type})\n'
                  f'Annualized Excess Return: Metric Portfolio vs Revenue-Weighted Benchmark',
-                 fontsize=14, fontweight='bold', pad=20)
-    ax.axvline(x=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
-    ax.grid(True, alpha=0.3, axis='x')
+                 fontsize=15, fontweight='bold', pad=15)
+    ax.axvline(x=0, color='black', linestyle='--', linewidth=2, alpha=0.6, zorder=0)
+    ax.grid(True, alpha=0.2, axis='x', linestyle='--', linewidth=0.8)
+    ax.set_axisbelow(True)
     
     # Add legend
     from matplotlib.patches import Patch
     legend_elements = [
-        Patch(facecolor='green', alpha=0.7, label='Outperforms Benchmark'),
-        Patch(facecolor='red', alpha=0.7, label='Underperforms Benchmark')
+        Patch(facecolor='#2d8659', alpha=0.8, label='Outperforms Benchmark', edgecolor='white', linewidth=1.5),
+        Patch(facecolor='#c44e52', alpha=0.8, label='Underperforms Benchmark', edgecolor='white', linewidth=1.5)
     ]
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=10)
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=11, framealpha=0.9)
     
-    # Add text annotation for metric/benchmark format
-    ax.text(0.02, 0.98, 'Labels: Metric Return / Benchmark Return', 
-            transform=ax.transAxes, fontsize=9, 
-            verticalalignment='top', style='italic', color='gray',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+    # Remove top and right spines for cleaner look
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#cccccc')
+    ax.spines['bottom'].set_color('#cccccc')
     
     plt.tight_layout()
     
     # Save chart
     chart_filename = os.path.join(output_folder, f'metric_comparison_{chart_type.lower()}.png')
-    plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
+    plt.savefig(chart_filename, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"   Comparison chart saved to {chart_filename}")
     plt.close()
 
@@ -830,7 +817,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"      Chart saved to {chart_filename}")
     plt.close()
     
-    # Save summary data for comparison chart
+    # Return summary data for comparison chart (don't save to file)
     summary_data = {
         'metric': selected_metric,
         'metric_name': metric_name,
@@ -842,11 +829,8 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
         'excess_return': annualized_return_metric - annualized_return_revenue
     }
     
-    summary_filename = f'{output_folder}/summary_{selected_metric.replace("/", "_").replace(" ", "_").lower()}.json'
-    with open(summary_filename, 'w') as f:
-        json.dump(summary_data, f, indent=2)
-    
     print(f"\n   Completed rebalancing backtest for {metric_name}")
+    return summary_data
 
 def main():
     """Main function"""
@@ -977,16 +961,20 @@ def main():
     else:
         print(f"\n   Using output folder: {output_folder}/")
     
-    # Run rebalancing backtest for each metric
+    # Run rebalancing backtest for each metric and collect summary data
     # Pass the full list so each metric can filter and select top 500 by revenue at its start year
     print("\n2. Running rebalancing backtests for all metrics...")
+    summary_results = []
     for metric in all_metrics:
-        run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+        summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+        if summary_data:
+            summary_results.append(summary_data)
     
     # Create comparison chart
-    print("\n3. Creating metric comparison chart...")
-    output_folder = "rebalancing_backtest_results"
-    create_comparison_chart(output_folder, "Rebalancing")
+    if summary_results:
+        print("\n3. Creating metric comparison chart...")
+        output_folder = "rebalancing_backtest_results"
+        create_comparison_chart(summary_results, output_folder, "Rebalancing")
     
     end_time = time.time()
     elapsed_time = end_time - start_time
