@@ -143,6 +143,42 @@ def get_ebit_ppe_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[
     
     return None
 
+def get_gross_margin_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Gross Margin for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    revenue = data.get("revenue", [])
+    cost_of_goods_sold = data.get("cost_of_goods_sold", [])
+    # Also try alternative key name
+    if not cost_of_goods_sold:
+        cost_of_goods_sold = data.get("cogs", [])
+    
+    if not isinstance(revenue, list) or not isinstance(cost_of_goods_sold, list):
+        return None
+    
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates):
+            if (idx < len(revenue) and idx < len(cost_of_goods_sold) and
+                revenue[idx] is not None and cost_of_goods_sold[idx] is not None and
+                revenue[idx] != 0):
+                gross_margin = (revenue[idx] - cost_of_goods_sold[idx]) / revenue[idx]
+                return (gross_margin, period_dates[idx])
+    
+    return None
+
 def get_operating_margin_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get Operating Margin for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -303,10 +339,11 @@ def main():
     print("\nSelect metric for portfolio weighting:")
     print("  1. EBIT/PPE (Operating Income / PPE)")
     print("  2. Operating Margin (Operating Income / Revenue)")
+    print("  3. Gross Margin ((Revenue - COGS) / Revenue)")
     
     while True:
         try:
-            choice = input("\nEnter choice (1 or 2): ").strip()
+            choice = input("\nEnter choice (1, 2, or 3): ").strip()
             if choice == "1":
                 selected_metric = "ebit_ppe"
                 metric_name = "EBIT/PPE"
@@ -317,8 +354,13 @@ def main():
                 metric_name = "Operating Margin"
                 metric_display_name = "Operating Margin"
                 break
+            elif choice == "3":
+                selected_metric = "gross_margin"
+                metric_name = "Gross Margin"
+                metric_display_name = "Gross Margin"
+                break
             else:
-                print("Invalid choice. Please enter 1 or 2.")
+                print("Invalid choice. Please enter 1, 2, or 3.")
         except (EOFError, KeyboardInterrupt):
             print("\nExiting...")
             return
@@ -344,10 +386,11 @@ def main():
     stocks_with_data = []
     
     for stock_data in all_stocks_list:
-        # Try to get revenue, EBIT/PPE, and Operating Margin around 2002
+        # Try to get revenue, EBIT/PPE, Operating Margin, and Gross Margin around 2002
         revenue_result = None
         ebit_ppe_result = None
         operating_margin_result = None
+        gross_margin_result = None
         
         # Try years 2002-2003 (focus on 2002 when data coverage jumps)
         for year in range(2002, 2004):
@@ -357,13 +400,16 @@ def main():
                 ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
             if not operating_margin_result:
                 operating_margin_result = get_operating_margin_at_date(stock_data, year)
-            if revenue_result and ebit_ppe_result and operating_margin_result:
+            if not gross_margin_result:
+                gross_margin_result = get_gross_margin_at_date(stock_data, year)
+            if revenue_result and ebit_ppe_result and operating_margin_result and gross_margin_result:
                 break
         
-        if revenue_result and ebit_ppe_result and operating_margin_result:
+        if revenue_result and ebit_ppe_result and operating_margin_result and gross_margin_result:
             revenue, rev_date = revenue_result
             ebit_ppe, ebit_date = ebit_ppe_result
             operating_margin, om_date = operating_margin_result
+            gross_margin, gm_date = gross_margin_result
             
             # Only include stocks with meaningful revenue (at least $100M to approximate S&P 500)
             if revenue >= 100_000_000:  # $100M minimum
@@ -373,9 +419,11 @@ def main():
                     'revenue': revenue,
                     'ebit_ppe': ebit_ppe,
                     'operating_margin': operating_margin,
+                    'gross_margin': gross_margin,
                     'ebit_date': ebit_date,
                     'revenue_date': rev_date,
-                    'om_date': om_date
+                    'om_date': om_date,
+                    'gm_date': gm_date
                 })
     
     print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
@@ -416,11 +464,16 @@ def main():
         # Store the metric value for each stock
         for stock in stock_info:
             stock['metric_value'] = stock['ebit_ppe']
-    else:  # operating_margin
+    elif selected_metric == "operating_margin":
         stock_info.sort(key=lambda x: x['operating_margin'], reverse=True)
         # Store the metric value for each stock
         for stock in stock_info:
             stock['metric_value'] = stock['operating_margin']
+    else:  # gross_margin
+        stock_info.sort(key=lambda x: x['gross_margin'], reverse=True)
+        # Store the metric value for each stock
+        for stock in stock_info:
+            stock['metric_value'] = stock['gross_margin']
     
     # Calculate initial revenue weights
     total_revenue = sum(s['revenue'] for s in stock_info)
@@ -617,6 +670,7 @@ def main():
                 'metric_value': s['metric_value'],
                 'ebit_ppe': s.get('ebit_ppe'),
                 'operating_margin': s.get('operating_margin'),
+                'gross_margin': s.get('gross_margin'),
                 'revenue': s['revenue'],
                 'initial_weight_pct': s['initial_weight'],
                 'multiplier': s['multiplier'],
