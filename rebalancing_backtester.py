@@ -1037,38 +1037,12 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"\n   Completed rebalancing backtest for {metric_name}")
     return summary_data
 
-def load_cache(cache_file: str) -> Optional[List[Dict]]:
-    """Load cached backtest results"""
-    if not os.path.exists(cache_file):
-        return None
-    
-    try:
-        with open(cache_file, 'r') as f:
-            cache_data = json.load(f)
-            # Validate cache structure
-            if isinstance(cache_data, list) and len(cache_data) > 0:
-                return cache_data
-    except Exception as e:
-        print(f"   Warning: Could not load cache: {e}")
-    
-    return None
-
-def save_cache(cache_file: str, summary_results: List[Dict]):
-    """Save backtest results to cache"""
-    try:
-        with open(cache_file, 'w') as f:
-            json.dump(summary_results, f, indent=2)
-        print(f"   Cache saved to {cache_file}")
-    except Exception as e:
-        print(f"   Warning: Could not save cache: {e}")
-
 def main():
     """Main function"""
     start_time = time.time()
     
     print("=" * 80)
     print("REBALANCING Portfolio Backtest (Annual Rebalancing)")
-    print("Running all metrics automatically...")
     print("=" * 80)
     
     # Define all metrics
@@ -1085,9 +1059,36 @@ def main():
         {"selected_metric": "relative_ps", "metric_name": "Relative PS", "metric_display_name": "Relative PS"},
     ]
     
-    print(f"\nWill run rebalancing backtests for {len(all_metrics)} metrics:")
+    # User input for metric selection
+    print("\nAvailable metrics:")
     for i, metric in enumerate(all_metrics, 1):
         print(f"  {i}. {metric['metric_name']}")
+    print(f"  {len(all_metrics) + 1}. Run all metrics")
+    
+    while True:
+        try:
+            user_input = input(f"\nSelect metric (1-{len(all_metrics) + 1}): ").strip()
+            choice = int(user_input)
+            
+            if choice == len(all_metrics) + 1:
+                # Run all metrics
+                metrics_to_run = all_metrics
+                break
+            elif 1 <= choice <= len(all_metrics):
+                # Run single metric
+                metrics_to_run = [all_metrics[choice - 1]]
+                break
+            else:
+                print(f"Invalid choice. Please enter a number between 1 and {len(all_metrics) + 1}.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            return
+    
+    print(f"\nSelected {len(metrics_to_run)} metric(s) to run:")
+    for metric in metrics_to_run:
+        print(f"  - {metric['metric_name']}")
     
     print("\n1. Finding S&P 500-like stocks from 2002...")
     print("   (Using stocks with data from 2002, ranked by revenue)")
@@ -1215,63 +1216,20 @@ def main():
     else:
         print(f"\n   Using output folder: {output_folder}/")
     
-    # Check for cached results
-    cache_file = os.path.join(output_folder, "rebalancing_backtest_cache.json")
-    print("\n2. Checking for cached results...")
-    cached_results = load_cache(cache_file)
+    # Run rebalancing backtest for selected metrics
+    print("\n2. Running rebalancing backtests...")
+    summary_results = []
+    for metric in metrics_to_run:
+        summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+        if summary_data:
+            summary_results.append(summary_data)
     
-    # Create a set of cached metric names for quick lookup
-    cached_metric_names = set()
-    if cached_results:
-        cached_metric_names = {r.get('metric') for r in cached_results if r.get('metric')}
-        print(f"   Found cached results for {len(cached_results)} metrics")
-    
-    # Determine which metrics need to be run
-    metrics_to_run = [m for m in all_metrics if m['selected_metric'] not in cached_metric_names]
-    
-    if metrics_to_run:
-        print(f"   Running backtests for {len(metrics_to_run)} missing metrics: {', '.join([m['metric_name'] for m in metrics_to_run])}")
-        # Run rebalancing backtest for missing metrics
-        # Pass the full list so each metric can filter and select top 500 by revenue at its start year
-        new_results = []
-        for metric in metrics_to_run:
-            summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
-            if summary_data:
-                new_results.append(summary_data)
-        
-        # Merge cached and new results
-        if cached_results:
-            summary_results = cached_results + new_results
-            print(f"   Merged {len(new_results)} new results with {len(cached_results)} cached results")
-        else:
-            summary_results = new_results
-        
-        # Save updated results to cache
-        if summary_results:
-            save_cache(cache_file, summary_results)
-    else:
-        if cached_results:
-            print("   Using cached data for all metrics (delete cache file to recalculate)")
-            summary_results = cached_results
-        else:
-            print("   No cache found, running backtests...")
-            # Run rebalancing backtest for each metric and collect summary data
-            # Pass the full list so each metric can filter and select top 500 by revenue at its start year
-            print("\n   Running rebalancing backtests for all metrics...")
-            summary_results = []
-            for metric in all_metrics:
-                summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
-                if summary_data:
-                    summary_results.append(summary_data)
-            
-            # Save results to cache
-            if summary_results:
-                save_cache(cache_file, summary_results)
-    
-    # Create comparison chart
-    if summary_results:
+    # Create comparison chart only if running multiple metrics
+    if len(summary_results) > 1:
         print("\n3. Creating metric comparison chart...")
         create_comparison_chart(summary_results, output_folder, "Rebalancing")
+    elif len(summary_results) == 1:
+        print("\n3. Skipping comparison chart (only one metric selected)")
     
     end_time = time.time()
     elapsed_time = end_time - start_time
