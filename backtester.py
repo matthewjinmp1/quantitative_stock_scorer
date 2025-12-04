@@ -676,15 +676,19 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
+    # Get final total returns for legend
+    metric_weighted_total_return = cumulative_returns_ebit_weighted[-1]
+    revenue_weighted_total_return = cumulative_returns_market_cap[-1]
+    
     # Create chart
     print(f"\n   Creating performance chart...")
     plt.figure(figsize=(14, 8))
     
-    # Plot both lines
+    # Plot both lines with total returns in labels
     plt.plot(sorted_dates, cumulative_returns_ebit_weighted, linewidth=2, 
-             color='#2E86AB', label=f'{metric_name} Weighted Portfolio')
+             color='#2E86AB', label=f'{metric_name} Weighted Portfolio ({metric_weighted_total_return:+.1f}%)')
     plt.plot(sorted_dates, cumulative_returns_market_cap, linewidth=2, 
-             color='#A23B72', label='Revenue Weighted Portfolio', linestyle='--')
+             color='#A23B72', label=f'Revenue Weighted Portfolio ({revenue_weighted_total_return:+.1f}%)', linestyle='--')
     
     # Determine start year for title
     metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
