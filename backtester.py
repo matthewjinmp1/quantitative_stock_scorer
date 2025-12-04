@@ -482,11 +482,16 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     print(f"Running backtest for: {metric_name}")
     print("=" * 80)
     
+    # Determine start year based on metric requirements
+    # Metrics requiring 5 years of past data start from 2007
+    metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
+    start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
+    
     # Filter stocks that have the selected metric
     stock_info = [s.copy() for s in stock_info_base if selected_metric in s]
     
     if not stock_info:
-        print(f"   Skipping {metric_name}: No stocks found with this metric data for 2002")
+        print(f"   Skipping {metric_name}: No stocks found with this metric data for {start_year}")
         return
     
     # Track earliest year (use metric-specific date field)
@@ -597,6 +602,10 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     # Calculate total returns with dividends reinvested
     print(f"\n   Calculating total returns with dividends reinvested...")
     
+    # Determine start year for return calculations
+    metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
+    return_start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
+    
     # Collect all return data by date
     all_dates = set()
     stock_returns_by_date = {}  # ticker -> {date: return_pct}
@@ -604,7 +613,7 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     for stock in stock_info:
         # Use the actual date from metric calculation as start date
         start_date = stock.get(date_key)
-        returns = calculate_total_return_with_dividends(stock['stock_data'], 2002, start_date)
+        returns = calculate_total_return_with_dividends(stock['stock_data'], return_start_year, start_date)
         if returns:
             ticker = stock['ticker']
             stock_returns_by_date[ticker] = {}
@@ -677,7 +686,11 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     plt.plot(sorted_dates, cumulative_returns_market_cap, linewidth=2, 
              color='#A23B72', label='Revenue Weighted Portfolio', linestyle='--')
     
-    plt.title(f'Portfolio Performance Comparison (2002 - Present)\n'
+    # Determine start year for title
+    metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
+    title_start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
+    
+    plt.title(f'Portfolio Performance Comparison ({title_start_year} - Present)\n'
               f'{metric_name} Weighted vs Revenue Weighted S&P 500 with Dividends Reinvested',
               fontsize=14, fontweight='bold')
     plt.xlabel('Date', fontsize=12)
@@ -709,8 +722,12 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     metric_filename = selected_metric.replace('/', '_').replace(' ', '_').lower()
     json_filename = f'{output_folder}/{metric_filename}_portfolio_results.json'
     
+    # Determine start year for results
+    metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
+    results_start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
+    
     results = {
-        'start_year': 2002,
+        'start_year': results_start_year,
         'selected_metric': selected_metric,
         'metric_name': metric_name,
         'total_stocks': len(stock_info),
@@ -795,11 +812,14 @@ def main():
     print(f"   Loaded {len(all_stocks_list)} stocks")
     
     # Find stocks with data around 2002 and get their revenue and metrics
-    print("   Finding stocks with data from 2002...")
+    # Note: Metrics requiring 5 years of past data (5y_revenue_cagr, relative_ps) 
+    # will use 2007 as start year instead of 2002
+    print("   Finding stocks with data from 2002 (2007 for metrics requiring 5 years of history)...")
     stocks_with_data = []
     
     for stock_data in all_stocks_list:
-        # Try to get revenue and all metrics around 2002
+        # Try to get revenue and all metrics
+        # Most metrics use 2002, but metrics needing 5 years of history use 2007
         revenue_result = None
         ebit_ppe_result = None
         operating_margin_result = None
@@ -809,7 +829,7 @@ def main():
         roa_result = None
         relative_ps_result = None
         
-        # Try years 2002-2003 (focus on 2002 when data coverage jumps)
+        # Try years 2002-2003 for most metrics (focus on 2002 when data coverage jumps)
         for year in range(2002, 2004):
             if not revenue_result:
                 revenue_result = get_revenue_at_date(stock_data, year)
@@ -819,16 +839,21 @@ def main():
                 operating_margin_result = get_operating_margin_at_date(stock_data, year)
             if not gross_margin_result:
                 gross_margin_result = get_gross_margin_at_date(stock_data, year)
-            if not cagr_5y_result:
-                cagr_5y_result = get_5y_revenue_cagr_at_date(stock_data, year)
             if not ev_ebit_result:
                 ev_ebit_result = get_ev_to_ebit_at_date(stock_data, year)
             if not roa_result:
                 roa_result = get_roa_at_date(stock_data, year)
+            # We need revenue, so break once we have it
+            if revenue_result:
+                break
+        
+        # Metrics requiring 5 years of past data use 2007-2008 instead
+        for year in range(2007, 2009):
+            if not cagr_5y_result:
+                cagr_5y_result = get_5y_revenue_cagr_at_date(stock_data, year)
             if not relative_ps_result:
                 relative_ps_result = get_relative_ps_at_date(stock_data, year)
-            # We need revenue and the selected metric, but collect all for flexibility
-            if revenue_result:
+            if cagr_5y_result and relative_ps_result:
                 break
         
         if revenue_result:
