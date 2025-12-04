@@ -290,6 +290,55 @@ def get_5y_revenue_growth_rate_at_date(stock_data: Dict, target_year: int = 2000
     
     return None
 
+def get_consistency_of_growth_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Consistency of Growth metric for a stock at a specific date
+    Takes past 20 quarters of revenue, calculates YoY growth rates, then calculates stdev
+    Lower stdev = more consistent growth (better)
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    revenue = data.get("revenue", [])
+    if not isinstance(revenue, list) or len(revenue) < 20:
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 19:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 19 and idx < len(period_dates) and idx < len(revenue):
+            # Calculate YoY growth rates for the past 20 quarters
+            # We need quarters from idx-19 to idx (20 quarters total)
+            # For each quarter from idx-15 to idx, calculate YoY growth (compare to 4 quarters ago)
+            yoy_growth_rates = []
+            
+            for i in range(idx - 15, idx + 1):  # Need at least 4 quarters before to calculate YoY
+                if i >= 4 and i < len(revenue):
+                    current_rev = revenue[i]
+                    year_ago_rev = revenue[i - 4]
+                    
+                    if (current_rev is not None and year_ago_rev is not None and
+                        current_rev > 0 and year_ago_rev > 0):
+                        yoy_growth = (current_rev / year_ago_rev - 1.0) * 100.0  # As percentage
+                        yoy_growth_rates.append(yoy_growth)
+            
+            # Need at least a few growth rates to calculate stdev
+            if len(yoy_growth_rates) >= 4:
+                # Calculate standard deviation
+                mean_growth = sum(yoy_growth_rates) / len(yoy_growth_rates)
+                variance = sum((x - mean_growth) ** 2 for x in yoy_growth_rates) / len(yoy_growth_rates)
+                stdev = math.sqrt(variance)
+                return (stdev, period_dates[idx])
+    
+    return None
+
 def get_ev_to_ebit_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get EV/EBIT for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -580,6 +629,7 @@ def get_metric_at_date(stock_data: Dict, metric_name: str, target_year: int) -> 
         'gross_margin': get_gross_margin_at_date,
         '5y_revenue_cagr': get_5y_revenue_cagr_at_date,
         '5y_revenue_growth_rate': get_5y_revenue_growth_rate_at_date,
+        'consistency_of_growth': get_consistency_of_growth_at_date,
         'ev_to_ebit': get_ev_to_ebit_at_date,
         'roa': get_roa_at_date,
         'relative_ps': get_relative_ps_at_date,
@@ -603,7 +653,7 @@ def calculate_weights_for_period(stocks: List[Dict], metric_name: str, initial_r
         return {}
     
     # Rank by metric value
-    reverse_sort = metric_name not in ['ev_to_ebit', 'relative_ps']  # These are reverse (lower is better)
+    reverse_sort = metric_name not in ['ev_to_ebit', 'relative_ps', 'consistency_of_growth']  # These are reverse (lower is better)
     
     if reverse_sort:
         stocks_with_metric.sort(key=lambda x: x['current_metric_value'], reverse=True)
@@ -642,7 +692,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print("=" * 80)
     
     # Determine start year based on metric requirements
-    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "relative_ps"]
+    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "relative_ps"]
     start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
     
     # Map metric to its date key
@@ -652,6 +702,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
         'gross_margin': 'gm_date',
         '5y_revenue_cagr': 'cagr_date',
         '5y_revenue_growth_rate': 'growth_rate_date',
+        'consistency_of_growth': 'consistency_date',
         'ev_to_ebit': 'ev_date',
         'roa': 'roa_date',
         'relative_ps': 'ps_date'
@@ -942,6 +993,7 @@ def main():
         {"selected_metric": "gross_margin", "metric_name": "Gross Margin", "metric_display_name": "Gross Margin"},
         {"selected_metric": "5y_revenue_cagr", "metric_name": "5-Year Revenue CAGR", "metric_display_name": "5Y Rev CAGR"},
         {"selected_metric": "5y_revenue_growth_rate", "metric_name": "5-Year Revenue Growth Rate", "metric_display_name": "5Y Rev Growth"},
+        {"selected_metric": "consistency_of_growth", "metric_name": "Consistency of Growth", "metric_display_name": "Consistency Growth"},
         {"selected_metric": "ev_to_ebit", "metric_name": "EV/EBIT", "metric_display_name": "EV/EBIT"},
         {"selected_metric": "roa", "metric_name": "ROA", "metric_display_name": "ROA"},
         {"selected_metric": "relative_ps", "metric_name": "Relative PS", "metric_display_name": "Relative PS"},
@@ -995,11 +1047,14 @@ def main():
         
         # Metrics requiring 5 years of past data use 2007-2008
         growth_rate_5y_result = None
+        consistency_result = None
         for year in range(2007, 2009):
             if not cagr_5y_result:
                 cagr_5y_result = get_5y_revenue_cagr_at_date(stock_data, year)
             if not growth_rate_5y_result:
                 growth_rate_5y_result = get_5y_revenue_growth_rate_at_date(stock_data, year)
+            if not consistency_result:
+                consistency_result = get_consistency_of_growth_at_date(stock_data, year)
             if not relative_ps_result:
                 relative_ps_result = get_relative_ps_at_date(stock_data, year)
         
@@ -1033,6 +1088,10 @@ def main():
                 growth_rate_5y, growth_rate_date = growth_rate_5y_result
                 stock_entry['5y_revenue_growth_rate'] = growth_rate_5y
                 stock_entry['growth_rate_date'] = growth_rate_date
+            if consistency_result:
+                consistency, consistency_date = consistency_result
+                stock_entry['consistency_of_growth'] = consistency
+                stock_entry['consistency_date'] = consistency_date
             if ev_ebit_result:
                 ev_ebit, ev_date = ev_ebit_result
                 stock_entry['ev_to_ebit'] = ev_ebit
