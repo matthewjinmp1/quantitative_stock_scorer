@@ -552,8 +552,16 @@ def main():
     print(f"   {metric_name} Weighted Total return: {cumulative_returns_ebit_weighted[-1]:.2f}%")
     print(f"   Revenue Weighted Total return: {cumulative_returns_market_cap[-1]:.2f}%")
     
+    # Create output folder for graphs
+    output_folder = "backtest_results"
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print(f"\n6. Created output folder: {output_folder}/")
+    else:
+        print(f"\n6. Using output folder: {output_folder}/")
+    
     # Create chart
-    print("\n6. Creating performance chart...")
+    print("   Creating performance chart...")
     plt.figure(figsize=(14, 8))
     
     # Plot both lines
@@ -579,12 +587,21 @@ def main():
     plt.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
     
     plt.tight_layout()
-    plt.savefig('ebit_ppe_portfolio_backtest.png', dpi=300, bbox_inches='tight')
-    print("   Chart saved to ebit_ppe_portfolio_backtest.png")
+    
+    # Create filename based on selected metric
+    metric_filename = selected_metric.replace('/', '_').replace(' ', '_').lower()
+    chart_filename = f'{output_folder}/{metric_filename}_portfolio_backtest.png'
+    plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
+    print(f"   Chart saved to {chart_filename}")
     plt.show()
     
     # Save results to JSON
     print("\n7. Saving results...")
+    
+    # Create filename based on selected metric
+    metric_filename = selected_metric.replace('/', '_').replace(' ', '_').lower()
+    json_filename = f'{output_folder}/{metric_filename}_portfolio_results.json'
+    
     results = {
         'start_year': 2002,
         'selected_metric': selected_metric,
@@ -623,10 +640,10 @@ def main():
         ]
     }
     
-    with open('ebit_ppe_portfolio_results.json', 'w') as f:
+    with open(json_filename, 'w') as f:
         json.dump(results, f, indent=2)
     
-    print("   Results saved to ebit_ppe_portfolio_results.json")
+    print(f"   Results saved to {json_filename}")
     print("\n" + "=" * 80)
     print("Backtest Complete!")
     print("=" * 80)
