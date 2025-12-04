@@ -494,14 +494,6 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
                 ha='left' if width >= 0 else 'right',
                 va='center', fontweight='bold', fontsize=12, color='#333333')
     
-    # Add metric and benchmark return labels on the left - cleaner without boxes
-    x_min, x_max = ax.get_xlim()
-    label_x_pos = x_min - (x_max - x_min) * 0.12
-    for i, (metric_ret, bench_ret) in enumerate(zip(metric_returns, benchmark_returns)):
-        ax.text(label_x_pos, i, f'{metric_ret:.1f}% / {bench_ret:.1f}%', 
-                va='center', ha='right', fontsize=10, color='#555555',
-                fontweight='normal')
-    
     # Customize chart
     ax.set_yticks(x_pos)
     ax.set_yticklabels(metrics, fontsize=13, fontweight='medium', color='#222222')
