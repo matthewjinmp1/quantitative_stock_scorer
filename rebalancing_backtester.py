@@ -516,12 +516,10 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     
     # Filter stocks that have the selected metric at the start year
     # For 5y metrics, we need to verify the metric is available at 2007
+    # We'll check all stocks from the base list, not just those that already have the metric
     stock_info = []
     for s in stock_info_base:
-        if selected_metric not in s:
-            continue
-        
-        # Check if metric is available at start_year
+        # Check if metric is available at start_year (don't require it to be in base list)
         metric_result = get_metric_at_date(s['stock_data'], selected_metric, start_year)
         if metric_result:
             stock_copy = s.copy()
@@ -544,7 +542,11 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
         print(f"   Skipping {metric_name}: No stocks found with this metric data for {start_year}")
         return
     
-    # Store initial revenue total
+    # Sort by initial revenue and take top 500 to ensure we use up to 500 stocks
+    stock_info.sort(key=lambda x: x['initial_revenue'], reverse=True)
+    stock_info = stock_info[:500]
+    
+    # Recalculate initial revenue total after filtering
     initial_revenue_total = sum(s['initial_revenue'] for s in stock_info)
     
     print(f"   Using {len(stock_info)} stocks with initial revenue total: ${initial_revenue_total/1e9:.2f}B")
@@ -858,11 +860,10 @@ def main():
     
     print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
     
-    # Sort by revenue and take top 500
+    # Sort by revenue for reference, but don't limit yet - let each metric function select appropriately
     stocks_with_data.sort(key=lambda x: x['revenue'], reverse=True)
-    stock_info = stocks_with_data[:500]
     
-    print(f"   Selected top {len(stock_info)} stocks by revenue (S&P 500 approximation)")
+    print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
     
     # Create output folder
     output_folder = "rebalancing_backtest_results"
@@ -873,9 +874,10 @@ def main():
         print(f"\n   Using output folder: {output_folder}/")
     
     # Run rebalancing backtest for each metric
+    # Pass the full list so each metric can filter and select top 500 by revenue at its start year
     print("\n2. Running rebalancing backtests for all metrics...")
     for metric in all_metrics:
-        run_rebalancing_backtest_for_metric(stock_info, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+        run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
     
     end_time = time.time()
     elapsed_time = end_time - start_time
