@@ -674,7 +674,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"      Revenue Weighted (Static) Annualized return: {annualized_return_revenue:.2f}%")
     
     # Create output folder
-    output_folder = "backtest_results"
+    output_folder = "rebalancing_backtest_results"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
@@ -862,7 +862,7 @@ def main():
     print(f"   Selected top {len(stock_info)} stocks by revenue (S&P 500 approximation)")
     
     # Create output folder
-    output_folder = "backtest_results"
+    output_folder = "rebalancing_backtest_results"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         print(f"\n   Created output folder: {output_folder}/")
