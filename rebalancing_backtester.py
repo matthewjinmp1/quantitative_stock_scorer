@@ -447,61 +447,79 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
     
     # Create the chart - more square aspect ratio
     fig, ax = plt.subplots(figsize=(10, 10))
+    fig.patch.set_facecolor('white')
     
     # Create bar chart
     x_pos = np.arange(len(metrics))
-    colors = ['#2d8659' if x > 0 else '#c44e52' for x in excess_returns]  # Better colors
+    colors = ['#2d8659' if x > 0 else '#c44e52' for x in excess_returns]
     
-    bars = ax.barh(x_pos, excess_returns, color=colors, alpha=0.8, edgecolor='white', linewidth=1.5, height=0.7)
+    bars = ax.barh(x_pos, excess_returns, color=colors, alpha=0.85, edgecolor='white', linewidth=2, height=0.75)
     
-    # Add value labels on bars
+    # Add value labels on bars with better positioning
     for i, (bar, val) in enumerate(zip(bars, excess_returns)):
         width = bar.get_width()
-        label_x = width + (0.02 if width >= 0 else -0.02)
+        # Position label outside the bar
+        label_x = width + (abs(width) * 0.05 + 0.05 if abs(width) > 0.1 else 0.1) if width >= 0 else width - (abs(width) * 0.05 + 0.05 if abs(width) > 0.1 else 0.1)
         ax.text(label_x, bar.get_y() + bar.get_height()/2, 
                 f'{val:+.2f}%', 
                 ha='left' if width >= 0 else 'right',
-                va='center', fontweight='bold', fontsize=11)
+                va='center', fontweight='bold', fontsize=12, color='#333333')
     
-    # Add metric and benchmark return labels on the left
-    max_negative = min(excess_returns) if excess_returns else 0
-    label_x_pos = max_negative - abs(max_negative) * 0.15 if max_negative < 0 else -0.1
+    # Add metric and benchmark return labels on the left - cleaner without boxes
+    x_min, x_max = ax.get_xlim()
+    label_x_pos = x_min - (x_max - x_min) * 0.12
     for i, (metric_ret, bench_ret) in enumerate(zip(metric_returns, benchmark_returns)):
         ax.text(label_x_pos, i, f'{metric_ret:.1f}% / {bench_ret:.1f}%', 
-                va='center', fontsize=10, style='italic', color='#666666',
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='gray', linewidth=0.5))
+                va='center', ha='right', fontsize=10, color='#555555',
+                fontweight='normal')
     
     # Customize chart
     ax.set_yticks(x_pos)
-    ax.set_yticklabels(metrics, fontsize=12, fontweight='medium')
+    ax.set_yticklabels(metrics, fontsize=13, fontweight='medium', color='#222222')
     ax.set_xlabel('Excess Annualized Return vs Revenue-Weighted Benchmark (%)', 
-                  fontsize=13, fontweight='bold', labelpad=10)
+                  fontsize=13, fontweight='bold', labelpad=12, color='#222222')
     ax.set_title(f'Metric Performance Comparison ({chart_type})\n'
                  f'Annualized Excess Return: Metric Portfolio vs Revenue-Weighted Benchmark',
-                 fontsize=15, fontweight='bold', pad=15)
-    ax.axvline(x=0, color='black', linestyle='--', linewidth=2, alpha=0.6, zorder=0)
-    ax.grid(True, alpha=0.2, axis='x', linestyle='--', linewidth=0.8)
+                 fontsize=16, fontweight='bold', pad=20, color='#111111')
+    
+    # Zero line
+    ax.axvline(x=0, color='#333333', linestyle='--', linewidth=2, alpha=0.5, zorder=0)
+    
+    # Grid
+    ax.grid(True, alpha=0.15, axis='x', linestyle='--', linewidth=1, color='#999999')
     ax.set_axisbelow(True)
+    
+    # Set x-axis limits to accommodate labels
+    x_range = max(excess_returns) - min(excess_returns) if excess_returns else 1.0
+    x_padding = x_range * 0.15
+    ax.set_xlim(min(excess_returns) - x_padding if excess_returns else -0.5, 
+                max(excess_returns) + x_padding if excess_returns else 0.5)
     
     # Add legend
     from matplotlib.patches import Patch
     legend_elements = [
-        Patch(facecolor='#2d8659', alpha=0.8, label='Outperforms Benchmark', edgecolor='white', linewidth=1.5),
-        Patch(facecolor='#c44e52', alpha=0.8, label='Underperforms Benchmark', edgecolor='white', linewidth=1.5)
+        Patch(facecolor='#2d8659', alpha=0.85, label='Outperforms Benchmark', edgecolor='white', linewidth=2),
+        Patch(facecolor='#c44e52', alpha=0.85, label='Underperforms Benchmark', edgecolor='white', linewidth=2)
     ]
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=11, framealpha=0.9)
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=11, framealpha=0.95, 
+              edgecolor='#cccccc', frameon=True)
     
     # Remove top and right spines for cleaner look
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#cccccc')
-    ax.spines['bottom'].set_color('#cccccc')
+    ax.spines['left'].set_color('#dddddd')
+    ax.spines['bottom'].set_color('#dddddd')
+    ax.spines['left'].set_linewidth(1.5)
+    ax.spines['bottom'].set_linewidth(1.5)
+    
+    # Set tick colors
+    ax.tick_params(colors='#555555', which='both')
     
     plt.tight_layout()
     
     # Save chart
     chart_filename = os.path.join(output_folder, f'metric_comparison_{chart_type.lower()}.png')
-    plt.savefig(chart_filename, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig(chart_filename, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
     print(f"   Comparison chart saved to {chart_filename}")
     plt.close()
 
