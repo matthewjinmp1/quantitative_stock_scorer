@@ -502,18 +502,50 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
     start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
     
-    # Filter stocks that have the selected metric at start
-    stock_info = [s.copy() for s in stock_info_base if selected_metric in s]
+    # Map metric to its date key
+    date_key_map = {
+        'ebit_ppe': 'ebit_date',
+        'operating_margin': 'om_date',
+        'gross_margin': 'gm_date',
+        '5y_revenue_cagr': 'cagr_date',
+        'ev_to_ebit': 'ev_date',
+        'roa': 'roa_date',
+        'relative_ps': 'ps_date'
+    }
+    metric_date_key = date_key_map.get(selected_metric, 'revenue_date')
+    
+    # Filter stocks that have the selected metric at the start year
+    # For 5y metrics, we need to verify the metric is available at 2007
+    stock_info = []
+    for s in stock_info_base:
+        if selected_metric not in s:
+            continue
+        
+        # Check if metric is available at start_year
+        metric_result = get_metric_at_date(s['stock_data'], selected_metric, start_year)
+        if metric_result:
+            stock_copy = s.copy()
+            stock_copy['ticker'] = stock_copy.get('ticker') or stock_copy.get('symbol')
+            
+            # Get revenue from start_year for initial revenue
+            revenue_result = get_revenue_at_date(s['stock_data'], start_year)
+            if revenue_result:
+                revenue, revenue_date = revenue_result
+                stock_copy['initial_revenue'] = revenue
+                stock_copy['initial_revenue_date'] = revenue_date
+            else:
+                # Fallback to existing revenue if not available at start_year
+                stock_copy['initial_revenue'] = s['revenue']
+                stock_copy['initial_revenue_date'] = s.get('revenue_date')
+            
+            stock_info.append(stock_copy)
     
     if not stock_info:
         print(f"   Skipping {metric_name}: No stocks found with this metric data for {start_year}")
         return
     
-    # Store initial revenue for each stock (this stays constant)
-    initial_revenue_total = sum(s['revenue'] for s in stock_info)
-    for stock in stock_info:
-        stock['initial_revenue'] = stock['revenue']
-        stock['ticker'] = stock.get('ticker') or stock.get('symbol')
+    # Store initial revenue total
+    initial_revenue_total = sum(s['initial_revenue'] for s in stock_info)
     
     print(f"   Using {len(stock_info)} stocks with initial revenue total: ${initial_revenue_total/1e9:.2f}B")
     
@@ -523,7 +555,8 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     stock_returns_by_date = {}  # ticker -> {date: return_pct}
     
     for stock in stock_info:
-        start_date = stock.get('revenue_date')  # Use initial date
+        # Use metric-specific date or initial revenue date for start
+        start_date = stock.get(metric_date_key) or stock.get('initial_revenue_date')
         returns = calculate_total_return_with_dividends(stock['stock_data'], start_year, start_date)
         if returns:
             ticker = stock['ticker']
