@@ -632,33 +632,69 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
     cumulative_returns_market_cap = []
     
     for date in sorted_dates:
-        # Calculate EBIT/PPE weighted portfolio value
-        portfolio_value_ebit = 0.0
-        # Calculate market cap weighted portfolio value
-        portfolio_value_mc = 0.0
+        # Separate stocks into active (have data) and inactive (disappeared)
+        active_stocks_ebit = []  # (ticker, ebit_weight, mc_weight, value_multiplier)
+        inactive_stocks_ebit = []  # (ticker, ebit_weight, mc_weight, value_multiplier)
+        active_stocks_mc = []
+        inactive_stocks_mc = []
         
+        # First pass: categorize stocks and get their values
         for stock in stock_info:
             ticker = stock['ticker']
             ebit_weight = stock['final_weight'] / 100.0  # EBIT/PPE adjusted weight
             mc_weight = stock['initial_weight'] / 100.0   # Market cap weight
             
             if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
-                # Get the cumulative return for this stock at this date
+                # Stock is active - has data for this date
                 stock_return_pct = stock_returns_by_date[ticker][date]
                 stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
-                portfolio_value_ebit += ebit_weight * stock_value_multiplier
-                portfolio_value_mc += mc_weight * stock_value_multiplier
+                active_stocks_ebit.append((ticker, ebit_weight, stock_value_multiplier))
+                active_stocks_mc.append((ticker, mc_weight, stock_value_multiplier))
             else:
-                # If stock doesn't have data for this date, use last known value or 1.0
-                # Find the most recent return before this date
+                # Stock is inactive - find last known value
                 last_return = 0.0
                 if ticker in stock_returns_by_date:
                     for prev_date, prev_return in stock_returns_by_date[ticker].items():
                         if prev_date <= date:
                             last_return = prev_return
                 stock_value_multiplier = 1.0 + (last_return / 100.0)
-                portfolio_value_ebit += ebit_weight * stock_value_multiplier
-                portfolio_value_mc += mc_weight * stock_value_multiplier
+                inactive_stocks_ebit.append((ticker, ebit_weight, stock_value_multiplier))
+                inactive_stocks_mc.append((ticker, mc_weight, stock_value_multiplier))
+        
+        # Calculate total weight of active stocks for rebalancing
+        total_active_weight_ebit = sum(w for _, w, _ in active_stocks_ebit)
+        total_active_weight_mc = sum(w for _, w, _ in active_stocks_mc)
+        
+        # Calculate value from inactive stocks (to be redistributed)
+        inactive_value_ebit = sum(w * v for _, w, v in inactive_stocks_ebit)
+        inactive_value_mc = sum(w * v for _, w, v in inactive_stocks_mc)
+        
+        # Calculate portfolio value
+        portfolio_value_ebit = 0.0
+        portfolio_value_mc = 0.0
+        
+        # Add active stocks' values
+        for _, weight, value_mult in active_stocks_ebit:
+            portfolio_value_ebit += weight * value_mult
+        for _, weight, value_mult in active_stocks_mc:
+            portfolio_value_mc += weight * value_mult
+        
+        # Redistribute inactive stocks' value proportionally to active stocks
+        if total_active_weight_ebit > 0 and len(active_stocks_ebit) > 0:
+            # Redistribute proportionally based on current weights
+            for _, weight, value_mult in active_stocks_ebit:
+                # Proportion of this active stock's weight
+                proportion = weight / total_active_weight_ebit
+                # Add proportional share of inactive value
+                portfolio_value_ebit += proportion * inactive_value_ebit
+        
+        if total_active_weight_mc > 0 and len(active_stocks_mc) > 0:
+            # Redistribute proportionally based on current weights
+            for _, weight, value_mult in active_stocks_mc:
+                # Proportion of this active stock's weight
+                proportion = weight / total_active_weight_mc
+                # Add proportional share of inactive value
+                portfolio_value_mc += proportion * inactive_value_mc
         
         # Calculate cumulative return percentages
         cumulative_return_ebit = (portfolio_value_ebit - 1.0) * 100
