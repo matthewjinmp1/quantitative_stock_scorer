@@ -343,6 +343,7 @@ def get_dividend_yield_at_date(stock_data: Dict, target_year: int = 2000) -> Opt
     """Get Dividend Yield for a stock at a specific date
     Calculated as (trailing 4 quarters of dividends / current price) * 100
     Higher yield is better (not a reverse metric)
+    Allows 0 dividends in some quarters as long as there's some dividend data
     """
     if not stock_data or "data" not in stock_data:
         return None
@@ -369,13 +370,15 @@ def get_dividend_yield_at_date(stock_data: Dict, target_year: int = 2000) -> Opt
             if current_price is None or current_price <= 0:
                 continue
             
-            # Sum trailing 4 quarters of dividends
+            # Sum trailing 4 quarters of dividends (allow 0 dividends, but need at least some data)
             trailing_dividends = []
             for i in range(max(0, idx - 3), idx + 1):
-                if i < len(dividends) and dividends[i] is not None and dividends[i] > 0:
-                    trailing_dividends.append(float(dividends[i]))
+                if i < len(dividends) and dividends[i] is not None:
+                    # Include 0 dividends as well, but track separately
+                    trailing_dividends.append(float(dividends[i]) if dividends[i] > 0 else 0.0)
             
-            if len(trailing_dividends) >= 4:  # Need all 4 quarters
+            # Need all 4 quarters of data (even if some are 0), and at least some positive dividends
+            if len(trailing_dividends) == 4 and sum(trailing_dividends) > 0:
                 annual_dividends = sum(trailing_dividends)
                 dividend_yield = (annual_dividends / float(current_price)) * 100.0  # As percentage
                 return (dividend_yield, period_dates[idx])
@@ -756,23 +759,38 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     
     # Filter stocks that have the selected metric at the start year
     # For 5y metrics, we need to verify the metric is available at 2007
+    # For dividend yield, check a wider range (2001-2004) to find more stocks
     # We'll check all stocks from the base list, not just those that already have the metric
     stock_info = []
+    check_years = [start_year]
+    if selected_metric == 'dividend_yield':
+        # Check a wider range for dividend yield to find more stocks
+        check_years = list(range(max(2001, start_year - 1), min(2005, start_year + 3)))
+    
     for s in stock_info_base:
-        # Check if metric is available at start_year (don't require it to be in base list)
-        metric_result = get_metric_at_date(s['stock_data'], selected_metric, start_year)
+        metric_result = None
+        metric_year_used = None
+        
+        # Check if metric is available in the year range
+        for check_year in check_years:
+            metric_result = get_metric_at_date(s['stock_data'], selected_metric, check_year)
+            if metric_result:
+                metric_year_used = check_year
+                break
+        
         if metric_result:
             stock_copy = s.copy()
             stock_copy['ticker'] = stock_copy.get('ticker') or stock_copy.get('symbol')
             
-            # Get revenue from start_year for initial revenue
-            revenue_result = get_revenue_at_date(s['stock_data'], start_year)
+            # Get revenue from the year where we found the metric (or start_year)
+            revenue_year = metric_year_used if metric_year_used else start_year
+            revenue_result = get_revenue_at_date(s['stock_data'], revenue_year)
             if revenue_result:
                 revenue, revenue_date = revenue_result
                 stock_copy['initial_revenue'] = revenue
                 stock_copy['initial_revenue_date'] = revenue_date
             else:
-                # Fallback to existing revenue if not available at start_year
+                # Fallback to existing revenue if not available
                 stock_copy['initial_revenue'] = s['revenue']
                 stock_copy['initial_revenue_date'] = s.get('revenue_date')
             
@@ -833,6 +851,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     cumulative_returns_revenue_weighted = []
     
     # Track current weights for metric portfolio (will be updated at rebalancing)
+    # Initialize with first rebalancing weights
     current_metric_weights = {}
     
     # Process each date
@@ -862,12 +881,33 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
             
             if stocks_with_metric:
                 # Calculate new weights based on current metric rankings
-                current_metric_weights = calculate_weights_for_period(
+                new_weights = calculate_weights_for_period(
                     stocks_with_metric, selected_metric, initial_revenue_total
                 )
+                
+                # For stocks that lost their metric, redistribute their weight proportionally
+                # This prevents portfolio collapse when stocks temporarily lose metric data
+                if current_metric_weights and len(new_weights) < len(current_metric_weights):
+                    # Some stocks lost their metric - redistribute their weight
+                    total_new_weight = sum(new_weights.values())
+                    if total_new_weight > 0 and total_new_weight < 100.0:
+                        # Redistribute the missing weight proportionally
+                        weight_redistribution_factor = 100.0 / total_new_weight
+                        for ticker in new_weights:
+                            new_weights[ticker] *= weight_redistribution_factor
+                    elif total_new_weight == 0:
+                        # All stocks lost metric - keep previous weights
+                        print(f"      Warning: All stocks lost metric data at {current_year}, keeping previous weights")
+                        new_weights = current_metric_weights.copy()
+                
+                current_metric_weights = new_weights
                 print(f"      Rebalanced {len(stocks_with_metric)} stocks with metric data")
             else:
-                print(f"      Warning: No stocks with metric data at {current_year}, keeping previous weights")
+                # No stocks with metric - if we have previous weights, keep them; otherwise this is an error
+                if not current_metric_weights:
+                    print(f"      Error: No stocks with metric data at {current_year} and no previous weights")
+                else:
+                    print(f"      Warning: No stocks with metric data at {current_year}, keeping previous weights")
             
             last_rebalance_year = current_year
         
