@@ -237,6 +237,59 @@ def get_5y_revenue_cagr_at_date(stock_data: Dict, target_year: int = 2000) -> Op
     
     return None
 
+def get_5y_revenue_growth_rate_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get 5-Year Revenue Growth Rate for a stock at a specific date
+    Uses 20 quarters: sum of first 10 quarters vs sum of last 10 quarters
+    growth = sum2 / sum1
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    revenue = data.get("revenue", [])
+    if not isinstance(revenue, list) or len(revenue) < 20:
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 19:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 19 and idx < len(period_dates) and idx < len(revenue):
+            # Sum last 10 quarters (quarters idx-9 to idx, inclusive)
+            sum2 = 0.0
+            valid_sum2 = True
+            for i in range(idx - 9, idx + 1):
+                if i < len(revenue) and revenue[i] is not None and revenue[i] > 0:
+                    sum2 += revenue[i]
+                else:
+                    valid_sum2 = False
+                    break
+            
+            if not valid_sum2 or sum2 <= 0:
+                continue
+            
+            # Sum first 10 quarters (quarters idx-19 to idx-10, inclusive)
+            sum1 = 0.0
+            valid_sum1 = True
+            for i in range(idx - 19, idx - 9):
+                if i < len(revenue) and revenue[i] is not None and revenue[i] > 0:
+                    sum1 += revenue[i]
+                else:
+                    valid_sum1 = False
+                    break
+            
+            if valid_sum1 and sum1 > 0:
+                growth = sum2 / sum1
+                return (growth, period_dates[idx])
+    
+    return None
+
 def get_ev_to_ebit_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get EV/EBIT for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -526,6 +579,7 @@ def get_metric_at_date(stock_data: Dict, metric_name: str, target_year: int) -> 
         'operating_margin': get_operating_margin_at_date,
         'gross_margin': get_gross_margin_at_date,
         '5y_revenue_cagr': get_5y_revenue_cagr_at_date,
+        '5y_revenue_growth_rate': get_5y_revenue_growth_rate_at_date,
         'ev_to_ebit': get_ev_to_ebit_at_date,
         'roa': get_roa_at_date,
         'relative_ps': get_relative_ps_at_date,
@@ -588,7 +642,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print("=" * 80)
     
     # Determine start year based on metric requirements
-    metrics_needing_5y_history = ["5y_revenue_cagr", "relative_ps"]
+    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "relative_ps"]
     start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
     
     # Map metric to its date key
@@ -597,6 +651,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
         'operating_margin': 'om_date',
         'gross_margin': 'gm_date',
         '5y_revenue_cagr': 'cagr_date',
+        '5y_revenue_growth_rate': 'growth_rate_date',
         'ev_to_ebit': 'ev_date',
         'roa': 'roa_date',
         'relative_ps': 'ps_date'
@@ -861,6 +916,7 @@ def main():
         {"selected_metric": "operating_margin", "metric_name": "Operating Margin", "metric_display_name": "Operating Margin"},
         {"selected_metric": "gross_margin", "metric_name": "Gross Margin", "metric_display_name": "Gross Margin"},
         {"selected_metric": "5y_revenue_cagr", "metric_name": "5-Year Revenue CAGR", "metric_display_name": "5Y Rev CAGR"},
+        {"selected_metric": "5y_revenue_growth_rate", "metric_name": "5-Year Revenue Growth Rate", "metric_display_name": "5Y Rev Growth"},
         {"selected_metric": "ev_to_ebit", "metric_name": "EV/EBIT", "metric_display_name": "EV/EBIT"},
         {"selected_metric": "roa", "metric_name": "ROA", "metric_display_name": "ROA"},
         {"selected_metric": "relative_ps", "metric_name": "Relative PS", "metric_display_name": "Relative PS"},
@@ -913,9 +969,12 @@ def main():
                 break
         
         # Metrics requiring 5 years of past data use 2007-2008
+        growth_rate_5y_result = None
         for year in range(2007, 2009):
             if not cagr_5y_result:
                 cagr_5y_result = get_5y_revenue_cagr_at_date(stock_data, year)
+            if not growth_rate_5y_result:
+                growth_rate_5y_result = get_5y_revenue_growth_rate_at_date(stock_data, year)
             if not relative_ps_result:
                 relative_ps_result = get_relative_ps_at_date(stock_data, year)
         
@@ -945,6 +1004,10 @@ def main():
                 cagr_5y, cagr_date = cagr_5y_result
                 stock_entry['5y_revenue_cagr'] = cagr_5y
                 stock_entry['cagr_date'] = cagr_date
+            if growth_rate_5y_result:
+                growth_rate_5y, growth_rate_date = growth_rate_5y_result
+                stock_entry['5y_revenue_growth_rate'] = growth_rate_5y
+                stock_entry['growth_rate_date'] = growth_rate_date
             if ev_ebit_result:
                 ev_ebit, ev_date = ev_ebit_result
                 stock_entry['ev_to_ebit'] = ev_ebit
