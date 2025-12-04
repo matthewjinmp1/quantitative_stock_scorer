@@ -12,6 +12,7 @@ This script:
 import json
 import os
 import math
+import time
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
@@ -796,6 +797,8 @@ def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, m
 
 def main():
     """Main function"""
+    start_time = time.time()
+    
     print("=" * 80)
     print("Metric-Weighted Portfolio Backtest (Starting 2002)")
     print("Running all metrics automatically...")
@@ -940,8 +943,24 @@ def main():
     for metric in all_metrics:
         run_backtest_for_metric(stock_info, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
     
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    
     print("\n" + "=" * 80)
     print("All Backtests Complete!")
+    print("=" * 80)
+    
+    # Print timing information
+    hours = int(elapsed_time // 3600)
+    minutes = int((elapsed_time % 3600) // 60)
+    seconds = int(elapsed_time % 60)
+    
+    if hours > 0:
+        print(f"\nTotal execution time: {hours}h {minutes}m {seconds}s ({elapsed_time:.2f} seconds)")
+    elif minutes > 0:
+        print(f"\nTotal execution time: {minutes}m {seconds}s ({elapsed_time:.2f} seconds)")
+    else:
+        print(f"\nTotal execution time: {seconds}s ({elapsed_time:.2f} seconds)")
     print("=" * 80)
 
 if __name__ == "__main__":
