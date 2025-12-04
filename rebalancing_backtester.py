@@ -339,6 +339,49 @@ def get_consistency_of_growth_at_date(stock_data: Dict, target_year: int = 2000)
     
     return None
 
+def get_dividend_yield_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Dividend Yield for a stock at a specific date
+    Calculated as (trailing 4 quarters of dividends / current price) * 100
+    Higher yield is better (not a reverse metric)
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    prices = data.get("period_end_price", [])
+    dividends = data.get("dividends", [])
+    
+    if not isinstance(prices, list) or not isinstance(dividends, list):
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 3:  # Need at least 4 quarters (0-3)
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 3 and idx < len(period_dates) and idx < len(prices):
+            current_price = prices[idx]
+            if current_price is None or current_price <= 0:
+                continue
+            
+            # Sum trailing 4 quarters of dividends
+            trailing_dividends = []
+            for i in range(max(0, idx - 3), idx + 1):
+                if i < len(dividends) and dividends[i] is not None and dividends[i] > 0:
+                    trailing_dividends.append(float(dividends[i]))
+            
+            if len(trailing_dividends) >= 4:  # Need all 4 quarters
+                annual_dividends = sum(trailing_dividends)
+                dividend_yield = (annual_dividends / float(current_price)) * 100.0  # As percentage
+                return (dividend_yield, period_dates[idx])
+    
+    return None
+
 def get_ev_to_ebit_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get EV/EBIT for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -630,6 +673,7 @@ def get_metric_at_date(stock_data: Dict, metric_name: str, target_year: int) -> 
         '5y_revenue_cagr': get_5y_revenue_cagr_at_date,
         '5y_revenue_growth_rate': get_5y_revenue_growth_rate_at_date,
         'consistency_of_growth': get_consistency_of_growth_at_date,
+        'dividend_yield': get_dividend_yield_at_date,
         'ev_to_ebit': get_ev_to_ebit_at_date,
         'roa': get_roa_at_date,
         'relative_ps': get_relative_ps_at_date,
@@ -703,6 +747,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
         '5y_revenue_cagr': 'cagr_date',
         '5y_revenue_growth_rate': 'growth_rate_date',
         'consistency_of_growth': 'consistency_date',
+        'dividend_yield': 'div_yield_date',
         'ev_to_ebit': 'ev_date',
         'roa': 'roa_date',
         'relative_ps': 'ps_date'
@@ -994,6 +1039,7 @@ def main():
         {"selected_metric": "5y_revenue_cagr", "metric_name": "5-Year Revenue CAGR", "metric_display_name": "5Y Rev CAGR"},
         {"selected_metric": "5y_revenue_growth_rate", "metric_name": "5-Year Revenue Growth Rate", "metric_display_name": "5Y Rev Growth"},
         {"selected_metric": "consistency_of_growth", "metric_name": "Consistency of Growth", "metric_display_name": "Consistency Growth"},
+        {"selected_metric": "dividend_yield", "metric_name": "Dividend Yield", "metric_display_name": "Dividend Yield"},
         {"selected_metric": "ev_to_ebit", "metric_name": "EV/EBIT", "metric_display_name": "EV/EBIT"},
         {"selected_metric": "roa", "metric_name": "ROA", "metric_display_name": "ROA"},
         {"selected_metric": "relative_ps", "metric_name": "Relative PS", "metric_display_name": "Relative PS"},
@@ -1024,6 +1070,7 @@ def main():
         operating_margin_result = None
         gross_margin_result = None
         cagr_5y_result = None
+        dividend_yield_result = None
         ev_ebit_result = None
         roa_result = None
         relative_ps_result = None
@@ -1038,6 +1085,8 @@ def main():
                 operating_margin_result = get_operating_margin_at_date(stock_data, year)
             if not gross_margin_result:
                 gross_margin_result = get_gross_margin_at_date(stock_data, year)
+            if not dividend_yield_result:
+                dividend_yield_result = get_dividend_yield_at_date(stock_data, year)
             if not ev_ebit_result:
                 ev_ebit_result = get_ev_to_ebit_at_date(stock_data, year)
             if not roa_result:
@@ -1092,6 +1141,10 @@ def main():
                 consistency, consistency_date = consistency_result
                 stock_entry['consistency_of_growth'] = consistency
                 stock_entry['consistency_date'] = consistency_date
+            if dividend_yield_result:
+                div_yield, div_yield_date = dividend_yield_result
+                stock_entry['dividend_yield'] = div_yield
+                stock_entry['div_yield_date'] = div_yield_date
             if ev_ebit_result:
                 ev_ebit, ev_date = ev_ebit_result
                 stock_entry['ev_to_ebit'] = ev_ebit
@@ -1127,24 +1180,53 @@ def main():
     print("\n2. Checking for cached results...")
     cached_results = load_cache(cache_file)
     
+    # Create a set of cached metric names for quick lookup
+    cached_metric_names = set()
     if cached_results:
+        cached_metric_names = {r.get('metric') for r in cached_results if r.get('metric')}
         print(f"   Found cached results for {len(cached_results)} metrics")
-        print("   Using cached data (delete cache file to recalculate)")
-        summary_results = cached_results
-    else:
-        print("   No cache found, running backtests...")
-        # Run rebalancing backtest for each metric and collect summary data
+    
+    # Determine which metrics need to be run
+    metrics_to_run = [m for m in all_metrics if m['selected_metric'] not in cached_metric_names]
+    
+    if metrics_to_run:
+        print(f"   Running backtests for {len(metrics_to_run)} missing metrics: {', '.join([m['metric_name'] for m in metrics_to_run])}")
+        # Run rebalancing backtest for missing metrics
         # Pass the full list so each metric can filter and select top 500 by revenue at its start year
-        print("\n   Running rebalancing backtests for all metrics...")
-        summary_results = []
-        for metric in all_metrics:
+        new_results = []
+        for metric in metrics_to_run:
             summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
             if summary_data:
-                summary_results.append(summary_data)
+                new_results.append(summary_data)
         
-        # Save results to cache
+        # Merge cached and new results
+        if cached_results:
+            summary_results = cached_results + new_results
+            print(f"   Merged {len(new_results)} new results with {len(cached_results)} cached results")
+        else:
+            summary_results = new_results
+        
+        # Save updated results to cache
         if summary_results:
             save_cache(cache_file, summary_results)
+    else:
+        if cached_results:
+            print("   Using cached data for all metrics (delete cache file to recalculate)")
+            summary_results = cached_results
+        else:
+            print("   No cache found, running backtests...")
+            # Run rebalancing backtest for each metric and collect summary data
+            # Pass the full list so each metric can filter and select top 500 by revenue at its start year
+            print("\n   Running rebalancing backtests for all metrics...")
+            summary_results = []
+            for metric in all_metrics:
+                summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+                if summary_data:
+                    summary_results.append(summary_data)
+            
+            # Save results to cache
+            if summary_results:
+                save_cache(cache_file, summary_results)
     
     # Create comparison chart
     if summary_results:
