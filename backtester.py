@@ -11,6 +11,7 @@ This script:
 """
 import json
 import os
+import math
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
@@ -212,6 +213,152 @@ def get_operating_margin_at_date(stock_data: Dict, target_year: int = 2000) -> O
     
     return None
 
+def get_5y_revenue_cagr_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get 5-Year Revenue CAGR for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    revenue = data.get("revenue", [])
+    if not isinstance(revenue, list) or len(revenue) < 21:  # Need at least 21 quarters (20 + current)
+        return None
+    
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 20:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 20 and idx < len(period_dates) and idx < len(revenue):
+            current_revenue = revenue[idx]
+            revenue_5y_ago = revenue[idx - 20]
+            
+            if (current_revenue is not None and revenue_5y_ago is not None and
+                current_revenue > 0 and revenue_5y_ago > 0):
+                # Calculate CAGR: ((Ending Value / Beginning Value)^(1/5) - 1) * 100
+                ratio = current_revenue / revenue_5y_ago
+                cagr_5y = ((ratio ** (1.0 / 5.0)) - 1.0) * 100.0
+                return (cagr_5y, period_dates[idx])
+    
+    return None
+
+def get_ev_to_ebit_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get EV/EBIT for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    enterprise_value = data.get("enterprise_value", [])
+    operating_income = data.get("operating_income", [])
+    
+    if not isinstance(enterprise_value, list) or not isinstance(operating_income, list):
+        return None
+    
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates):
+            if (idx < len(enterprise_value) and idx < len(operating_income) and
+                enterprise_value[idx] is not None and operating_income[idx] is not None and
+                operating_income[idx] != 0):
+                ev_ebit = enterprise_value[idx] / operating_income[idx]
+                return (ev_ebit, period_dates[idx])
+    
+    return None
+
+def get_roa_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get ROA for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    roa = data.get("roa", [])
+    if not isinstance(roa, list):
+        return None
+    
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates) and idx < len(roa):
+            if roa[idx] is not None:
+                return (roa[idx], period_dates[idx])
+    
+    return None
+
+def get_relative_ps_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Relative PS (Current PS / 5-Year Median PS) for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    price_to_sales = data.get("price_to_sales", [])
+    if not isinstance(price_to_sales, list) or len(price_to_sales) < 20:
+        return None
+    
+    # Find quarter near target year (allow earlier dates)
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 19:
+        return None
+    
+    # Try to get data at that quarter, or nearby quarters (search wider range)
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 19 and idx < len(period_dates) and idx < len(price_to_sales):
+            current_ps = price_to_sales[idx]
+            if current_ps is None or current_ps <= 0:
+                continue
+            
+            # Calculate 5-year median (20 quarters) of price_to_sales
+            ps_values = []
+            for k in range(idx - 19, idx + 1):  # Include current period
+                if k < len(price_to_sales) and price_to_sales[k] is not None:
+                    ps_val = price_to_sales[k]
+                    if ps_val is not None and ps_val > 0:  # Only include positive values
+                        ps_values.append(float(ps_val))
+            
+            if len(ps_values) > 0:
+                # Calculate median
+                sorted_ps = sorted(ps_values)
+                n = len(sorted_ps)
+                if n % 2 == 0:
+                    median_ps = (sorted_ps[n//2 - 1] + sorted_ps[n//2]) / 2.0
+                else:
+                    median_ps = sorted_ps[n//2]
+                
+                if median_ps > 0:
+                    relative_ps = current_ps / median_ps
+                    return (relative_ps, period_dates[idx])
+    
+    return None
+
 def get_revenue_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get revenue for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -329,151 +476,76 @@ def load_stock_data_by_symbol(tickers: List[str]) -> Dict[str, Dict]:
     print(f"Loaded data for {len(stock_dict)} unique stocks")
     return stock_dict
 
-def main():
-    """Main function"""
+def run_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, metric_name: str, metric_display_name: str):
+    """Run backtest for a specific metric"""
+    print("\n" + "=" * 80)
+    print(f"Running backtest for: {metric_name}")
     print("=" * 80)
-    print("Metric-Weighted Portfolio Backtest (Starting 2002)")
-    print("=" * 80)
     
-    # Allow user to select metric
-    print("\nSelect metric for portfolio weighting:")
-    print("  1. EBIT/PPE (Operating Income / PPE)")
-    print("  2. Operating Margin (Operating Income / Revenue)")
-    print("  3. Gross Margin ((Revenue - COGS) / Revenue)")
+    # Filter stocks that have the selected metric
+    stock_info = [s.copy() for s in stock_info_base if selected_metric in s]
     
-    while True:
-        try:
-            choice = input("\nEnter choice (1, 2, or 3): ").strip()
-            if choice == "1":
-                selected_metric = "ebit_ppe"
-                metric_name = "EBIT/PPE"
-                metric_display_name = "EBIT/PPE"
-                break
-            elif choice == "2":
-                selected_metric = "operating_margin"
-                metric_name = "Operating Margin"
-                metric_display_name = "Operating Margin"
-                break
-            elif choice == "3":
-                selected_metric = "gross_margin"
-                metric_name = "Gross Margin"
-                metric_display_name = "Gross Margin"
-                break
-            else:
-                print("Invalid choice. Please enter 1, 2, or 3.")
-        except (EOFError, KeyboardInterrupt):
-            print("\nExiting...")
-            return
+    if not stock_info:
+        print(f"   Skipping {metric_name}: No stocks found with this metric data for 2002")
+        return
     
-    print(f"\nSelected metric: {metric_name}")
-    
-    # Instead of using current S&P 500 list, we'll find stocks that:
-    # 1. Have data available around 2002 (when data coverage significantly increases)
-    # 2. Were large cap at that time (top 500 by market cap)
-    # This approximates the S&P 500 at that time
-    
-    print("\n1. Finding S&P 500-like stocks from 2002...")
-    print("   (Using stocks with data from 2002, ranked by market cap)")
-    print("   (2002 is when data coverage significantly increases)")
-    
-    # Load ALL stock data first
-    print("   Loading all stock data...")
-    all_stocks_list = load_data_from_jsonl("nyse_data.jsonl") + load_data_from_jsonl("nasdaq_data.jsonl")
-    print(f"   Loaded {len(all_stocks_list)} stocks")
-    
-    # Find stocks with data around 2002 and get their revenue and metrics
-    print("   Finding stocks with data from 2002...")
-    stocks_with_data = []
-    
-    for stock_data in all_stocks_list:
-        # Try to get revenue, EBIT/PPE, Operating Margin, and Gross Margin around 2002
-        revenue_result = None
-        ebit_ppe_result = None
-        operating_margin_result = None
-        gross_margin_result = None
-        
-        # Try years 2002-2003 (focus on 2002 when data coverage jumps)
-        for year in range(2002, 2004):
-            if not revenue_result:
-                revenue_result = get_revenue_at_date(stock_data, year)
-            if not ebit_ppe_result:
-                ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
-            if not operating_margin_result:
-                operating_margin_result = get_operating_margin_at_date(stock_data, year)
-            if not gross_margin_result:
-                gross_margin_result = get_gross_margin_at_date(stock_data, year)
-            if revenue_result and ebit_ppe_result and operating_margin_result and gross_margin_result:
-                break
-        
-        if revenue_result and ebit_ppe_result and operating_margin_result and gross_margin_result:
-            revenue, rev_date = revenue_result
-            ebit_ppe, ebit_date = ebit_ppe_result
-            operating_margin, om_date = operating_margin_result
-            gross_margin, gm_date = gross_margin_result
-            
-            # Only include stocks with meaningful revenue (at least $100M to approximate S&P 500)
-            if revenue >= 100_000_000:  # $100M minimum
-                stocks_with_data.append({
-                    'stock_data': stock_data,
-                    'ticker': stock_data.get("symbol", "").upper(),
-                    'revenue': revenue,
-                    'ebit_ppe': ebit_ppe,
-                    'operating_margin': operating_margin,
-                    'gross_margin': gross_margin,
-                    'ebit_date': ebit_date,
-                    'revenue_date': rev_date,
-                    'om_date': om_date,
-                    'gm_date': gm_date
-                })
-    
-    print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
-    
-    # Sort by revenue and take top 500 (approximate S&P 500)
-    stocks_with_data.sort(key=lambda x: x['revenue'], reverse=True)
-    stock_info = stocks_with_data[:500]
-    
-    print(f"   Selected top {len(stock_info)} stocks by revenue (S&P 500 approximation)")
-    
-    # Create stock_dict for return calculations
-    stock_dict = {s['ticker']: s['stock_data'] for s in stock_info}
-    
-    # We already have stock_info with revenue and both metrics from 2002
-    print("\n2. Using revenue and metrics from 2002 period...")
-    
-    # Track earliest year
+    # Track earliest year (use metric-specific date field)
     earliest_year_found = None
+    date_key_map = {
+        'ebit_ppe': 'ebit_date',
+        'operating_margin': 'om_date',
+        'gross_margin': 'gm_date',
+        '5y_revenue_cagr': 'cagr_date',
+        'ev_to_ebit': 'ev_date',
+        'roa': 'roa_date',
+        'relative_ps': 'ps_date'
+    }
+    date_key = date_key_map.get(selected_metric, 'revenue_date')
+    
     for stock in stock_info:
-        ebit_date_obj = parse_date(stock['ebit_date'])
-        if ebit_date_obj:
-            if earliest_year_found is None or ebit_date_obj.year < earliest_year_found:
-                earliest_year_found = ebit_date_obj.year
+        if date_key in stock:
+            date_obj = parse_date(stock[date_key])
+            if date_obj:
+                if earliest_year_found is None or date_obj.year < earliest_year_found:
+                    earliest_year_found = date_obj.year
     
     if earliest_year_found:
         print(f"   Using data from {len(stock_info)} stocks (earliest data from {earliest_year_found})")
     else:
         print(f"   Using data from {len(stock_info)} stocks")
     
-    if not stock_info:
-        print("   Error: No stocks found with required data for 2002")
-        return
-    
     # Rank by selected metric
-    print(f"\n3. Ranking stocks by {metric_name}...")
+    print(f"\n   Ranking stocks by {metric_name}...")
     if selected_metric == "ebit_ppe":
         stock_info.sort(key=lambda x: x['ebit_ppe'], reverse=True)
-        # Store the metric value for each stock
         for stock in stock_info:
             stock['metric_value'] = stock['ebit_ppe']
     elif selected_metric == "operating_margin":
         stock_info.sort(key=lambda x: x['operating_margin'], reverse=True)
-        # Store the metric value for each stock
         for stock in stock_info:
             stock['metric_value'] = stock['operating_margin']
-    else:  # gross_margin
+    elif selected_metric == "gross_margin":
         stock_info.sort(key=lambda x: x['gross_margin'], reverse=True)
-        # Store the metric value for each stock
         for stock in stock_info:
             stock['metric_value'] = stock['gross_margin']
+    elif selected_metric == "5y_revenue_cagr":
+        stock_info.sort(key=lambda x: x['5y_revenue_cagr'], reverse=True)
+        for stock in stock_info:
+            stock['metric_value'] = stock['5y_revenue_cagr']
+    elif selected_metric == "ev_to_ebit":
+        # EV/EBIT: lower is better (reverse sort)
+        stock_info.sort(key=lambda x: x['ev_to_ebit'] if x['ev_to_ebit'] is not None else float('inf'))
+        for stock in stock_info:
+            stock['metric_value'] = stock['ev_to_ebit']
+    elif selected_metric == "roa":
+        stock_info.sort(key=lambda x: x['roa'], reverse=True)
+        for stock in stock_info:
+            stock['metric_value'] = stock['roa']
+    elif selected_metric == "relative_ps":
+        # Relative PS: lower is better (reverse sort)
+        stock_info.sort(key=lambda x: x['relative_ps'] if x['relative_ps'] is not None else float('inf'))
+        for stock in stock_info:
+            stock['metric_value'] = stock['relative_ps']
     
     # Calculate initial revenue weights
     total_revenue = sum(s['revenue'] for s in stock_info)
@@ -481,8 +553,12 @@ def main():
         stock['initial_weight'] = (stock['revenue'] / total_revenue) * 100
     
     # Apply multiplier based on rank (0.5 for worst, 2.0 for best)
-    print(f"\n4. Applying {metric_name}-based weight adjustments...")
+    print(f"\n   Applying {metric_name}-based weight adjustments...")
     n_stocks = len(stock_info)
+    
+    # For metrics where lower is better (EV/EBIT, Relative PS), we sorted ascending (lowest first = best)
+    # For normal metrics, we sorted descending (highest first = best)
+    # In both cases, index 0 is best, so we use the same multiplier formula
     for i, stock in enumerate(stock_info):
         # Linear interpolation: rank 0 (best) gets 2.0, rank n-1 (worst) gets 0.5
         if n_stocks > 1:
@@ -498,11 +574,11 @@ def main():
     for stock in stock_info:
         stock['final_weight'] = (stock['adjusted_weight'] / total_adjusted) * 100
     
-    print(f"   Total adjusted weight before normalization: {total_adjusted:.2f}%")
-    print(f"   Total final weight after normalization: {sum(s['final_weight'] for s in stock_info):.2f}%")
+    print(f"      Total adjusted weight before normalization: {total_adjusted:.2f}%")
+    print(f"      Total final weight after normalization: {sum(s['final_weight'] for s in stock_info):.2f}%")
     
     # Show top 10 and bottom 10
-    print(f"\n   Top 10 by {metric_name}:")
+    print(f"\n      Top 10 by {metric_name}:")
     for i, stock in enumerate(stock_info[:10], 1):
         metric_val = stock['metric_value']
         print(f"   {i:2d}. {stock['ticker']:6s} - {metric_display_name}: {metric_val:8.4f}, "
@@ -510,7 +586,7 @@ def main():
               f"Initial: {stock['initial_weight']:5.2f}%, "
               f"Final: {stock['final_weight']:5.2f}%")
     
-    print(f"\n   Bottom 10 by {metric_name}:")
+    print(f"\n      Bottom 10 by {metric_name}:")
     for i, stock in enumerate(stock_info[-10:], n_stocks - 9):
         metric_val = stock['metric_value']
         print(f"   {i:2d}. {stock['ticker']:6s} - {metric_display_name}: {metric_val:8.4f}, "
@@ -518,35 +594,16 @@ def main():
               f"Initial: {stock['initial_weight']:5.2f}%, "
               f"Final: {stock['final_weight']:5.2f}%")
     
-    # Display all stocks ranked by final weight
-    print("\n" + "=" * 80)
-    print("ALL STOCKS RANKED BY FINAL WEIGHT")
-    print("=" * 80)
-    
-    # Sort by final weight (descending)
-    stocks_by_weight = sorted(stock_info, key=lambda x: x['final_weight'], reverse=True)
-    
-    print(f"\n{'Rank':<6} {'Ticker':<8} {'Final Weight %':<15} {'Revenue (B)':<15} {metric_display_name:<12} {'Initial Weight %':<15}")
-    print("-" * 80)
-    
-    for rank, stock in enumerate(stocks_by_weight, 1):
-        metric_val = stock['metric_value']
-        print(f"{rank:<6} {stock['ticker']:<8} {stock['final_weight']:>13.4f}% "
-              f"${stock['revenue']/1e9:>13.2f}B {metric_val:>11.4f} "
-              f"{stock['initial_weight']:>14.4f}%")
-    
-    print("\n" + "=" * 80)
-    
     # Calculate total returns with dividends reinvested
-    print("\n5. Calculating total returns with dividends reinvested...")
+    print(f"\n   Calculating total returns with dividends reinvested...")
     
     # Collect all return data by date
     all_dates = set()
     stock_returns_by_date = {}  # ticker -> {date: return_pct}
     
     for stock in stock_info:
-        # Use the actual date from EBIT/PPE calculation as start date
-        start_date = stock.get('ebit_date')
+        # Use the actual date from metric calculation as start date
+        start_date = stock.get(date_key)
         returns = calculate_total_return_with_dividends(stock['stock_data'], 2002, start_date)
         if returns:
             ticker = stock['ticker']
@@ -599,22 +656,19 @@ def main():
         cumulative_returns_ebit_weighted.append(cumulative_return_ebit)
         cumulative_returns_market_cap.append(cumulative_return_mc)
     
-    print(f"   Calculated returns for {len(sorted_dates)} time periods")
-    print(f"   Start date: {sorted_dates[0].strftime('%Y-%m-%d')}")
-    print(f"   End date: {sorted_dates[-1].strftime('%Y-%m-%d')}")
-    print(f"   {metric_name} Weighted Total return: {cumulative_returns_ebit_weighted[-1]:.2f}%")
-    print(f"   Revenue Weighted Total return: {cumulative_returns_market_cap[-1]:.2f}%")
+    print(f"      Calculated returns for {len(sorted_dates)} time periods")
+    print(f"      Start date: {sorted_dates[0].strftime('%Y-%m-%d')}")
+    print(f"      End date: {sorted_dates[-1].strftime('%Y-%m-%d')}")
+    print(f"      {metric_name} Weighted Total return: {cumulative_returns_ebit_weighted[-1]:.2f}%")
+    print(f"      Revenue Weighted Total return: {cumulative_returns_market_cap[-1]:.2f}%")
     
     # Create output folder for graphs
     output_folder = "backtest_results"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-        print(f"\n6. Created output folder: {output_folder}/")
-    else:
-        print(f"\n6. Using output folder: {output_folder}/")
     
     # Create chart
-    print("   Creating performance chart...")
+    print(f"\n   Creating performance chart...")
     plt.figure(figsize=(14, 8))
     
     # Plot both lines
@@ -645,11 +699,11 @@ def main():
     metric_filename = selected_metric.replace('/', '_').replace(' ', '_').lower()
     chart_filename = f'{output_folder}/{metric_filename}_portfolio_backtest.png'
     plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
-    print(f"   Chart saved to {chart_filename}")
-    plt.show()
+    print(f"      Chart saved to {chart_filename}")
+    plt.close()  # Close figure instead of showing
     
     # Save results to JSON
-    print("\n7. Saving results...")
+    print(f"\n   Saving results...")
     
     # Create filename based on selected metric
     metric_filename = selected_metric.replace('/', '_').replace(' ', '_').lower()
@@ -671,6 +725,10 @@ def main():
                 'ebit_ppe': s.get('ebit_ppe'),
                 'operating_margin': s.get('operating_margin'),
                 'gross_margin': s.get('gross_margin'),
+                '5y_revenue_cagr': s.get('5y_revenue_cagr'),
+                'ev_to_ebit': s.get('ev_to_ebit'),
+                'roa': s.get('roa'),
+                'relative_ps': s.get('relative_ps'),
                 'revenue': s['revenue'],
                 'initial_weight_pct': s['initial_weight'],
                 'multiplier': s['multiplier'],
@@ -697,9 +755,149 @@ def main():
     with open(json_filename, 'w') as f:
         json.dump(results, f, indent=2)
     
-    print(f"   Results saved to {json_filename}")
+    print(f"      Results saved to {json_filename}")
+    print(f"\n   Completed backtest for {metric_name}")
+
+def main():
+    """Main function"""
+    print("=" * 80)
+    print("Metric-Weighted Portfolio Backtest (Starting 2002)")
+    print("Running all metrics automatically...")
+    print("=" * 80)
+    
+    # Define all metrics
+    all_metrics = [
+        {"selected_metric": "ebit_ppe", "metric_name": "EBIT/PPE", "metric_display_name": "EBIT/PPE"},
+        {"selected_metric": "operating_margin", "metric_name": "Operating Margin", "metric_display_name": "Operating Margin"},
+        {"selected_metric": "gross_margin", "metric_name": "Gross Margin", "metric_display_name": "Gross Margin"},
+        {"selected_metric": "5y_revenue_cagr", "metric_name": "5-Year Revenue CAGR", "metric_display_name": "5Y Rev CAGR"},
+        {"selected_metric": "ev_to_ebit", "metric_name": "EV/EBIT", "metric_display_name": "EV/EBIT"},
+        {"selected_metric": "roa", "metric_name": "ROA", "metric_display_name": "ROA"},
+        {"selected_metric": "relative_ps", "metric_name": "Relative PS", "metric_display_name": "Relative PS"},
+    ]
+    
+    print(f"\nWill run backtests for {len(all_metrics)} metrics:")
+    for i, metric in enumerate(all_metrics, 1):
+        print(f"  {i}. {metric['metric_name']}")
+    
+    # Instead of using current S&P 500 list, we'll find stocks that:
+    # 1. Have data available around 2002 (when data coverage significantly increases)
+    # 2. Were large cap at that time (top 500 by revenue)
+    # This approximates the S&P 500 at that time
+    
+    print("\n1. Finding S&P 500-like stocks from 2002...")
+    print("   (Using stocks with data from 2002, ranked by revenue)")
+    print("   (2002 is when data coverage significantly increases)")
+    
+    # Load ALL stock data first
+    print("   Loading all stock data...")
+    all_stocks_list = load_data_from_jsonl("nyse_data.jsonl") + load_data_from_jsonl("nasdaq_data.jsonl")
+    print(f"   Loaded {len(all_stocks_list)} stocks")
+    
+    # Find stocks with data around 2002 and get their revenue and metrics
+    print("   Finding stocks with data from 2002...")
+    stocks_with_data = []
+    
+    for stock_data in all_stocks_list:
+        # Try to get revenue and all metrics around 2002
+        revenue_result = None
+        ebit_ppe_result = None
+        operating_margin_result = None
+        gross_margin_result = None
+        cagr_5y_result = None
+        ev_ebit_result = None
+        roa_result = None
+        relative_ps_result = None
+        
+        # Try years 2002-2003 (focus on 2002 when data coverage jumps)
+        for year in range(2002, 2004):
+            if not revenue_result:
+                revenue_result = get_revenue_at_date(stock_data, year)
+            if not ebit_ppe_result:
+                ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
+            if not operating_margin_result:
+                operating_margin_result = get_operating_margin_at_date(stock_data, year)
+            if not gross_margin_result:
+                gross_margin_result = get_gross_margin_at_date(stock_data, year)
+            if not cagr_5y_result:
+                cagr_5y_result = get_5y_revenue_cagr_at_date(stock_data, year)
+            if not ev_ebit_result:
+                ev_ebit_result = get_ev_to_ebit_at_date(stock_data, year)
+            if not roa_result:
+                roa_result = get_roa_at_date(stock_data, year)
+            if not relative_ps_result:
+                relative_ps_result = get_relative_ps_at_date(stock_data, year)
+            # We need revenue and the selected metric, but collect all for flexibility
+            if revenue_result:
+                break
+        
+        if revenue_result:
+            revenue, rev_date = revenue_result
+            
+            # Only include stocks with meaningful revenue (at least $100M to approximate S&P 500)
+            if revenue >= 100_000_000:  # $100M minimum
+                stock_entry = {
+                    'stock_data': stock_data,
+                    'ticker': stock_data.get("symbol", "").upper(),
+                    'revenue': revenue,
+                    'revenue_date': rev_date,
+                }
+                
+                # Add all metrics if available
+                if ebit_ppe_result:
+                    ebit_ppe, ebit_date = ebit_ppe_result
+                    stock_entry['ebit_ppe'] = ebit_ppe
+                    stock_entry['ebit_date'] = ebit_date
+                if operating_margin_result:
+                    operating_margin, om_date = operating_margin_result
+                    stock_entry['operating_margin'] = operating_margin
+                    stock_entry['om_date'] = om_date
+                if gross_margin_result:
+                    gross_margin, gm_date = gross_margin_result
+                    stock_entry['gross_margin'] = gross_margin
+                    stock_entry['gm_date'] = gm_date
+                if cagr_5y_result:
+                    cagr_5y, cagr_date = cagr_5y_result
+                    stock_entry['5y_revenue_cagr'] = cagr_5y
+                    stock_entry['cagr_date'] = cagr_date
+                if ev_ebit_result:
+                    ev_ebit, ev_date = ev_ebit_result
+                    stock_entry['ev_to_ebit'] = ev_ebit
+                    stock_entry['ev_date'] = ev_date
+                if roa_result:
+                    roa, roa_date = roa_result
+                    stock_entry['roa'] = roa
+                    stock_entry['roa_date'] = roa_date
+                if relative_ps_result:
+                    relative_ps, ps_date = relative_ps_result
+                    stock_entry['relative_ps'] = relative_ps
+                    stock_entry['ps_date'] = ps_date
+                
+                stocks_with_data.append(stock_entry)
+    
+    print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
+    
+    # Sort by revenue and take top 500 (approximate S&P 500)
+    stocks_with_data.sort(key=lambda x: x['revenue'], reverse=True)
+    stock_info = stocks_with_data[:500]
+    
+    print(f"   Selected top {len(stock_info)} stocks by revenue (S&P 500 approximation)")
+    
+    # Create output folder for graphs
+    output_folder = "backtest_results"
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print(f"\n   Created output folder: {output_folder}/")
+    else:
+        print(f"\n   Using output folder: {output_folder}/")
+    
+    # Run backtest for each metric
+    print("\n2. Running backtests for all metrics...")
+    for metric in all_metrics:
+        run_backtest_for_metric(stock_info, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+    
     print("\n" + "=" * 80)
-    print("Backtest Complete!")
+    print("All Backtests Complete!")
     print("=" * 80)
 
 if __name__ == "__main__":
