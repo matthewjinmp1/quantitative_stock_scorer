@@ -12,11 +12,13 @@ import json
 import os
 import math
 import time
+import glob
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from collections import defaultdict
+import numpy as np
 
 # Import all the helper functions from backtester.py
 # We'll copy them here for independence
@@ -430,6 +432,92 @@ def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 20
     
     return returns if returns else None
 
+def load_summary_data(folder: str) -> List[Dict]:
+    """Load all summary JSON files from a folder"""
+    summary_files = glob.glob(os.path.join(folder, "summary_*.json"))
+    results = []
+    
+    for file in summary_files:
+        try:
+            with open(file, 'r') as f:
+                data = json.load(f)
+                results.append(data)
+        except Exception as e:
+            print(f"Error loading {file}: {e}")
+    
+    return results
+
+def create_comparison_chart(output_folder: str, chart_type: str):
+    """Create a comparison chart showing excess returns vs benchmark"""
+    results = load_summary_data(output_folder)
+    
+    if not results:
+        print(f"   No summary data found in {output_folder}")
+        return
+    
+    # Sort by excess return (how much they beat the benchmark)
+    results.sort(key=lambda x: x.get('excess_return', 0), reverse=True)
+    
+    metrics = [r['metric_name'] for r in results]
+    excess_returns = [r.get('excess_return', 0) for r in results]
+    metric_returns = [r.get('metric_weighted_annualized', 0) for r in results]
+    benchmark_returns = [r.get('revenue_weighted_annualized', 0) for r in results]
+    
+    # Create the chart
+    fig, ax = plt.subplots(figsize=(14, 8))
+    
+    # Create bar chart
+    x_pos = np.arange(len(metrics))
+    colors = ['green' if x > 0 else 'red' for x in excess_returns]
+    
+    bars = ax.barh(x_pos, excess_returns, color=colors, alpha=0.7, edgecolor='black', linewidth=1)
+    
+    # Add value labels on bars
+    for i, (bar, val) in enumerate(zip(bars, excess_returns)):
+        width = bar.get_width()
+        label_x = width + (0.5 if width >= 0 else -0.5)
+        ax.text(label_x, bar.get_y() + bar.get_height()/2, 
+                f'{val:+.2f}%', 
+                ha='left' if width >= 0 else 'right',
+                va='center', fontweight='bold', fontsize=10)
+    
+    # Add metric and benchmark return labels
+    for i, (metric_ret, bench_ret) in enumerate(zip(metric_returns, benchmark_returns)):
+        ax.text(-0.5, i, f'{metric_ret:.1f}% / {bench_ret:.1f}%', 
+                va='center', fontsize=9, style='italic', color='gray')
+    
+    # Customize chart
+    ax.set_yticks(x_pos)
+    ax.set_yticklabels(metrics, fontsize=11)
+    ax.set_xlabel('Excess Annualized Return vs Revenue-Weighted Benchmark (%)', fontsize=12, fontweight='bold')
+    ax.set_title(f'Metric Performance Comparison ({chart_type})\n'
+                 f'Annualized Excess Return: Metric Portfolio vs Revenue-Weighted Benchmark',
+                 fontsize=14, fontweight='bold', pad=20)
+    ax.axvline(x=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+    ax.grid(True, alpha=0.3, axis='x')
+    
+    # Add legend
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='green', alpha=0.7, label='Outperforms Benchmark'),
+        Patch(facecolor='red', alpha=0.7, label='Underperforms Benchmark')
+    ]
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=10)
+    
+    # Add text annotation for metric/benchmark format
+    ax.text(0.02, 0.98, 'Labels: Metric Return / Benchmark Return', 
+            transform=ax.transAxes, fontsize=9, 
+            verticalalignment='top', style='italic', color='gray',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+    
+    plt.tight_layout()
+    
+    # Save chart
+    chart_filename = os.path.join(output_folder, f'metric_comparison_{chart_type.lower()}.png')
+    plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
+    print(f"   Comparison chart saved to {chart_filename}")
+    plt.close()
+
 def get_metric_at_date(stock_data: Dict, metric_name: str, target_year: int) -> Optional[Tuple[float, str]]:
     """Get a metric value for a stock at a specific year"""
     metric_functions = {
@@ -742,6 +830,22 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"      Chart saved to {chart_filename}")
     plt.close()
     
+    # Save summary data for comparison chart
+    summary_data = {
+        'metric': selected_metric,
+        'metric_name': metric_name,
+        'start_year': start_year,
+        'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
+        'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
+        'metric_weighted_annualized': annualized_return_metric,
+        'revenue_weighted_annualized': annualized_return_revenue,
+        'excess_return': annualized_return_metric - annualized_return_revenue
+    }
+    
+    summary_filename = f'{output_folder}/summary_{selected_metric.replace("/", "_").replace(" ", "_").lower()}.json'
+    with open(summary_filename, 'w') as f:
+        json.dump(summary_data, f, indent=2)
+    
     print(f"\n   Completed rebalancing backtest for {metric_name}")
 
 def main():
@@ -878,6 +982,11 @@ def main():
     print("\n2. Running rebalancing backtests for all metrics...")
     for metric in all_metrics:
         run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+    
+    # Create comparison chart
+    print("\n3. Creating metric comparison chart...")
+    output_folder = "rebalancing_backtest_results"
+    create_comparison_chart(output_folder, "Rebalancing")
     
     end_time = time.time()
     elapsed_time = end_time - start_time
