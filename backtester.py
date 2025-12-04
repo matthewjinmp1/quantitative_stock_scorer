@@ -484,11 +484,21 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
     
     bars = ax.barh(x_pos, excess_returns, color=colors, alpha=0.85, edgecolor='white', linewidth=2, height=0.75)
     
+    # Set x-axis limits first to accommodate labels with more padding
+    x_range = max(excess_returns) - min(excess_returns) if excess_returns else 1.0
+    x_padding = max(x_range * 0.25, 0.3)  # Increased padding, minimum 0.3
+    x_min = min(excess_returns) - x_padding if excess_returns else -0.5
+    x_max = max(excess_returns) + x_padding if excess_returns else 0.5
+    ax.set_xlim(x_min, x_max)
+    
     # Add value labels on bars with better positioning
     for i, (bar, val) in enumerate(zip(bars, excess_returns)):
         width = bar.get_width()
-        # Position label outside the bar
-        label_x = width + (abs(width) * 0.05 + 0.05 if abs(width) > 0.1 else 0.1) if width >= 0 else width - (abs(width) * 0.05 + 0.05 if abs(width) > 0.1 else 0.1)
+        # Position label further outside the bar with more spacing
+        if width >= 0:
+            label_x = width + (x_max - width) * 0.15 + 0.05
+        else:
+            label_x = width - (width - x_min) * 0.15 - 0.05
         ax.text(label_x, bar.get_y() + bar.get_height()/2, 
                 f'{val:+.2f}%', 
                 ha='left' if width >= 0 else 'right',
@@ -509,12 +519,6 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
     # Grid
     ax.grid(True, alpha=0.15, axis='x', linestyle='--', linewidth=1, color='#999999')
     ax.set_axisbelow(True)
-    
-    # Set x-axis limits to accommodate labels
-    x_range = max(excess_returns) - min(excess_returns) if excess_returns else 1.0
-    x_padding = x_range * 0.15
-    ax.set_xlim(min(excess_returns) - x_padding if excess_returns else -0.5, 
-                max(excess_returns) + x_padding if excess_returns else 0.5)
     
     # Add legend
     from matplotlib.patches import Patch
