@@ -901,6 +901,31 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"\n   Completed rebalancing backtest for {metric_name}")
     return summary_data
 
+def load_cache(cache_file: str) -> Optional[List[Dict]]:
+    """Load cached backtest results"""
+    if not os.path.exists(cache_file):
+        return None
+    
+    try:
+        with open(cache_file, 'r') as f:
+            cache_data = json.load(f)
+            # Validate cache structure
+            if isinstance(cache_data, list) and len(cache_data) > 0:
+                return cache_data
+    except Exception as e:
+        print(f"   Warning: Could not load cache: {e}")
+    
+    return None
+
+def save_cache(cache_file: str, summary_results: List[Dict]):
+    """Save backtest results to cache"""
+    try:
+        with open(cache_file, 'w') as f:
+            json.dump(summary_results, f, indent=2)
+        print(f"   Cache saved to {cache_file}")
+    except Exception as e:
+        print(f"   Warning: Could not save cache: {e}")
+
 def main():
     """Main function"""
     start_time = time.time()
@@ -1038,19 +1063,33 @@ def main():
     else:
         print(f"\n   Using output folder: {output_folder}/")
     
-    # Run rebalancing backtest for each metric and collect summary data
-    # Pass the full list so each metric can filter and select top 500 by revenue at its start year
-    print("\n2. Running rebalancing backtests for all metrics...")
-    summary_results = []
-    for metric in all_metrics:
-        summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
-        if summary_data:
-            summary_results.append(summary_data)
+    # Check for cached results
+    cache_file = os.path.join(output_folder, "rebalancing_backtest_cache.json")
+    print("\n2. Checking for cached results...")
+    cached_results = load_cache(cache_file)
+    
+    if cached_results:
+        print(f"   Found cached results for {len(cached_results)} metrics")
+        print("   Using cached data (delete cache file to recalculate)")
+        summary_results = cached_results
+    else:
+        print("   No cache found, running backtests...")
+        # Run rebalancing backtest for each metric and collect summary data
+        # Pass the full list so each metric can filter and select top 500 by revenue at its start year
+        print("\n   Running rebalancing backtests for all metrics...")
+        summary_results = []
+        for metric in all_metrics:
+            summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+            if summary_data:
+                summary_results.append(summary_data)
+        
+        # Save results to cache
+        if summary_results:
+            save_cache(cache_file, summary_results)
     
     # Create comparison chart
     if summary_results:
         print("\n3. Creating metric comparison chart...")
-        output_folder = "rebalancing_backtest_results"
         create_comparison_chart(summary_results, output_folder, "Rebalancing")
     
     end_time = time.time()
