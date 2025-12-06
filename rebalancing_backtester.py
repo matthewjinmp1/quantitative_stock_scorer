@@ -19,6 +19,29 @@ import matplotlib.dates as mdates
 from collections import defaultdict
 import numpy as np
 
+# ============================================================================
+# METRIC CONFIGURATION - ADD NEW METRICS HERE
+# ============================================================================
+# To add a new metric:
+# 1. Create the getter function (e.g., get_my_metric_at_date)
+# 2. Add a MetricConfig entry to METRICS list below
+# 3. That's it! The rest is automatic.
+
+from dataclasses import dataclass
+from typing import Callable
+
+@dataclass
+class MetricConfig:
+    """Configuration for a single metric"""
+    key: str  # Internal key name (e.g., "ebit_ppe")
+    display_name: str  # Display name (e.g., "EBIT/PPE")
+    short_name: str  # Short display name for charts (e.g., "EBIT/PPE")
+    getter_function: Callable  # Function to get metric value at a date
+    reverse_sort: bool = False  # True if lower values are better (e.g., EV/EBIT, consistency metrics)
+    needs_5y_history: bool = False  # True if metric needs 5 years of historical data
+    date_key: str = ""  # Key for storing date in stock_entry (auto-generated if empty)
+    load_years: tuple = (2002, 2004)  # Year range to check when loading initial data
+
 # Import all the helper functions from backtester.py
 # We'll copy them here for independence
 
@@ -755,25 +778,147 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
     print(f"   Comparison chart saved to {chart_filename}")
     plt.close()
 
+# ============================================================================
+# METRIC REGISTRY - ALL METRICS DEFINED HERE
+# ============================================================================
+# To add a new metric:
+# 1. Create a getter function: get_my_metric_at_date(stock_data, target_year)
+# 2. Add a MetricConfig entry below with:
+#    - key: internal identifier (e.g., "my_metric")
+#    - display_name: full name for display
+#    - short_name: abbreviated name for charts
+#    - getter_function: the function you created
+#    - reverse_sort: True if lower values are better (e.g., EV/EBIT, consistency)
+#    - needs_5y_history: True if metric needs 5 years of historical data
+#    - date_key: key for storing date in stock_entry (e.g., "my_metric_date")
+#    - load_years: tuple of (start_year, end_year) for initial data loading
+# 3. That's it! The metric will automatically be available everywhere.
+
+METRICS: List[MetricConfig] = [
+    MetricConfig(
+        key="ebit_ppe",
+        display_name="EBIT/PPE",
+        short_name="EBIT/PPE",
+        getter_function=get_ebit_ppe_at_date,
+        reverse_sort=False,
+        needs_5y_history=False,
+        date_key="ebit_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="operating_margin",
+        display_name="Operating Margin",
+        short_name="Operating Margin",
+        getter_function=get_operating_margin_at_date,
+        reverse_sort=False,
+        needs_5y_history=False,
+        date_key="om_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="gross_margin",
+        display_name="Gross Margin",
+        short_name="Gross Margin",
+        getter_function=get_gross_margin_at_date,
+        reverse_sort=False,
+        needs_5y_history=False,
+        date_key="gm_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="5y_revenue_cagr",
+        display_name="5-Year Revenue CAGR",
+        short_name="5Y Rev CAGR",
+        getter_function=get_5y_revenue_cagr_at_date,
+        reverse_sort=False,
+        needs_5y_history=True,
+        date_key="cagr_date",
+        load_years=(2007, 2009)
+    ),
+    MetricConfig(
+        key="5y_revenue_growth_rate",
+        display_name="5-Year Revenue Growth Rate",
+        short_name="5Y Rev Growth",
+        getter_function=get_5y_revenue_growth_rate_at_date,
+        reverse_sort=False,
+        needs_5y_history=True,
+        date_key="growth_rate_date",
+        load_years=(2007, 2009)
+    ),
+    MetricConfig(
+        key="consistency_of_growth",
+        display_name="Consistency of Growth",
+        short_name="Consistency Growth",
+        getter_function=get_consistency_of_growth_at_date,
+        reverse_sort=True,
+        needs_5y_history=True,
+        date_key="consistency_date",
+        load_years=(2007, 2009)
+    ),
+    MetricConfig(
+        key="consistency_of_operating_margin",
+        display_name="Consistency of Operating Margin",
+        short_name="Consistency OM",
+        getter_function=get_consistency_of_operating_margin_at_date,
+        reverse_sort=True,
+        needs_5y_history=True,
+        date_key="consistency_om_date",
+        load_years=(2007, 2009)
+    ),
+    MetricConfig(
+        key="dividend_yield",
+        display_name="Dividend Yield",
+        short_name="Dividend Yield",
+        getter_function=get_dividend_yield_at_date,
+        reverse_sort=False,
+        needs_5y_history=False,
+        date_key="div_yield_date",
+        load_years=(2001, 2005)  # Wider range for dividend yield
+    ),
+    MetricConfig(
+        key="ev_to_ebit",
+        display_name="EV/EBIT",
+        short_name="EV/EBIT",
+        getter_function=get_ev_to_ebit_at_date,
+        reverse_sort=True,
+        needs_5y_history=False,
+        date_key="ev_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="roa",
+        display_name="ROA",
+        short_name="ROA",
+        getter_function=get_roa_at_date,
+        reverse_sort=False,
+        needs_5y_history=False,
+        date_key="roa_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="relative_ps",
+        display_name="Relative PS",
+        short_name="Relative PS",
+        getter_function=get_relative_ps_at_date,
+        reverse_sort=True,
+        needs_5y_history=True,
+        date_key="ps_date",
+        load_years=(2007, 2009)
+    ),
+]
+
+# Create lookup dictionaries for efficient access
+METRICS_BY_KEY = {m.key: m for m in METRICS}
+METRICS_GETTER_FUNCTIONS = {m.key: m.getter_function for m in METRICS}
+REVERSE_SORT_METRICS = {m.key: m.reverse_sort for m in METRICS if m.reverse_sort}
+METRICS_NEEDING_5Y_HISTORY = {m.key for m in METRICS if m.needs_5y_history}
+METRICS_DATE_KEYS = {m.key: m.date_key for m in METRICS}
+
 def get_metric_at_date(stock_data: Dict, metric_name: str, target_year: int) -> Optional[Tuple[float, str]]:
     """Get a metric value for a stock at a specific year"""
-    metric_functions = {
-        'ebit_ppe': get_ebit_ppe_at_date,
-        'operating_margin': get_operating_margin_at_date,
-        'gross_margin': get_gross_margin_at_date,
-        '5y_revenue_cagr': get_5y_revenue_cagr_at_date,
-        '5y_revenue_growth_rate': get_5y_revenue_growth_rate_at_date,
-        'consistency_of_growth': get_consistency_of_growth_at_date,
-        'consistency_of_operating_margin': get_consistency_of_operating_margin_at_date,
-        'dividend_yield': get_dividend_yield_at_date,
-        'ev_to_ebit': get_ev_to_ebit_at_date,
-        'roa': get_roa_at_date,
-        'relative_ps': get_relative_ps_at_date,
-    }
-    
-    func = metric_functions.get(metric_name)
-    if func:
-        return func(stock_data, target_year)
+    getter_func = METRICS_GETTER_FUNCTIONS.get(metric_name)
+    if getter_func:
+        return getter_func(stock_data, target_year)
     return None
 
 def calculate_weights_for_period(stocks: List[Dict], metric_name: str, initial_revenue_total: float) -> Dict[str, float]:
@@ -789,7 +934,9 @@ def calculate_weights_for_period(stocks: List[Dict], metric_name: str, initial_r
         return {}
     
     # Rank by metric value
-    reverse_sort = metric_name not in ['ev_to_ebit', 'relative_ps', 'consistency_of_growth', 'consistency_of_operating_margin']  # These are reverse (lower is better)
+    # Use registry to determine if this is a reverse sort metric (lower is better)
+    metric_config = METRICS_BY_KEY.get(metric_name)
+    reverse_sort = not metric_config.reverse_sort if metric_config else True  # Default to higher is better
     
     if reverse_sort:
         stocks_with_metric.sort(key=lambda x: x['current_metric_value'], reverse=True)
@@ -844,13 +991,6 @@ def calculate_weights_for_period_combined(stocks: List[Dict], metric_names: List
         return {}
     
     # For each metric, calculate normalized ranks (0 = best, 1 = worst)
-    reverse_sort_metrics = {
-        'ev_to_ebit': False,
-        'relative_ps': False,
-        'consistency_of_growth': False,
-        'consistency_of_operating_margin': False
-    }
-    
     # Calculate ranks for each metric
     for metric_name in metric_names:
         metric_key = f'current_metric_value_{metric_name}'
@@ -860,9 +1000,9 @@ def calculate_weights_for_period_combined(stocks: List[Dict], metric_names: List
             continue
         
         # Sort by metric value
-        # Metrics in reverse_sort_metrics have lower values = better (reverse_sort = False)
-        # Other metrics have higher values = better (reverse_sort = True)
-        reverse_sort = metric_name not in reverse_sort_metrics
+        # Use registry to determine if this is a reverse sort metric (lower is better)
+        metric_config = METRICS_BY_KEY.get(metric_name)
+        reverse_sort = not metric_config.reverse_sort if metric_config else True  # Default to higher is better
         
         if reverse_sort:
             stocks_with_this_metric.sort(key=lambda x: x[metric_key], reverse=True)
@@ -933,25 +1073,11 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"Running REBALANCING backtest for: {metric_name}")
     print("=" * 80)
     
-    # Determine start year based on metric requirements
-    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "consistency_of_operating_margin", "relative_ps"]
-    start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
+    # Determine start year based on metric requirements (from registry)
+    start_year = 2007 if selected_metric in METRICS_NEEDING_5Y_HISTORY else 2002
     
-    # Map metric to its date key
-    date_key_map = {
-        'ebit_ppe': 'ebit_date',
-        'operating_margin': 'om_date',
-        'gross_margin': 'gm_date',
-        '5y_revenue_cagr': 'cagr_date',
-        '5y_revenue_growth_rate': 'growth_rate_date',
-        'consistency_of_growth': 'consistency_date',
-        'consistency_of_operating_margin': 'consistency_om_date',
-        'dividend_yield': 'div_yield_date',
-        'ev_to_ebit': 'ev_date',
-        'roa': 'roa_date',
-        'relative_ps': 'ps_date'
-    }
-    metric_date_key = date_key_map.get(selected_metric, 'revenue_date')
+    # Get date key from registry
+    metric_date_key = METRICS_DATE_KEYS.get(selected_metric, 'revenue_date')
     
     # Filter stocks that have the selected metric at the start year
     # For 5y metrics, we need to verify the metric is available at 2007
@@ -1239,9 +1365,8 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     print(f"Running REBALANCING backtest for COMBINED METRICS: {combined_metric_name}")
     print("=" * 80)
     
-    # Determine start year based on metric requirements
-    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "consistency_of_operating_margin", "relative_ps"]
-    start_year = 2007 if any(m in metrics_needing_5y_history for m in selected_metrics) else 2002
+    # Determine start year based on metric requirements (from registry)
+    start_year = 2007 if any(m in METRICS_NEEDING_5Y_HISTORY for m in selected_metrics) else 2002
     
     # Filter stocks that have at least one of the selected metrics at the start year
     stock_info = []
@@ -1499,18 +1624,14 @@ def main():
     print("=" * 80)
     
     # Define all metrics
+    # Generate all_metrics from METRICS registry
     all_metrics = [
-        {"selected_metric": "ebit_ppe", "metric_name": "EBIT/PPE", "metric_display_name": "EBIT/PPE"},
-        {"selected_metric": "operating_margin", "metric_name": "Operating Margin", "metric_display_name": "Operating Margin"},
-        {"selected_metric": "gross_margin", "metric_name": "Gross Margin", "metric_display_name": "Gross Margin"},
-        {"selected_metric": "5y_revenue_cagr", "metric_name": "5-Year Revenue CAGR", "metric_display_name": "5Y Rev CAGR"},
-        {"selected_metric": "5y_revenue_growth_rate", "metric_name": "5-Year Revenue Growth Rate", "metric_display_name": "5Y Rev Growth"},
-        {"selected_metric": "consistency_of_growth", "metric_name": "Consistency of Growth", "metric_display_name": "Consistency Growth"},
-        {"selected_metric": "consistency_of_operating_margin", "metric_name": "Consistency of Operating Margin", "metric_display_name": "Consistency OM"},
-        {"selected_metric": "dividend_yield", "metric_name": "Dividend Yield", "metric_display_name": "Dividend Yield"},
-        {"selected_metric": "ev_to_ebit", "metric_name": "EV/EBIT", "metric_display_name": "EV/EBIT"},
-        {"selected_metric": "roa", "metric_name": "ROA", "metric_display_name": "ROA"},
-        {"selected_metric": "relative_ps", "metric_name": "Relative PS", "metric_display_name": "Relative PS"},
+        {
+            "selected_metric": m.key,
+            "metric_name": m.display_name,
+            "metric_display_name": m.short_name
+        }
+        for m in METRICS
     ]
     
     # User input for metric selection
@@ -1599,51 +1720,35 @@ def main():
     print("   Finding stocks with data from 2002 (2007 for metrics requiring 5 years of history)...")
     stocks_with_data = []
     
+    # Group metrics by load_years for efficient loading
+    metrics_by_load_years = {}
+    for metric in METRICS:
+        load_years_key = metric.load_years
+        if load_years_key not in metrics_by_load_years:
+            metrics_by_load_years[load_years_key] = []
+        metrics_by_load_years[load_years_key].append(metric)
+    
     for stock_data in all_stocks_list:
         revenue_result = None
-        ebit_ppe_result = None
-        operating_margin_result = None
-        gross_margin_result = None
-        cagr_5y_result = None
-        dividend_yield_result = None
-        ev_ebit_result = None
-        roa_result = None
-        relative_ps_result = None
+        metric_results = {}  # Store results by metric key
         
-        # Try years 2002-2003 for most metrics
+        # Load revenue first (always needed)
         for year in range(2002, 2004):
             if not revenue_result:
                 revenue_result = get_revenue_at_date(stock_data, year)
-            if not ebit_ppe_result:
-                ebit_ppe_result = get_ebit_ppe_at_date(stock_data, year)
-            if not operating_margin_result:
-                operating_margin_result = get_operating_margin_at_date(stock_data, year)
-            if not gross_margin_result:
-                gross_margin_result = get_gross_margin_at_date(stock_data, year)
-            if not dividend_yield_result:
-                dividend_yield_result = get_dividend_yield_at_date(stock_data, year)
-            if not ev_ebit_result:
-                ev_ebit_result = get_ev_to_ebit_at_date(stock_data, year)
-            if not roa_result:
-                roa_result = get_roa_at_date(stock_data, year)
             if revenue_result:
                 break
         
-        # Metrics requiring 5 years of past data use 2007-2008
-        growth_rate_5y_result = None
-        consistency_result = None
-        consistency_om_result = None
-        for year in range(2007, 2009):
-            if not cagr_5y_result:
-                cagr_5y_result = get_5y_revenue_cagr_at_date(stock_data, year)
-            if not growth_rate_5y_result:
-                growth_rate_5y_result = get_5y_revenue_growth_rate_at_date(stock_data, year)
-            if not consistency_result:
-                consistency_result = get_consistency_of_growth_at_date(stock_data, year)
-            if not consistency_om_result:
-                consistency_om_result = get_consistency_of_operating_margin_at_date(stock_data, year)
-            if not relative_ps_result:
-                relative_ps_result = get_relative_ps_at_date(stock_data, year)
+        # Load all metrics grouped by their load_years
+        for load_years, metrics_group in metrics_by_load_years.items():
+            start_year, end_year = load_years
+            for year in range(start_year, end_year):
+                for metric in metrics_group:
+                    metric_key = metric.key
+                    if metric_key not in metric_results or metric_results[metric_key] is None:
+                        result = metric.getter_function(stock_data, year)
+                        if result:
+                            metric_results[metric_key] = result
         
         # Need revenue at minimum
         if revenue_result and revenue_result[0] >= 100_000_000:  # $100M minimum
@@ -1655,50 +1760,13 @@ def main():
                 'revenue_date': revenue_date
             }
             
-            if ebit_ppe_result:
-                ebit_ppe, ebit_date = ebit_ppe_result
-                stock_entry['ebit_ppe'] = ebit_ppe
-                stock_entry['ebit_date'] = ebit_date
-            if operating_margin_result:
-                om, om_date = operating_margin_result
-                stock_entry['operating_margin'] = om
-                stock_entry['om_date'] = om_date
-            if gross_margin_result:
-                gm, gm_date = gross_margin_result
-                stock_entry['gross_margin'] = gm
-                stock_entry['gm_date'] = gm_date
-            if cagr_5y_result:
-                cagr_5y, cagr_date = cagr_5y_result
-                stock_entry['5y_revenue_cagr'] = cagr_5y
-                stock_entry['cagr_date'] = cagr_date
-            if growth_rate_5y_result:
-                growth_rate_5y, growth_rate_date = growth_rate_5y_result
-                stock_entry['5y_revenue_growth_rate'] = growth_rate_5y
-                stock_entry['growth_rate_date'] = growth_rate_date
-            if consistency_result:
-                consistency, consistency_date = consistency_result
-                stock_entry['consistency_of_growth'] = consistency
-                stock_entry['consistency_date'] = consistency_date
-            if consistency_om_result:
-                consistency_om, consistency_om_date = consistency_om_result
-                stock_entry['consistency_of_operating_margin'] = consistency_om
-                stock_entry['consistency_om_date'] = consistency_om_date
-            if dividend_yield_result:
-                div_yield, div_yield_date = dividend_yield_result
-                stock_entry['dividend_yield'] = div_yield
-                stock_entry['div_yield_date'] = div_yield_date
-            if ev_ebit_result:
-                ev_ebit, ev_date = ev_ebit_result
-                stock_entry['ev_to_ebit'] = ev_ebit
-                stock_entry['ev_date'] = ev_date
-            if roa_result:
-                roa, roa_date = roa_result
-                stock_entry['roa'] = roa
-                stock_entry['roa_date'] = roa_date
-            if relative_ps_result:
-                relative_ps, ps_date = relative_ps_result
-                stock_entry['relative_ps'] = relative_ps
-                stock_entry['ps_date'] = ps_date
+            # Store all metric results dynamically from registry
+            for metric in METRICS:
+                metric_key = metric.key
+                if metric_key in metric_results and metric_results[metric_key]:
+                    metric_value, metric_date = metric_results[metric_key]
+                    stock_entry[metric_key] = metric_value
+                    stock_entry[metric.date_key] = metric_date
             
             stocks_with_data.append(stock_entry)
     
