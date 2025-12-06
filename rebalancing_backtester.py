@@ -579,6 +579,43 @@ def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 20
     
     return returns if returns else None
 
+def load_cached_results(cache_file: str) -> List[Dict]:
+    """Load cached backtest results from JSON file"""
+    if not os.path.exists(cache_file):
+        return []
+    
+    try:
+        with open(cache_file, 'r') as f:
+            results = json.load(f)
+            return results if isinstance(results, list) else []
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"   Warning: Could not load cache file {cache_file}: {e}")
+        return []
+
+def save_result_to_cache(cache_file: str, result: Dict):
+    """Save or update a single result in the cache file"""
+    # Load existing results
+    existing_results = load_cached_results(cache_file)
+    
+    # Find if this metric already exists (by 'metric' key)
+    metric_key = result.get('metric')
+    updated = False
+    for i, existing in enumerate(existing_results):
+        if existing.get('metric') == metric_key:
+            existing_results[i] = result  # Update existing
+            updated = True
+            break
+    
+    if not updated:
+        existing_results.append(result)  # Add new
+    
+    # Save back to file
+    try:
+        with open(cache_file, 'w') as f:
+            json.dump(existing_results, f, indent=2)
+    except IOError as e:
+        print(f"   Warning: Could not save to cache file {cache_file}: {e}")
+
 def create_comparison_chart(results: List[Dict], output_folder: str, chart_type: str):
     """Create a comparison chart showing excess returns vs benchmark"""
     if not results:
@@ -1618,9 +1655,14 @@ def main():
     else:
         print(f"\n   Using output folder: {output_folder}/")
     
+    # Load cached results
+    cache_file = os.path.join(output_folder, "rebalancing_backtest_cache.json")
+    cached_results = load_cached_results(cache_file)
+    print(f"   Loaded {len(cached_results)} cached result(s)")
+    
     # Run rebalancing backtest for selected metrics
     print("\n2. Running rebalancing backtests...")
-    summary_results = []
+    new_summary_results = []
     for metric in metrics_to_run:
         if metric.get('is_combined', False):
             # Run combined metrics backtest
@@ -1639,14 +1681,36 @@ def main():
                 metric['metric_display_name']
             )
         if summary_data:
-            summary_results.append(summary_data)
+            new_summary_results.append(summary_data)
+            # Save to cache immediately
+            save_result_to_cache(cache_file, summary_data)
+            print(f"      Saved result to cache")
     
-    # Create comparison chart only if running multiple metrics
-    if len(summary_results) > 1:
-        print("\n3. Creating metric comparison chart...")
-        create_comparison_chart(summary_results, output_folder, "Rebalancing")
-    elif len(summary_results) == 1:
-        print("\n3. Skipping comparison chart (only one metric selected)")
+    # Merge cached results with new results
+    # Create a dict keyed by 'metric' to avoid duplicates
+    all_results_dict = {}
+    
+    # Add cached results first
+    for result in cached_results:
+        metric_key = result.get('metric')
+        if metric_key:
+            all_results_dict[metric_key] = result
+    
+    # Overwrite with new results (newer results take precedence)
+    for result in new_summary_results:
+        metric_key = result.get('metric')
+        if metric_key:
+            all_results_dict[metric_key] = result
+    
+    # Convert back to list
+    all_results = list(all_results_dict.values())
+    
+    # Always create/update comparison chart with all results
+    if all_results:
+        print(f"\n3. Creating metric comparison chart with {len(all_results)} metric(s)...")
+        create_comparison_chart(all_results, output_folder, "Rebalancing")
+    else:
+        print("\n3. No results available for comparison chart")
     
     end_time = time.time()
     elapsed_time = end_time - start_time
