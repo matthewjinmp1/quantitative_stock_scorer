@@ -783,8 +783,8 @@ def calculate_weights_for_period_combined(stocks: List[Dict], metric_names: List
         n_with_metric = len(stocks_with_this_metric)
         for i, stock in enumerate(stocks_with_this_metric):
             rank_key = f'normalized_rank_{metric_name}'
-            if n_with_this_metric > 1:
-                stock[rank_key] = i / (n_with_this_metric - 1)  # 0 to 1
+            if n_with_metric > 1:
+                stock[rank_key] = i / (n_with_metric - 1)  # 0 to 1
             else:
                 stock[rank_key] = 0.0
     
