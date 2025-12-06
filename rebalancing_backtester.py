@@ -339,6 +339,57 @@ def get_consistency_of_growth_at_date(stock_data: Dict, target_year: int = 2000)
     
     return None
 
+def get_consistency_of_operating_margin_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Consistency of Operating Margin metric for a stock at a specific date
+    Takes past 20 quarters of operating margins, calculates stdev
+    Lower stdev = more consistent operating margins (better)
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    operating_income = data.get("operating_income", [])
+    revenue = data.get("revenue", [])
+    
+    if not isinstance(operating_income, list) or not isinstance(revenue, list):
+        return None
+    
+    if len(operating_income) < 20 or len(revenue) < 20:
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 19:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 19 and idx < len(period_dates) and idx < len(operating_income) and idx < len(revenue):
+            # Calculate operating margins for the past 20 quarters (idx-19 to idx)
+            operating_margins = []
+            
+            for i in range(idx - 19, idx + 1):
+                if i < len(operating_income) and i < len(revenue):
+                    op_income = operating_income[i]
+                    rev = revenue[i]
+                    
+                    if (op_income is not None and rev is not None and rev != 0):
+                        operating_margin = op_income / rev
+                        operating_margins.append(operating_margin)
+            
+            # Need at least a few operating margins to calculate stdev
+            if len(operating_margins) >= 10:
+                # Calculate standard deviation
+                mean_margin = sum(operating_margins) / len(operating_margins)
+                variance = sum((x - mean_margin) ** 2 for x in operating_margins) / len(operating_margins)
+                stdev = math.sqrt(variance)
+                return (stdev, period_dates[idx])
+    
+    return None
+
 def get_dividend_yield_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get Dividend Yield for a stock at a specific date
     Calculated as (trailing 4 quarters of dividends / current price) * 100
@@ -713,6 +764,7 @@ def get_metric_at_date(stock_data: Dict, metric_name: str, target_year: int) -> 
         '5y_revenue_cagr': get_5y_revenue_cagr_at_date,
         '5y_revenue_growth_rate': get_5y_revenue_growth_rate_at_date,
         'consistency_of_growth': get_consistency_of_growth_at_date,
+        'consistency_of_operating_margin': get_consistency_of_operating_margin_at_date,
         'dividend_yield': get_dividend_yield_at_date,
         'ev_to_ebit': get_ev_to_ebit_at_date,
         'roa': get_roa_at_date,
@@ -737,7 +789,7 @@ def calculate_weights_for_period(stocks: List[Dict], metric_name: str, initial_r
         return {}
     
     # Rank by metric value
-    reverse_sort = metric_name not in ['ev_to_ebit', 'relative_ps', 'consistency_of_growth']  # These are reverse (lower is better)
+    reverse_sort = metric_name not in ['ev_to_ebit', 'relative_ps', 'consistency_of_growth', 'consistency_of_operating_margin']  # These are reverse (lower is better)
     
     if reverse_sort:
         stocks_with_metric.sort(key=lambda x: x['current_metric_value'], reverse=True)
@@ -795,7 +847,8 @@ def calculate_weights_for_period_combined(stocks: List[Dict], metric_names: List
     reverse_sort_metrics = {
         'ev_to_ebit': False,
         'relative_ps': False,
-        'consistency_of_growth': False
+        'consistency_of_growth': False,
+        'consistency_of_operating_margin': False
     }
     
     # Calculate ranks for each metric
@@ -881,7 +934,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print("=" * 80)
     
     # Determine start year based on metric requirements
-    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "relative_ps"]
+    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "consistency_of_operating_margin", "relative_ps"]
     start_year = 2007 if selected_metric in metrics_needing_5y_history else 2002
     
     # Map metric to its date key
@@ -892,6 +945,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
         '5y_revenue_cagr': 'cagr_date',
         '5y_revenue_growth_rate': 'growth_rate_date',
         'consistency_of_growth': 'consistency_date',
+        'consistency_of_operating_margin': 'consistency_om_date',
         'dividend_yield': 'div_yield_date',
         'ev_to_ebit': 'ev_date',
         'roa': 'roa_date',
@@ -1186,7 +1240,7 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     print("=" * 80)
     
     # Determine start year based on metric requirements
-    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "relative_ps"]
+    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "consistency_of_operating_margin", "relative_ps"]
     start_year = 2007 if any(m in metrics_needing_5y_history for m in selected_metrics) else 2002
     
     # Filter stocks that have at least one of the selected metrics at the start year
@@ -1452,6 +1506,7 @@ def main():
         {"selected_metric": "5y_revenue_cagr", "metric_name": "5-Year Revenue CAGR", "metric_display_name": "5Y Rev CAGR"},
         {"selected_metric": "5y_revenue_growth_rate", "metric_name": "5-Year Revenue Growth Rate", "metric_display_name": "5Y Rev Growth"},
         {"selected_metric": "consistency_of_growth", "metric_name": "Consistency of Growth", "metric_display_name": "Consistency Growth"},
+        {"selected_metric": "consistency_of_operating_margin", "metric_name": "Consistency of Operating Margin", "metric_display_name": "Consistency OM"},
         {"selected_metric": "dividend_yield", "metric_name": "Dividend Yield", "metric_display_name": "Dividend Yield"},
         {"selected_metric": "ev_to_ebit", "metric_name": "EV/EBIT", "metric_display_name": "EV/EBIT"},
         {"selected_metric": "roa", "metric_name": "ROA", "metric_display_name": "ROA"},
@@ -1577,6 +1632,7 @@ def main():
         # Metrics requiring 5 years of past data use 2007-2008
         growth_rate_5y_result = None
         consistency_result = None
+        consistency_om_result = None
         for year in range(2007, 2009):
             if not cagr_5y_result:
                 cagr_5y_result = get_5y_revenue_cagr_at_date(stock_data, year)
@@ -1584,6 +1640,8 @@ def main():
                 growth_rate_5y_result = get_5y_revenue_growth_rate_at_date(stock_data, year)
             if not consistency_result:
                 consistency_result = get_consistency_of_growth_at_date(stock_data, year)
+            if not consistency_om_result:
+                consistency_om_result = get_consistency_of_operating_margin_at_date(stock_data, year)
             if not relative_ps_result:
                 relative_ps_result = get_relative_ps_at_date(stock_data, year)
         
@@ -1621,6 +1679,10 @@ def main():
                 consistency, consistency_date = consistency_result
                 stock_entry['consistency_of_growth'] = consistency
                 stock_entry['consistency_date'] = consistency_date
+            if consistency_om_result:
+                consistency_om, consistency_om_date = consistency_om_result
+                stock_entry['consistency_of_operating_margin'] = consistency_om
+                stock_entry['consistency_om_date'] = consistency_om_date
             if dividend_yield_result:
                 div_yield, div_yield_date = dividend_yield_result
                 stock_entry['dividend_yield'] = div_yield
