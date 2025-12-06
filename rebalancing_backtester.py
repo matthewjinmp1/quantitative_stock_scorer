@@ -732,6 +732,111 @@ def calculate_weights_for_period(stocks: List[Dict], metric_name: str, initial_r
     
     return weights
 
+def calculate_weights_for_period_combined(stocks: List[Dict], metric_names: List[str], initial_revenue_total: float) -> Dict[str, float]:
+    """
+    Calculate metric-weighted portfolio weights for a period using combined metrics
+    Combines rankings from multiple metrics by summing normalized ranks
+    Uses initial revenue for base weights, but new combined metric rankings
+    Returns dict: ticker -> final_weight_pct
+    """
+    # Get all stocks that have at least one metric
+    stocks_with_any_metric = []
+    for stock in stocks:
+        has_any_metric = False
+        for metric_name in metric_names:
+            metric_key = f'current_metric_value_{metric_name}'
+            if stock.get(metric_key) is not None:
+                has_any_metric = True
+                break
+        if has_any_metric:
+            stocks_with_any_metric.append(stock)
+    
+    if not stocks_with_any_metric:
+        return {}
+    
+    # For each metric, calculate normalized ranks (0 = best, 1 = worst)
+    reverse_sort_metrics = {
+        'ev_to_ebit': False,
+        'relative_ps': False,
+        'consistency_of_growth': False
+    }
+    
+    # Calculate ranks for each metric
+    for metric_name in metric_names:
+        metric_key = f'current_metric_value_{metric_name}'
+        stocks_with_this_metric = [s for s in stocks_with_any_metric if s.get(metric_key) is not None]
+        
+        if not stocks_with_this_metric:
+            continue
+        
+        # Sort by metric value
+        # Metrics in reverse_sort_metrics have lower values = better (reverse_sort = False)
+        # Other metrics have higher values = better (reverse_sort = True)
+        reverse_sort = metric_name not in reverse_sort_metrics
+        
+        if reverse_sort:
+            stocks_with_this_metric.sort(key=lambda x: x[metric_key], reverse=True)
+        else:
+            stocks_with_this_metric.sort(key=lambda x: x[metric_key] if x[metric_key] is not None else float('inf'))
+        
+        # Assign normalized ranks (0 = best, 1 = worst)
+        n_with_metric = len(stocks_with_this_metric)
+        for i, stock in enumerate(stocks_with_this_metric):
+            rank_key = f'normalized_rank_{metric_name}'
+            if n_with_this_metric > 1:
+                stock[rank_key] = i / (n_with_this_metric - 1)  # 0 to 1
+            else:
+                stock[rank_key] = 0.0
+    
+    # Calculate combined rank (sum of normalized ranks, lower is better)
+    for stock in stocks_with_any_metric:
+        combined_rank = 0.0
+        metric_count = 0
+        for metric_name in metric_names:
+            rank_key = f'normalized_rank_{metric_name}'
+            if rank_key in stock:
+                combined_rank += stock[rank_key]
+                metric_count += 1
+        
+        if metric_count > 0:
+            stock['combined_rank'] = combined_rank / metric_count  # Average normalized rank
+        else:
+            stock['combined_rank'] = float('inf')  # No metrics available
+    
+    # Filter to stocks with valid combined rank
+    stocks_with_combined_rank = [s for s in stocks_with_any_metric if s.get('combined_rank') != float('inf')]
+    
+    if not stocks_with_combined_rank:
+        return {}
+    
+    # Sort by combined rank (lower is better)
+    stocks_with_combined_rank.sort(key=lambda x: x['combined_rank'])
+    
+    # Calculate initial weights based on initial revenue
+    for stock in stocks_with_combined_rank:
+        stock['initial_weight'] = (stock['initial_revenue'] / initial_revenue_total) * 100
+    
+    # Apply multiplier based on combined rank (0.5 for worst, 2.0 for best)
+    n_stocks = len(stocks_with_combined_rank)
+    for i, stock in enumerate(stocks_with_combined_rank):
+        if n_stocks > 1:
+            multiplier = 2.0 - (i / (n_stocks - 1)) * 1.5  # 2.0 to 0.5
+        else:
+            multiplier = 1.0
+        stock['multiplier'] = multiplier
+        stock['adjusted_weight'] = stock['initial_weight'] * multiplier
+    
+    # Normalize weights to sum to 100%
+    total_adjusted = sum(s['adjusted_weight'] for s in stocks_with_combined_rank)
+    weights = {}
+    for stock in stocks_with_combined_rank:
+        if total_adjusted > 0:
+            weights[stock['ticker']] = (stock['adjusted_weight'] / total_adjusted) * 100
+        else:
+            weights[stock['ticker']] = 0.0
+    
+    return weights
+
 def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_metric: str, metric_name: str, metric_display_name: str):
     """Run rebalancing backtest for a specific metric"""
     print("\n" + "=" * 80)
@@ -1037,6 +1142,263 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"\n   Completed rebalancing backtest for {metric_name}")
     return summary_data
 
+def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], selected_metrics: List[str], metric_names: List[str], combined_metric_name: str):
+    """Run rebalancing backtest for combined metrics"""
+    print("\n" + "=" * 80)
+    print(f"Running REBALANCING backtest for COMBINED METRICS: {combined_metric_name}")
+    print("=" * 80)
+    
+    # Determine start year based on metric requirements
+    metrics_needing_5y_history = ["5y_revenue_cagr", "5y_revenue_growth_rate", "consistency_of_growth", "relative_ps"]
+    start_year = 2007 if any(m in metrics_needing_5y_history for m in selected_metrics) else 2002
+    
+    # Filter stocks that have at least one of the selected metrics at the start year
+    stock_info = []
+    check_years = [start_year]
+    if 'dividend_yield' in selected_metrics:
+        check_years = list(range(max(2001, start_year - 1), min(2005, start_year + 3)))
+    
+    for s in stock_info_base:
+        has_at_least_one_metric = False
+        metric_year_used = None
+        
+        # Check if at least one metric is available in the year range
+        for check_year in check_years:
+            for selected_metric in selected_metrics:
+                metric_result = get_metric_at_date(s['stock_data'], selected_metric, check_year)
+                if metric_result:
+                    has_at_least_one_metric = True
+                    metric_year_used = check_year
+                    break
+            if has_at_least_one_metric:
+                break
+        
+        if has_at_least_one_metric:
+            stock_copy = s.copy()
+            stock_copy['ticker'] = stock_copy.get('ticker') or stock_copy.get('symbol')
+            
+            # Get revenue from the year where we found the metric (or start_year)
+            revenue_year = metric_year_used if metric_year_used else start_year
+            revenue_result = get_revenue_at_date(s['stock_data'], revenue_year)
+            if revenue_result:
+                revenue, revenue_date = revenue_result
+                stock_copy['initial_revenue'] = revenue
+                stock_copy['initial_revenue_date'] = revenue_date
+            else:
+                stock_copy['initial_revenue'] = s['revenue']
+                stock_copy['initial_revenue_date'] = s.get('revenue_date')
+            
+            stock_info.append(stock_copy)
+    
+    if not stock_info:
+        print(f"   Skipping {combined_metric_name}: No stocks found with metric data for {start_year}")
+        return
+    
+    # Sort by initial revenue and take top 500
+    stock_info.sort(key=lambda x: x['initial_revenue'], reverse=True)
+    stock_info = stock_info[:500]
+    
+    initial_revenue_total = sum(s['initial_revenue'] for s in stock_info)
+    print(f"   Using {len(stock_info)} stocks with initial revenue total: ${initial_revenue_total/1e9:.2f}B")
+    
+    # Get all available dates from stock returns
+    print(f"\n   Calculating returns and collecting dates...")
+    all_dates = set()
+    stock_returns_by_date = {}
+    
+    for stock in stock_info:
+        start_date = stock.get('initial_revenue_date')
+        returns = calculate_total_return_with_dividends(stock['stock_data'], start_year, start_date)
+        if returns:
+            ticker = stock['ticker']
+            stock_returns_by_date[ticker] = {}
+            for date, return_pct in returns:
+                all_dates.add(date)
+                stock_returns_by_date[ticker][date] = return_pct
+    
+    if not all_dates:
+        print("   Error: No return data calculated")
+        return
+    
+    sorted_dates = sorted(all_dates)
+    print(f"   Found {len(sorted_dates)} dates from {sorted_dates[0].strftime('%Y-%m-%d')} to {sorted_dates[-1].strftime('%Y-%m-%d')}")
+    
+    dates_by_year = defaultdict(list)
+    for date in sorted_dates:
+        dates_by_year[date.year].append(date)
+    
+    rebalance_years = sorted(dates_by_year.keys())
+    print(f"   Will rebalance at years: {rebalance_years[:5]}...{rebalance_years[-5:] if len(rebalance_years) > 10 else rebalance_years}")
+    
+    # Calculate revenue-weighted portfolio weights (static)
+    revenue_weights = {}
+    for stock in stock_info:
+        ticker = stock['ticker']
+        revenue_weights[ticker] = (stock['initial_revenue'] / initial_revenue_total) * 100
+    
+    cumulative_returns_metric_weighted = []
+    cumulative_returns_revenue_weighted = []
+    current_metric_weights = {}
+    
+    last_rebalance_year = None
+    portfolio_value_metric = 1.0
+    portfolio_value_revenue = 1.0
+    
+    for date in sorted_dates:
+        current_year = date.year
+        
+        # Rebalance if we've entered a new year
+        if last_rebalance_year is None or current_year > last_rebalance_year:
+            print(f"   Rebalancing at {current_year}...")
+            
+            # Recalculate all metrics for all stocks at this year
+            for stock in stock_info:
+                for selected_metric in selected_metrics:
+                    metric_result = get_metric_at_date(stock['stock_data'], selected_metric, current_year)
+                    metric_key = f'current_metric_value_{selected_metric}'
+                    if metric_result:
+                        metric_value, metric_date = metric_result
+                        stock[metric_key] = metric_value
+                    else:
+                        stock[metric_key] = None
+            
+            # Calculate new weights based on combined metric rankings
+            new_weights = calculate_weights_for_period_combined(
+                stock_info, selected_metrics, initial_revenue_total
+            )
+            
+            # Handle weight redistribution if needed
+            if current_metric_weights and len(new_weights) < len(current_metric_weights):
+                total_new_weight = sum(new_weights.values())
+                if total_new_weight > 0 and total_new_weight < 100.0:
+                    weight_redistribution_factor = 100.0 / total_new_weight
+                    for ticker in new_weights:
+                        new_weights[ticker] *= weight_redistribution_factor
+                elif total_new_weight == 0:
+                    print(f"      Warning: All stocks lost metric data at {current_year}, keeping previous weights")
+                    new_weights = current_metric_weights.copy()
+            
+            current_metric_weights = new_weights
+            print(f"      Rebalanced {len([s for s in stock_info if any(s.get(f'current_metric_value_{m}') is not None for m in selected_metrics)])} stocks with metric data")
+            
+            last_rebalance_year = current_year
+        
+        # Calculate portfolio values for this date
+        active_stocks_metric = []
+        inactive_stocks_metric = []
+        active_stocks_revenue = []
+        inactive_stocks_revenue = []
+        
+        for stock in stock_info:
+            ticker = stock['ticker']
+            metric_weight = current_metric_weights.get(ticker, 0.0) / 100.0
+            revenue_weight = revenue_weights.get(ticker, 0.0) / 100.0
+            
+            if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
+                stock_return_pct = stock_returns_by_date[ticker][date]
+                stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
+                active_stocks_metric.append((ticker, metric_weight, stock_value_multiplier))
+                active_stocks_revenue.append((ticker, revenue_weight, stock_value_multiplier))
+            else:
+                last_return = 0.0
+                if ticker in stock_returns_by_date:
+                    for prev_date, prev_return in stock_returns_by_date[ticker].items():
+                        if prev_date <= date:
+                            last_return = prev_return
+                stock_value_multiplier = 1.0 + (last_return / 100.0)
+                inactive_stocks_metric.append((ticker, metric_weight, stock_value_multiplier))
+                inactive_stocks_revenue.append((ticker, revenue_weight, stock_value_multiplier))
+        
+        portfolio_value_metric = 0.0
+        portfolio_value_revenue = 0.0
+        
+        for _, weight, value_mult in active_stocks_metric:
+            portfolio_value_metric += weight * value_mult
+        for _, weight, value_mult in active_stocks_revenue:
+            portfolio_value_revenue += weight * value_mult
+        
+        total_active_weight_metric = sum(w for _, w, _ in active_stocks_metric)
+        total_active_weight_revenue = sum(w for _, w, _ in active_stocks_revenue)
+        inactive_value_metric = sum(w * v for _, w, v in inactive_stocks_metric)
+        inactive_value_revenue = sum(w * v for _, w, v in inactive_stocks_revenue)
+        
+        if total_active_weight_metric > 0 and len(active_stocks_metric) > 0:
+            for _, weight, value_mult in active_stocks_metric:
+                proportion = weight / total_active_weight_metric
+                portfolio_value_metric += proportion * inactive_value_metric
+        
+        if total_active_weight_revenue > 0 and len(active_stocks_revenue) > 0:
+            for _, weight, value_mult in active_stocks_revenue:
+                proportion = weight / total_active_weight_revenue
+                portfolio_value_revenue += proportion * inactive_value_revenue
+        
+        cumulative_return_metric = (portfolio_value_metric - 1.0) * 100
+        cumulative_return_revenue = (portfolio_value_revenue - 1.0) * 100
+        cumulative_returns_metric_weighted.append(cumulative_return_metric)
+        cumulative_returns_revenue_weighted.append(cumulative_return_revenue)
+    
+    print(f"\n   Calculated returns for {len(sorted_dates)} time periods")
+    print(f"      Start date: {sorted_dates[0].strftime('%Y-%m-%d')}")
+    print(f"      End date: {sorted_dates[-1].strftime('%Y-%m-%d')}")
+    print(f"      {combined_metric_name} Weighted (Rebalanced) Total return: {cumulative_returns_metric_weighted[-1]:.2f}%")
+    print(f"      Revenue Weighted (Static) Total return: {cumulative_returns_revenue_weighted[-1]:.2f}%")
+    
+    start_date_obj = sorted_dates[0]
+    end_date_obj = sorted_dates[-1]
+    delta_years = (end_date_obj - start_date_obj).days / 365.25
+    
+    annualized_return_metric = ((1 + cumulative_returns_metric_weighted[-1] / 100) ** (1 / delta_years) - 1) * 100 if delta_years > 0 else 0.0
+    annualized_return_revenue = ((1 + cumulative_returns_revenue_weighted[-1] / 100) ** (1 / delta_years) - 1) * 100 if delta_years > 0 else 0.0
+    
+    print(f"      {combined_metric_name} Weighted (Rebalanced) Annualized return: {annualized_return_metric:.2f}%")
+    print(f"      Revenue Weighted (Static) Annualized return: {annualized_return_revenue:.2f}%")
+    
+    output_folder = "rebalancing_backtest_results"
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    print(f"\n   Creating performance chart...")
+    plt.figure(figsize=(14, 8))
+    
+    plt.plot(sorted_dates, cumulative_returns_metric_weighted, linewidth=2, 
+             color='#2E86AB', label=f'{combined_metric_name} Weighted (Rebalanced) ({annualized_return_metric:+.1f}% ann.)')
+    plt.plot(sorted_dates, cumulative_returns_revenue_weighted, linewidth=2, 
+             color='#A23B72', label=f'Revenue Weighted (Static) ({annualized_return_revenue:+.1f}% ann.)', linestyle='--')
+    
+    plt.title(f'Rebalancing Portfolio Performance Comparison ({start_year} - Present)\n'
+              f'{combined_metric_name} Weighted (Annual Rebalancing) vs Revenue Weighted (Static)',
+              fontsize=14, fontweight='bold')
+    plt.xlabel('Date', fontsize=12)
+    plt.ylabel('Cumulative Return (%)', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.legend(loc='upper left', fontsize=11)
+    
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    plt.gca().xaxis.set_major_locator(mdates.YearLocator(5))
+    plt.xticks(rotation=45)
+    plt.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+    plt.tight_layout()
+    
+    metric_filename = '_'.join([m.replace('/', '_').replace(' ', '_').lower() for m in selected_metrics])
+    chart_filename = f'{output_folder}/{metric_filename}_combined_rebalancing_backtest.png'
+    plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
+    print(f"      Chart saved to {chart_filename}")
+    plt.close()
+    
+    summary_data = {
+        'metric': '+'.join(selected_metrics),
+        'metric_name': combined_metric_name,
+        'start_year': start_year,
+        'start_date': sorted_dates[0].strftime('%Y-%m-%d'),
+        'end_date': sorted_dates[-1].strftime('%Y-%m-%d'),
+        'metric_weighted_annualized': annualized_return_metric,
+        'revenue_weighted_annualized': annualized_return_revenue,
+        'excess_return': annualized_return_metric - annualized_return_revenue
+    }
+    
+    print(f"\n   Completed rebalancing backtest for {combined_metric_name}")
+    return summary_data
+
 def main():
     """Main function"""
     start_time = time.time()
@@ -1064,31 +1426,71 @@ def main():
     for i, metric in enumerate(all_metrics, 1):
         print(f"  {i}. {metric['metric_name']}")
     print(f"  {len(all_metrics) + 1}. Run all metrics")
+    print(f"\n  You can also combine metrics using + (e.g., '1+3' for metrics 1 and 3)")
     
     while True:
         try:
-            user_input = input(f"\nSelect metric (1-{len(all_metrics) + 1}): ").strip()
-            choice = int(user_input)
+            user_input = input(f"\nSelect metric (1-{len(all_metrics) + 1}, or combine with + like '1+3'): ").strip()
             
-            if choice == len(all_metrics) + 1:
-                # Run all metrics
-                metrics_to_run = all_metrics
-                break
-            elif 1 <= choice <= len(all_metrics):
-                # Run single metric
-                metrics_to_run = [all_metrics[choice - 1]]
-                break
+            # Check if input contains + (combined metrics)
+            if '+' in user_input:
+                # Parse combined metrics
+                parts = user_input.split('+')
+                metric_indices = []
+                for part in parts:
+                    part = part.strip()
+                    if part.isdigit():
+                        idx = int(part)
+                        if 1 <= idx <= len(all_metrics):
+                            metric_indices.append(idx - 1)  # Convert to 0-based
+                        else:
+                            print(f"Invalid metric number: {idx}. Please enter numbers between 1 and {len(all_metrics)}.")
+                            break
+                    else:
+                        print(f"Invalid input: '{part}'. Please enter numbers separated by +.")
+                        break
+                else:
+                    # All parts were valid
+                    if len(metric_indices) < 2:
+                        print("Please combine at least 2 metrics (e.g., '1+3')")
+                    else:
+                        # Create combined metric entry
+                        selected_metrics = [all_metrics[i]['selected_metric'] for i in metric_indices]
+                        metric_names = [all_metrics[i]['metric_name'] for i in metric_indices]
+                        combined_name = " + ".join(metric_names)
+                        metrics_to_run = [{
+                            'selected_metrics': selected_metrics,
+                            'metric_names': metric_names,
+                            'metric_name': combined_name,
+                            'metric_display_name': combined_name,
+                            'is_combined': True
+                        }]
+                        print(f"\nSelected combined metrics: {combined_name}")
+                        break
             else:
-                print(f"Invalid choice. Please enter a number between 1 and {len(all_metrics) + 1}.")
+                # Single metric or "all"
+                choice = int(user_input)
+                
+                if choice == len(all_metrics) + 1:
+                    # Run all metrics
+                    metrics_to_run = all_metrics
+                    break
+                elif 1 <= choice <= len(all_metrics):
+                    # Run single metric
+                    metrics_to_run = [all_metrics[choice - 1]]
+                    break
+                else:
+                    print(f"Invalid choice. Please enter a number between 1 and {len(all_metrics) + 1}.")
         except ValueError:
-            print("Invalid input. Please enter a number.")
+            print("Invalid input. Please enter a number or combine metrics with + (e.g., '1+3').")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return
     
-    print(f"\nSelected {len(metrics_to_run)} metric(s) to run:")
-    for metric in metrics_to_run:
-        print(f"  - {metric['metric_name']}")
+    if not any(m.get('is_combined', False) for m in metrics_to_run):
+        print(f"\nSelected {len(metrics_to_run)} metric(s) to run:")
+        for metric in metrics_to_run:
+            print(f"  - {metric['metric_name']}")
     
     print("\n1. Finding S&P 500-like stocks from 2002...")
     print("   (Using stocks with data from 2002, ranked by revenue)")
@@ -1220,7 +1622,22 @@ def main():
     print("\n2. Running rebalancing backtests...")
     summary_results = []
     for metric in metrics_to_run:
-        summary_data = run_rebalancing_backtest_for_metric(stocks_with_data, metric['selected_metric'], metric['metric_name'], metric['metric_display_name'])
+        if metric.get('is_combined', False):
+            # Run combined metrics backtest
+            summary_data = run_rebalancing_backtest_for_combined_metrics(
+                stocks_with_data, 
+                metric['selected_metrics'], 
+                metric['metric_names'], 
+                metric['metric_name']
+            )
+        else:
+            # Run single metric backtest
+            summary_data = run_rebalancing_backtest_for_metric(
+                stocks_with_data, 
+                metric['selected_metric'], 
+                metric['metric_name'], 
+                metric['metric_display_name']
+            )
         if summary_data:
             summary_results.append(summary_data)
     
