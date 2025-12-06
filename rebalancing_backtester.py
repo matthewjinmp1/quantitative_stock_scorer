@@ -1463,11 +1463,11 @@ def main():
     for i, metric in enumerate(all_metrics, 1):
         print(f"  {i}. {metric['metric_name']}")
     print(f"  {len(all_metrics) + 1}. Run all metrics")
-    print(f"\n  You can also combine metrics using + (e.g., '1+3' for metrics 1 and 3)")
+    print(f"\n  You can also combine metrics using + (e.g., '1+3' for metrics 1 and 3, or '1+3+6' for three metrics)")
     
     while True:
         try:
-            user_input = input(f"\nSelect metric (1-{len(all_metrics) + 1}, or combine with + like '1+3'): ").strip()
+            user_input = input(f"\nSelect metric (1-{len(all_metrics) + 1}, or combine with + like '1+3' or '1+3+6'): ").strip()
             
             # Check if input contains + (combined metrics)
             if '+' in user_input:
