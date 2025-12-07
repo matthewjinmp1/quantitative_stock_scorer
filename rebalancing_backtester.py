@@ -817,15 +817,6 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
     ax.grid(True, alpha=0.15, axis='x', linestyle='--', linewidth=1, color='#999999')
     ax.set_axisbelow(True)
     
-    # Add legend
-    from matplotlib.patches import Patch
-    legend_elements = [
-        Patch(facecolor='#2d8659', alpha=0.85, label='Outperforms Benchmark', edgecolor='white', linewidth=2),
-        Patch(facecolor='#c44e52', alpha=0.85, label='Underperforms Benchmark', edgecolor='white', linewidth=2)
-    ]
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=11, framealpha=0.95, 
-              edgecolor='#cccccc', frameon=True)
-    
     # Remove top and right spines for cleaner look
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
