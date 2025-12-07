@@ -1268,6 +1268,9 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     portfolio_value_metric = 1.0  # Start at 1.0
     portfolio_value_revenue = 1.0  # Start at 1.0
     
+    # Track last known returns per stock (for inactive stocks) - updated as we iterate
+    stock_last_return = {ticker: 0.0 for ticker in revenue_weights.keys()}
+    
     for date in sorted_dates:
         current_year = date.year
         
@@ -1320,59 +1323,45 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
             
             last_rebalance_year = current_year
         
-        # Calculate portfolio values for this date
-        # Separate into active and inactive stocks
-        active_stocks_metric = []
-        inactive_stocks_metric = []
-        active_stocks_revenue = []
-        inactive_stocks_revenue = []
+        # Calculate portfolio values for this date (optimized)
+        # Track last known returns per stock as we iterate (since dates are sorted)
+        portfolio_value_metric = 0.0
+        portfolio_value_revenue = 0.0
+        total_active_weight_metric = 0.0
+        total_active_weight_revenue = 0.0
+        inactive_value_metric = 0.0
+        inactive_value_revenue = 0.0
         
         for stock in stock_info:
             ticker = stock['ticker']
             metric_weight = current_metric_weights.get(ticker, 0.0) / 100.0
             revenue_weight = revenue_weights.get(ticker, 0.0) / 100.0
             
+            # Get return for this date (O(1) lookup)
+            stock_return_pct = None
             if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
                 stock_return_pct = stock_returns_by_date[ticker][date]
+                stock_last_return[ticker] = stock_return_pct  # Update last known return
+            
+            if stock_return_pct is not None:
                 stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
-                active_stocks_metric.append((ticker, metric_weight, stock_value_multiplier))
-                active_stocks_revenue.append((ticker, revenue_weight, stock_value_multiplier))
+                # Active stock
+                portfolio_value_metric += metric_weight * stock_value_multiplier
+                portfolio_value_revenue += revenue_weight * stock_value_multiplier
+                total_active_weight_metric += metric_weight
+                total_active_weight_revenue += revenue_weight
             else:
-                # Find last known value
-                last_return = 0.0
-                if ticker in stock_returns_by_date:
-                    for prev_date, prev_return in stock_returns_by_date[ticker].items():
-                        if prev_date <= date:
-                            last_return = prev_return
+                # Inactive stock - use last known return
+                last_return = stock_last_return.get(ticker, 0.0)
                 stock_value_multiplier = 1.0 + (last_return / 100.0)
-                inactive_stocks_metric.append((ticker, metric_weight, stock_value_multiplier))
-                inactive_stocks_revenue.append((ticker, revenue_weight, stock_value_multiplier))
+                inactive_value_metric += metric_weight * stock_value_multiplier
+                inactive_value_revenue += revenue_weight * stock_value_multiplier
         
-        # Calculate portfolio values
-        portfolio_value_metric = 0.0
-        portfolio_value_revenue = 0.0
-        
-        # Add active stocks
-        for _, weight, value_mult in active_stocks_metric:
-            portfolio_value_metric += weight * value_mult
-        for _, weight, value_mult in active_stocks_revenue:
-            portfolio_value_revenue += weight * value_mult
-        
-        # Redistribute inactive stocks' value
-        total_active_weight_metric = sum(w for _, w, _ in active_stocks_metric)
-        total_active_weight_revenue = sum(w for _, w, _ in active_stocks_revenue)
-        inactive_value_metric = sum(w * v for _, w, v in inactive_stocks_metric)
-        inactive_value_revenue = sum(w * v for _, w, v in inactive_stocks_revenue)
-        
-        if total_active_weight_metric > 0 and len(active_stocks_metric) > 0:
-            for _, weight, value_mult in active_stocks_metric:
-                proportion = weight / total_active_weight_metric
-                portfolio_value_metric += proportion * inactive_value_metric
-        
-        if total_active_weight_revenue > 0 and len(active_stocks_revenue) > 0:
-            for _, weight, value_mult in active_stocks_revenue:
-                proportion = weight / total_active_weight_revenue
-                portfolio_value_revenue += proportion * inactive_value_revenue
+        # Redistribute inactive stocks' value proportionally to active stocks
+        if total_active_weight_metric > 0:
+            portfolio_value_metric += inactive_value_metric
+        if total_active_weight_revenue > 0:
+            portfolio_value_revenue += inactive_value_revenue
         
         # Calculate cumulative returns
         cumulative_return_metric = (portfolio_value_metric - 1.0) * 100
@@ -1547,6 +1536,9 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     portfolio_value_metric = 1.0
     portfolio_value_revenue = 1.0
     
+    # Track last known returns per stock (for inactive stocks) - updated as we iterate
+    stock_last_return = {ticker: 0.0 for ticker in revenue_weights.keys()}
+    
     for date in sorted_dates:
         current_year = date.year
         
@@ -1586,54 +1578,44 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
             
             last_rebalance_year = current_year
         
-        # Calculate portfolio values for this date
-        active_stocks_metric = []
-        inactive_stocks_metric = []
-        active_stocks_revenue = []
-        inactive_stocks_revenue = []
+        # Calculate portfolio values for this date (optimized)
+        portfolio_value_metric = 0.0
+        portfolio_value_revenue = 0.0
+        total_active_weight_metric = 0.0
+        total_active_weight_revenue = 0.0
+        inactive_value_metric = 0.0
+        inactive_value_revenue = 0.0
         
         for stock in stock_info:
             ticker = stock['ticker']
             metric_weight = current_metric_weights.get(ticker, 0.0) / 100.0
             revenue_weight = revenue_weights.get(ticker, 0.0) / 100.0
             
+            # Get return for this date (O(1) lookup)
+            stock_return_pct = None
             if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
                 stock_return_pct = stock_returns_by_date[ticker][date]
+                stock_last_return[ticker] = stock_return_pct  # Update last known return
+            
+            if stock_return_pct is not None:
                 stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
-                active_stocks_metric.append((ticker, metric_weight, stock_value_multiplier))
-                active_stocks_revenue.append((ticker, revenue_weight, stock_value_multiplier))
+                # Active stock
+                portfolio_value_metric += metric_weight * stock_value_multiplier
+                portfolio_value_revenue += revenue_weight * stock_value_multiplier
+                total_active_weight_metric += metric_weight
+                total_active_weight_revenue += revenue_weight
             else:
-                last_return = 0.0
-                if ticker in stock_returns_by_date:
-                    for prev_date, prev_return in stock_returns_by_date[ticker].items():
-                        if prev_date <= date:
-                            last_return = prev_return
+                # Inactive stock - use last known return
+                last_return = stock_last_return.get(ticker, 0.0)
                 stock_value_multiplier = 1.0 + (last_return / 100.0)
-                inactive_stocks_metric.append((ticker, metric_weight, stock_value_multiplier))
-                inactive_stocks_revenue.append((ticker, revenue_weight, stock_value_multiplier))
+                inactive_value_metric += metric_weight * stock_value_multiplier
+                inactive_value_revenue += revenue_weight * stock_value_multiplier
         
-        portfolio_value_metric = 0.0
-        portfolio_value_revenue = 0.0
-        
-        for _, weight, value_mult in active_stocks_metric:
-            portfolio_value_metric += weight * value_mult
-        for _, weight, value_mult in active_stocks_revenue:
-            portfolio_value_revenue += weight * value_mult
-        
-        total_active_weight_metric = sum(w for _, w, _ in active_stocks_metric)
-        total_active_weight_revenue = sum(w for _, w, _ in active_stocks_revenue)
-        inactive_value_metric = sum(w * v for _, w, v in inactive_stocks_metric)
-        inactive_value_revenue = sum(w * v for _, w, v in inactive_stocks_revenue)
-        
-        if total_active_weight_metric > 0 and len(active_stocks_metric) > 0:
-            for _, weight, value_mult in active_stocks_metric:
-                proportion = weight / total_active_weight_metric
-                portfolio_value_metric += proportion * inactive_value_metric
-        
-        if total_active_weight_revenue > 0 and len(active_stocks_revenue) > 0:
-            for _, weight, value_mult in active_stocks_revenue:
-                proportion = weight / total_active_weight_revenue
-                portfolio_value_revenue += proportion * inactive_value_revenue
+        # Redistribute inactive stocks' value proportionally to active stocks
+        if total_active_weight_metric > 0:
+            portfolio_value_metric += inactive_value_metric
+        if total_active_weight_revenue > 0:
+            portfolio_value_revenue += inactive_value_revenue
         
         cumulative_return_metric = (portfolio_value_metric - 1.0) * 100
         cumulative_return_revenue = (portfolio_value_revenue - 1.0) * 100
