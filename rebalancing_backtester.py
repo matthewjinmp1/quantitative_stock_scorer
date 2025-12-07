@@ -1769,6 +1769,9 @@ def main():
     print("\n1. Finding S&P 500-like stocks from 2002...")
     print("   (Using stocks with data from 2002, ranked by revenue)")
     
+    # Start data loading timer
+    data_loading_start = time.time()
+    
     # Load all stock data
     print("   Loading all stock data...")
     nyse_stocks = load_data_from_jsonl("nyse_data.jsonl")
@@ -1838,6 +1841,10 @@ def main():
     
     print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
     
+    # End data loading timer
+    data_loading_end = time.time()
+    data_loading_time = data_loading_end - data_loading_start
+    
     # Create output folder
     output_folder = "rebalancing_backtest_results"
     if not os.path.exists(output_folder):
@@ -1853,6 +1860,10 @@ def main():
     
     # Run rebalancing backtest for selected metrics
     print("\n2. Running rebalancing backtests...")
+    
+    # Start backtest calculations timer
+    backtest_start = time.time()
+    
     new_summary_results = []
     for metric in metrics_to_run:
         if metric.get('is_combined', False):
@@ -1876,6 +1887,10 @@ def main():
             # Save to cache immediately
             save_result_to_cache(cache_file, summary_data)
             print(f"      Saved result to cache")
+    
+    # End backtest calculations timer
+    backtest_end = time.time()
+    backtest_time = backtest_end - backtest_start
     
     # Merge cached results with new results
     # Create a dict keyed by 'metric' to avoid duplicates
@@ -1910,16 +1925,23 @@ def main():
     print("All Rebalancing Backtests Complete!")
     print("=" * 80)
     
-    hours = int(elapsed_time // 3600)
-    minutes = int((elapsed_time % 3600) // 60)
-    seconds = int(elapsed_time % 60)
+    # Format and display timing statistics
+    def format_time(seconds):
+        """Format time in seconds to human-readable format"""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        if hours > 0:
+            return f"{hours}h {minutes}m {secs}s ({seconds:.2f} seconds)"
+        elif minutes > 0:
+            return f"{minutes}m {secs}s ({seconds:.2f} seconds)"
+        else:
+            return f"{secs}s ({seconds:.2f} seconds)"
     
-    if hours > 0:
-        print(f"\nTotal execution time: {hours}h {minutes}m {seconds}s ({elapsed_time:.2f} seconds)")
-    elif minutes > 0:
-        print(f"\nTotal execution time: {minutes}m {seconds}s ({elapsed_time:.2f} seconds)")
-    else:
-        print(f"\nTotal execution time: {seconds}s ({elapsed_time:.2f} seconds)")
+    print(f"\nTiming Statistics:")
+    print(f"  Data Loading: {format_time(data_loading_time)}")
+    print(f"  Backtest Calculations: {format_time(backtest_time)}")
+    print(f"  Total Execution Time: {format_time(elapsed_time)}")
     print("=" * 80)
 
 if __name__ == "__main__":
