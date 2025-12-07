@@ -1686,8 +1686,6 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
 
 def main():
     """Main function"""
-    start_time = time.time()
-    
     print("=" * 80)
     print("REBALANCING Portfolio Backtest (Annual Rebalancing)")
     print("=" * 80)
@@ -1768,6 +1766,9 @@ def main():
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return
+    
+    # Start timer only after user has made their selection
+    start_time = time.time()
     
     if not any(m.get('is_combined', False) for m in metrics_to_run):
         print(f"\nSelected {len(metrics_to_run)} metric(s) to run:")
