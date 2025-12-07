@@ -490,6 +490,47 @@ def get_ev_to_ebit_at_date(stock_data: Dict, target_year: int = 2000) -> Optiona
     
     return None
 
+def get_net_debt_to_ebit_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Net Debt to EBIT for a stock at a specific date
+    Calculated as Net Debt / Operating Income (EBIT)
+    Lower values are better (less debt relative to earnings)
+    
+    Requirements:
+    - EBIT (operating_income) must be positive for meaningful ratio
+    - Negative net_debt (net cash position) is allowed and results in negative ratio (favorable)
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    net_debt = data.get("net_debt", [])
+    operating_income = data.get("operating_income", [])
+    
+    if not isinstance(net_debt, list) or not isinstance(operating_income, list):
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates):
+            if (idx < len(net_debt) and idx < len(operating_income) and
+                net_debt[idx] is not None and operating_income[idx] is not None and
+                operating_income[idx] > 0):  # Require positive EBIT for meaningful ratio
+                # Calculate Net Debt to EBIT
+                # Note: net_debt can be negative (net cash position), which is fine
+                # Negative net_debt with positive EBIT gives negative ratio (good - company has cash)
+                net_debt_to_ebit = net_debt[idx] / operating_income[idx]
+                return (net_debt_to_ebit, period_dates[idx])
+    
+    return None
+
 def get_roa_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get ROA for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -909,6 +950,16 @@ METRICS: List[MetricConfig] = [
         reverse_sort=True,
         needs_5y_history=False,
         date_key="ev_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="net_debt_to_ebit",
+        display_name="Net Debt to EBIT",
+        short_name="Net Debt/EBIT",
+        getter_function=get_net_debt_to_ebit_at_date,
+        reverse_sort=True,
+        needs_5y_history=False,
+        date_key="net_debt_ebit_date",
         load_years=(2002, 2004)
     ),
     MetricConfig(
