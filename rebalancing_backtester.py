@@ -629,6 +629,64 @@ def get_relative_ps_at_date(stock_data: Dict, target_year: int = 2000) -> Option
     
     return None
 
+def get_total_past_return_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get 1-Year Trailing Total Return (price + dividends) for a stock at a specific date
+    Calculates cumulative return over the past 1 year (4 quarters) ending at target date
+    Higher return is better
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    prices = data.get("period_end_price", [])
+    dividends = data.get("dividends", [])
+    
+    if not isinstance(prices, list) or not isinstance(dividends, list):
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 4:  # Need at least 4 quarters (1 year) of history
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 4 and idx < len(period_dates) and idx < len(prices):
+            # Get start index (4 quarters ago)
+            start_idx = idx - 4
+            
+            if start_idx < 0 or start_idx >= len(prices) or prices[start_idx] is None:
+                continue
+            
+            start_price = float(prices[start_idx])
+            if start_price <= 0:
+                continue
+            
+            # Calculate cumulative return with dividends reinvested
+            shares = 1.0
+            current_price = float(prices[idx])
+            if current_price <= 0:
+                continue
+            
+            # Reinvest dividends from start_idx+1 to idx
+            for i in range(start_idx + 1, idx + 1):
+                if i < len(prices) and i < len(dividends):
+                    dividend = float(dividends[i]) if dividends[i] is not None else 0.0
+                    price_at_dividend = float(prices[i]) if prices[i] is not None else current_price
+                    if dividend > 0 and price_at_dividend > 0:
+                        shares += dividend * shares / price_at_dividend
+            
+            # Calculate final value
+            current_value = shares * current_price
+            cumulative_return = (current_value / start_price - 1.0) * 100.0  # As percentage
+            
+            return (cumulative_return, period_dates[idx])
+    
+    return None
+
 def get_revenue_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get revenue for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -971,6 +1029,16 @@ METRICS: List[MetricConfig] = [
         reverse_sort=True,
         needs_5y_history=False,
         date_key="pb_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="total_past_return",
+        display_name="1-Year Trailing Total Return",
+        short_name="1Y Total Return",
+        getter_function=get_total_past_return_at_date,
+        reverse_sort=False,
+        needs_5y_history=False,
+        date_key="total_return_date",
         load_years=(2002, 2004)
     ),
     MetricConfig(
