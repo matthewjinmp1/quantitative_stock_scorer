@@ -516,6 +516,32 @@ def get_roa_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple
     
     return None
 
+def get_price_to_book_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Price to Book Value for a stock at a specific date"""
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    price_to_book = data.get("price_to_book", [])
+    if not isinstance(price_to_book, list):
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if 0 <= idx < len(period_dates) and idx < len(price_to_book):
+            if price_to_book[idx] is not None and price_to_book[idx] > 0:
+                return (price_to_book[idx], period_dates[idx])
+    
+    return None
+
 def get_relative_ps_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get Relative PS (Current PS / 5-Year Median PS) for a stock at a specific date"""
     if not stock_data or "data" not in stock_data:
@@ -893,6 +919,16 @@ METRICS: List[MetricConfig] = [
         reverse_sort=False,
         needs_5y_history=False,
         date_key="roa_date",
+        load_years=(2002, 2004)
+    ),
+    MetricConfig(
+        key="price_to_book",
+        display_name="Price to Book",
+        short_name="P/B",
+        getter_function=get_price_to_book_at_date,
+        reverse_sort=True,
+        needs_5y_history=False,
+        date_key="pb_date",
         load_years=(2002, 2004)
     ),
     MetricConfig(
