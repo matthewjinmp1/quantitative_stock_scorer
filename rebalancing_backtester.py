@@ -630,8 +630,9 @@ def get_relative_ps_at_date(stock_data: Dict, target_year: int = 2000) -> Option
     return None
 
 def get_total_past_return_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
-    """Get 1-Year Trailing Total Return (price + dividends) for a stock at a specific date
-    Calculates cumulative return over the past 1 year (4 quarters preferred, but uses available history)
+    """Get Total Past Return (price + dividends) for a stock at a specific date
+    Calculates cumulative return from the earliest available data point to the target date
+    Uses all available historical data (not a fixed period)
     Higher return is better
     """
     if not stock_data or "data" not in stock_data:
@@ -653,55 +654,80 @@ def get_total_past_return_at_date(stock_data: Dict, target_year: int = 2000) -> 
     if not isinstance(dividends, list):
         dividends = []
     
+    # Find the target date index
     quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
     if quarter_idx is None:
         return None
     
-    # Try different lookback periods: prefer 4 quarters (1 year), but accept 3, 2, or even 1 if needed
-    for quarters_back in [4, 3, 2, 1]:
-        for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, -8]:
-            idx = quarter_idx + offset
-            if idx < quarters_back or idx >= len(period_dates) or idx >= len(prices):
-                continue
+    # Try different offsets to find a valid end date
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, -8]:
+        end_idx = quarter_idx + offset
+        if end_idx < 0 or end_idx >= len(period_dates) or end_idx >= len(prices):
+            continue
+        
+        # End price must be valid
+        if prices[end_idx] is None:
+            continue
+        
+        end_price = float(prices[end_idx])
+        if end_price <= 0:
+            continue
+        
+        # Find the earliest available price (start of data)
+        start_idx = None
+        for i in range(end_idx + 1):  # Search from beginning up to end_idx
+            if i < len(prices) and prices[i] is not None:
+                start_price_val = float(prices[i])
+                if start_price_val > 0:
+                    start_idx = i
+                    break
+        
+        if start_idx is None or start_idx >= end_idx:
+            continue  # Need at least 2 quarters of data
+        
+        start_price = float(prices[start_idx])
+        
+        # Calculate cumulative return with dividends reinvested
+        shares = 1.0
+        
+        # Reinvest dividends from start_idx+1 to end_idx (allow missing dividend data - just use 0)
+        for i in range(start_idx + 1, end_idx + 1):
+            if i < len(dividends) and dividends[i] is not None:
+                dividend = float(dividends[i]) if dividends[i] > 0 else 0.0
+                # Use end price if price at dividend date is missing
+                price_at_dividend = float(prices[i]) if (i < len(prices) and prices[i] is not None and prices[i] > 0) else end_price
+                if dividend > 0 and price_at_dividend > 0:
+                    shares += dividend * shares / price_at_dividend
+        
+        # Calculate final value
+        current_value = shares * end_price
+        cumulative_return = (current_value / start_price - 1.0) * 100.0  # As percentage
+        
+        # Annualize the return based on actual time period
+        start_date_str = period_dates[start_idx]
+        end_date_str = period_dates[end_idx]
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
+        
+        if start_date and end_date:
+            # Calculate years between start and end
+            days_diff = (end_date - start_date).days
+            years = days_diff / 365.25
             
-            # Get start index (quarters_back quarters ago)
-            start_idx = idx - quarters_back
-            
-            if start_idx < 0 or start_idx >= len(prices):
-                continue
-            
-            # Both start and end prices must be valid
-            if prices[start_idx] is None or prices[idx] is None:
-                continue
-            
-            start_price = float(prices[start_idx])
-            current_price = float(prices[idx])
-            
-            if start_price <= 0 or current_price <= 0:
-                continue
-            
-            # Calculate cumulative return with dividends reinvested
-            shares = 1.0
-            
-            # Reinvest dividends from start_idx+1 to idx (allow missing dividend data - just use 0)
-            for i in range(start_idx + 1, idx + 1):
-                if i < len(dividends) and dividends[i] is not None:
-                    dividend = float(dividends[i]) if dividends[i] > 0 else 0.0
-                    # Use current price if price at dividend date is missing
-                    price_at_dividend = float(prices[i]) if (i < len(prices) and prices[i] is not None and prices[i] > 0) else current_price
-                    if dividend > 0 and price_at_dividend > 0:
-                        shares += dividend * shares / price_at_dividend
-            
-            # Calculate final value
-            current_value = shares * current_price
-            cumulative_return = (current_value / start_price - 1.0) * 100.0  # As percentage
-            
-            # Annualize if we used less than 4 quarters
-            if quarters_back < 4:
-                years = quarters_back / 4.0
-                cumulative_return = ((1.0 + cumulative_return / 100.0) ** (1.0 / years) - 1.0) * 100.0
-            
-            return (cumulative_return, period_dates[idx])
+            if years > 0:
+                # Annualize the return
+                annualized_return = ((1.0 + cumulative_return / 100.0) ** (1.0 / years) - 1.0) * 100.0
+                return (annualized_return, period_dates[end_idx])
+            else:
+                # Less than a year, return as-is
+                return (cumulative_return, period_dates[end_idx])
+        else:
+            # Can't parse dates, assume quarterly and annualize
+            quarters = end_idx - start_idx
+            if quarters > 0:
+                years = quarters / 4.0
+                annualized_return = ((1.0 + cumulative_return / 100.0) ** (1.0 / years) - 1.0) * 100.0
+                return (annualized_return, period_dates[end_idx])
     
     return None
 
@@ -1051,8 +1077,8 @@ METRICS: List[MetricConfig] = [
     ),
     MetricConfig(
         key="total_past_return",
-        display_name="1-Year Trailing Total Return",
-        short_name="1Y Total Return",
+        display_name="Total Past Return",
+        short_name="Total Return",
         getter_function=get_total_past_return_at_date,
         reverse_sort=False,
         needs_5y_history=False,
