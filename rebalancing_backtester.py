@@ -645,53 +645,63 @@ def get_total_past_return_at_date(stock_data: Dict, target_year: int = 2000) -> 
     prices = data.get("period_end_price", [])
     dividends = data.get("dividends", [])
     
-    if not isinstance(prices, list) or not isinstance(dividends, list):
+    if not isinstance(prices, list):
         return None
+    # Dividends can be None or empty list - that's fine, we'll just use 0
+    if dividends is None:
+        dividends = []
+    if not isinstance(dividends, list):
+        dividends = []
     
     quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
-    if quarter_idx is None or quarter_idx < 1:  # Need at least 2 quarters (current and one before)
+    if quarter_idx is None:
         return None
     
     # Try different lookback periods: prefer 4 quarters (1 year), but accept 3, 2, or even 1 if needed
     for quarters_back in [4, 3, 2, 1]:
-        for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, -8]:
             idx = quarter_idx + offset
-            if idx >= quarters_back and idx < len(period_dates) and idx < len(prices):
-                # Get start index (quarters_back quarters ago)
-                start_idx = idx - quarters_back
-                
-                if start_idx < 0 or start_idx >= len(prices) or prices[start_idx] is None:
-                    continue
-                
-                start_price = float(prices[start_idx])
-                if start_price <= 0:
-                    continue
-                
-                current_price = float(prices[idx])
-                if current_price <= 0:
-                    continue
-                
-                # Calculate cumulative return with dividends reinvested
-                shares = 1.0
-                
-                # Reinvest dividends from start_idx+1 to idx
-                for i in range(start_idx + 1, idx + 1):
-                    if i < len(prices) and i < len(dividends):
-                        dividend = float(dividends[i]) if dividends[i] is not None else 0.0
-                        price_at_dividend = float(prices[i]) if prices[i] is not None and prices[i] > 0 else current_price
-                        if dividend > 0 and price_at_dividend > 0:
-                            shares += dividend * shares / price_at_dividend
-                
-                # Calculate final value
-                current_value = shares * current_price
-                cumulative_return = (current_value / start_price - 1.0) * 100.0  # As percentage
-                
-                # Annualize if we used less than 4 quarters
-                if quarters_back < 4:
-                    years = quarters_back / 4.0
-                    cumulative_return = ((1.0 + cumulative_return / 100.0) ** (1.0 / years) - 1.0) * 100.0
-                
-                return (cumulative_return, period_dates[idx])
+            if idx < quarters_back or idx >= len(period_dates) or idx >= len(prices):
+                continue
+            
+            # Get start index (quarters_back quarters ago)
+            start_idx = idx - quarters_back
+            
+            if start_idx < 0 or start_idx >= len(prices):
+                continue
+            
+            # Both start and end prices must be valid
+            if prices[start_idx] is None or prices[idx] is None:
+                continue
+            
+            start_price = float(prices[start_idx])
+            current_price = float(prices[idx])
+            
+            if start_price <= 0 or current_price <= 0:
+                continue
+            
+            # Calculate cumulative return with dividends reinvested
+            shares = 1.0
+            
+            # Reinvest dividends from start_idx+1 to idx (allow missing dividend data - just use 0)
+            for i in range(start_idx + 1, idx + 1):
+                if i < len(dividends) and dividends[i] is not None:
+                    dividend = float(dividends[i]) if dividends[i] > 0 else 0.0
+                    # Use current price if price at dividend date is missing
+                    price_at_dividend = float(prices[i]) if (i < len(prices) and prices[i] is not None and prices[i] > 0) else current_price
+                    if dividend > 0 and price_at_dividend > 0:
+                        shares += dividend * shares / price_at_dividend
+            
+            # Calculate final value
+            current_value = shares * current_price
+            cumulative_return = (current_value / start_price - 1.0) * 100.0  # As percentage
+            
+            # Annualize if we used less than 4 quarters
+            if quarters_back < 4:
+                years = quarters_back / 4.0
+                cumulative_return = ((1.0 + cumulative_return / 100.0) ** (1.0 / years) - 1.0) * 100.0
+            
+            return (cumulative_return, period_dates[idx])
     
     return None
 
