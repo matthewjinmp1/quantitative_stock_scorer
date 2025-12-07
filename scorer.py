@@ -831,6 +831,83 @@ def run_lookup_command(symbol: str):
         print(f"\nStock '{symbol}' not found in scores.json")
         print("Make sure you've run 'calc' first, and that the stock symbol is correct.\n")
 
+def run_multi_lookup_command(symbols: List[str]):
+    """Execute multi-stock lookup command - shows total percentiles ranked"""
+    scores_data = load_scores_from_json()
+    if not scores_data:
+        print(f"Error: scores.json not found. Please run 'calc' command first.\n")
+        return
+    
+    scores = scores_data.get("scores", [])
+    if not scores:
+        print("No stock scores found in scores.json\n")
+        return
+    
+    # Look up each symbol
+    found_stocks = []
+    not_found = []
+    
+    for symbol in symbols:
+        symbol_upper = symbol.upper().strip()
+        if not symbol_upper:
+            continue
+        
+        stock = None
+        for s in scores:
+            if s.get("symbol", "").upper() == symbol_upper:
+                stock = s
+                break
+        
+        if stock:
+            found_stocks.append(stock)
+        else:
+            not_found.append(symbol_upper)
+    
+    if not found_stocks:
+        print(f"\nNone of the provided symbols were found in scores.json")
+        if not_found:
+            print(f"Not found: {', '.join(not_found)}")
+        print("Make sure you've run 'calc' first, and that the stock symbols are correct.\n")
+        return
+    
+    # Sort by total percentile (descending)
+    def get_sort_key(stock):
+        if stock.get("total_percentile") is not None:
+            return (0, -stock["total_percentile"])
+        # Fallback to first available metric percentile
+        for metric in METRICS:
+            pct = stock.get(f"{metric.key}_percentile")
+            if pct is not None:
+                return (1, -pct)
+        return (2, 0)
+    
+    sorted_stocks = sorted(found_stocks, key=get_sort_key)
+    
+    # Display results
+    print(f"\n{'='*80}")
+    print(f"Stock Comparison - Ranked by Total Percentile")
+    print(f"{'='*80}")
+    print(f"{'Rank':<8} {'Symbol':<12} {'Company Name':<30} {'Total %':<12} {'Exchange':<10}")
+    print(f"{'-'*80}")
+    
+    for idx, stock in enumerate(sorted_stocks, start=1):
+        symbol = stock.get("symbol", "N/A")
+        company_name = stock.get("company_name", "N/A")
+        if len(company_name) > 28:
+            company_name = company_name[:25] + "..."
+        
+        total_pct = f"{stock.get('total_percentile', 0):.2f}" if stock.get("total_percentile") is not None else "N/A"
+        exchange = stock.get("exchange", "N/A")
+        
+        print(f"{idx:<8} {symbol:<12} {company_name:<30} {total_pct:<12} {exchange:<10}")
+    
+    print(f"{'='*80}")
+    
+    if not_found:
+        print(f"\nNote: The following symbols were not found: {', '.join(not_found)}")
+    
+    print()
+
 def run_view_command(limit: Optional[int] = None, min_market_cap: Optional[float] = None):
     """Display all stocks ranked by total percentile, optionally filtered by market cap"""
     scores_data = load_scores_from_json()
@@ -959,6 +1036,7 @@ def print_help():
     print("  view [N] over [X]      - View top N stocks with market cap over X billion (e.g., 'view 50 over 10')")
     print("  metrics                - Show all current metrics being calculated")
     print("  <symbol>               - Look up percentile rank for a stock (e.g., AAPL, MSFT)")
+    print("  <symbol> <symbol> ...  - Compare multiple stocks ranked by total percentile (e.g., AAPL MSFT GOOGL)")
     print("  help                   - Show this help message")
     print("  clear                  - Clear the screen")
     print("  exit                   - Exit the program")
@@ -1033,7 +1111,13 @@ def main():
                 
                 run_view_command(limit, min_market_cap)
             else:
-                run_lookup_command(user_input)
+                # Check if input contains multiple space-separated symbols
+                if len(command_parts) > 1:
+                    # Multiple symbols provided
+                    run_multi_lookup_command(command_parts)
+                else:
+                    # Single symbol
+                    run_lookup_command(user_input)
         
         except KeyboardInterrupt:
             print("\n\nExiting program. Goodbye!\n")
