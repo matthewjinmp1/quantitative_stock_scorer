@@ -796,10 +796,18 @@ def calculate_total_return_with_dividends(stock_data: Dict, start_year: int = 20
     if start_price <= 0:
         return None
     
+    # Start returns from the NEXT period (t+1) to avoid look-ahead bias
+    # The metric is calculated using data up to time t, so returns should start at t+1
+    return_start_idx = start_idx + 1
+    
+    # If there's no next period, we can't calculate returns
+    if return_start_idx >= len(period_dates) or return_start_idx >= len(prices):
+        return None
+    
     returns = []
     shares = 1.0
     
-    for i in range(start_idx, len(period_dates)):
+    for i in range(return_start_idx, len(period_dates)):
         if i >= len(prices) or prices[i] is None:
             continue
         
