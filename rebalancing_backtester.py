@@ -865,10 +865,43 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
         print(f"   No summary data to create comparison chart")
         return
     
+    # Create mapping of metric keys to numbers (1-based)
+    metric_key_to_number = {m.key: idx + 1 for idx, m in enumerate(METRICS)}
+    
     # Sort by excess return (how much they beat the benchmark)
     results.sort(key=lambda x: x.get('excess_return', 0), reverse=True)
     
-    metrics = [r['metric_name'] for r in results]
+    # Format metric labels with numbers
+    formatted_metrics = []
+    for r in results:
+        metric_name = r['metric_name']
+        metric_key = r.get('metric', '').strip()
+        
+        # Check if it's a combined metric (contains '+')
+        if '+' in metric_key:
+            # Parse the metric keys and convert to numbers
+            metric_keys = [k.strip() for k in metric_key.split('+')]
+            metric_numbers = []
+            for key in metric_keys:
+                if key and key in metric_key_to_number:
+                    metric_numbers.append(str(metric_key_to_number[key]))
+            if metric_numbers:
+                # Sort numbers for consistent display
+                metric_numbers.sort(key=int)
+                formatted_name = '+'.join(metric_numbers)
+            else:
+                formatted_name = metric_name  # Fallback if parsing fails
+        else:
+            # Single metric - add number in parentheses
+            if metric_key and metric_key in metric_key_to_number:
+                metric_number = metric_key_to_number[metric_key]
+                formatted_name = f"{metric_name} ({metric_number})"
+            else:
+                formatted_name = metric_name  # Fallback if key not found
+        
+        formatted_metrics.append(formatted_name)
+    
+    metrics = formatted_metrics
     excess_returns = [r.get('excess_return', 0) for r in results]
     metric_returns = [r.get('metric_weighted_annualized', 0) for r in results]
     benchmark_returns = [r.get('revenue_weighted_annualized', 0) for r in results]
