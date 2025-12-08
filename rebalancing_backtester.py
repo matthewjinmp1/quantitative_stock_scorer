@@ -922,7 +922,7 @@ def rename_existing_chart_files(output_folder: str = "rebalancing_backtest_resul
 
 def format_metric_name_for_filename(metric_key: str) -> str:
     """Format metric key(s) for use in filenames
-    - Single metrics: "Number: MetricName" (e.g., "1: Size")
+    - Single metrics: "(Number)MetricName" (e.g., "(1)Size")
     - Combinations: equation only (e.g., "2+3+6")
     """
     # Create mapping of metric keys to numbers (1-based)
@@ -946,14 +946,14 @@ def format_metric_name_for_filename(metric_key: str) -> str:
             # Fallback if parsing fails
             return metric_key.replace('/', '_').replace(' ', '_').lower()
     else:
-        # Single metric - return "Number: MetricName"
+        # Single metric - return "(Number)MetricName"
         if metric_key and metric_key in metric_key_to_number:
             metric_config = METRICS_BY_KEY.get(metric_key)
             if metric_config:
-                # Get metric display name (keep original, just replace / with _ for filename safety)
-                metric_name = metric_config.display_name.replace('/', '_')
+                # Get metric display name (replace / and spaces with _ for filename safety)
+                metric_name = metric_config.display_name.replace('/', '_').replace(' ', '_')
                 metric_number = str(metric_key_to_number[metric_key])
-                return f"{metric_number}: {metric_name}"
+                return f"({metric_number}){metric_name}"
             else:
                 return str(metric_key_to_number[metric_key])
         else:
