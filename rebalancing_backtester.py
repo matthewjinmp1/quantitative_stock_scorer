@@ -896,7 +896,7 @@ def rename_existing_chart_files(output_folder: str = "rebalancing_backtest_resul
             metric_keys = [k.strip() for k in metric_key.split('+')]
             old_patterns.append('_'.join([m.replace('/', '_').replace(' ', '_').lower() for m in metric_keys]) + '_combined_rebalancing_backtest.png')
         
-        new_filename = f"{new_filename_base}_rebalancing_backtest.png"
+        new_filename = f"{new_filename_base}.png"
         new_path = os.path.join(output_folder, new_filename)
         
         # Skip if new file already exists
@@ -922,7 +922,7 @@ def rename_existing_chart_files(output_folder: str = "rebalancing_backtest_resul
 
 def format_metric_name_for_filename(metric_key: str) -> str:
     """Format metric key(s) for use in filenames
-    - Single metrics: "MetricName_Number" (e.g., "Size_1")
+    - Single metrics: "Number: MetricName" (e.g., "1: Size")
     - Combinations: equation only (e.g., "2+3+6")
     """
     # Create mapping of metric keys to numbers (1-based)
@@ -946,14 +946,14 @@ def format_metric_name_for_filename(metric_key: str) -> str:
             # Fallback if parsing fails
             return metric_key.replace('/', '_').replace(' ', '_').lower()
     else:
-        # Single metric - return "MetricName_Number"
+        # Single metric - return "Number: MetricName"
         if metric_key and metric_key in metric_key_to_number:
             metric_config = METRICS_BY_KEY.get(metric_key)
             if metric_config:
-                # Get metric display name and format it for filename
-                metric_name = metric_config.display_name.replace('/', '_').replace(' ', '_')
+                # Get metric display name (keep original, just replace / with _ for filename safety)
+                metric_name = metric_config.display_name.replace('/', '_')
                 metric_number = str(metric_key_to_number[metric_key])
-                return f"{metric_name}_{metric_number}"
+                return f"{metric_number}: {metric_name}"
             else:
                 return str(metric_key_to_number[metric_key])
         else:
@@ -1679,7 +1679,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     plt.tight_layout()
     
     metric_filename = format_metric_name_for_filename(selected_metric)
-    chart_filename = f'{output_folder}/{metric_filename}_rebalancing_backtest.png'
+    chart_filename = f'{output_folder}/{metric_filename}.png'
     plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
     print(f"      Chart saved to {chart_filename}")
     plt.close()
@@ -1931,7 +1931,7 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     # Format combined metrics as equation (e.g., "1+3")
     combined_metric_key = '+'.join(selected_metrics)
     metric_filename = format_metric_name_for_filename(combined_metric_key)
-    chart_filename = f'{output_folder}/{metric_filename}_rebalancing_backtest.png'
+    chart_filename = f'{output_folder}/{metric_filename}.png'
     plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
     print(f"      Chart saved to {chart_filename}")
     plt.close()
