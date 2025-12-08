@@ -921,7 +921,10 @@ def rename_existing_chart_files(output_folder: str = "rebalancing_backtest_resul
         print("No files needed renaming (either already renamed or not found)")
 
 def format_metric_name_for_filename(metric_key: str) -> str:
-    """Format metric key(s) for use in filenames using numbers/equations"""
+    """Format metric key(s) for use in filenames
+    - Single metrics: "MetricName_Number" (e.g., "Size_1")
+    - Combinations: equation only (e.g., "2+3+6")
+    """
     # Create mapping of metric keys to numbers (1-based)
     metric_key_to_number = {m.key: idx + 1 for idx, m in enumerate(METRICS)}
     
@@ -943,9 +946,16 @@ def format_metric_name_for_filename(metric_key: str) -> str:
             # Fallback if parsing fails
             return metric_key.replace('/', '_').replace(' ', '_').lower()
     else:
-        # Single metric - return number
+        # Single metric - return "MetricName_Number"
         if metric_key and metric_key in metric_key_to_number:
-            return str(metric_key_to_number[metric_key])
+            metric_config = METRICS_BY_KEY.get(metric_key)
+            if metric_config:
+                # Get metric display name and format it for filename
+                metric_name = metric_config.display_name.replace('/', '_').replace(' ', '_')
+                metric_number = str(metric_key_to_number[metric_key])
+                return f"{metric_name}_{metric_number}"
+            else:
+                return str(metric_key_to_number[metric_key])
         else:
             # Fallback if key not found
             return metric_key.replace('/', '_').replace(' ', '_').lower()
