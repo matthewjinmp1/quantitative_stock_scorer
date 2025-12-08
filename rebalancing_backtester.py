@@ -38,7 +38,7 @@ class MetricConfig:
     short_name: str  # Short display name for charts (e.g., "EBIT/PPE")
     getter_function: Callable  # Function to get metric value at a date
     reverse_sort: bool = False  # True if lower values are better (e.g., EV/EBIT, consistency metrics)
-    needs_5y_history: bool = False  # True if metric needs 5 years of historical data
+    years_of_history_needed: int = 0  # Number of years of historical data needed (start year = 2002 + this value)
     date_key: str = ""  # Key for storing date in stock_entry (auto-generated if empty)
     load_years: tuple = (2002, 2004)  # Year range to check when loading initial data
 
@@ -1073,7 +1073,7 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
 #    - short_name: abbreviated name for charts
 #    - getter_function: the function you created
 #    - reverse_sort: True if lower values are better (e.g., EV/EBIT, consistency)
-#    - needs_5y_history: True if metric needs 5 years of historical data
+#    - years_of_history_needed: number of years of historical data needed (start year = 2002 + this value)
 #    - date_key: key for storing date in stock_entry (e.g., "my_metric_date")
 #    - load_years: tuple of (start_year, end_year) for initial data loading
 # 3. That's it! The metric will automatically be available everywhere.
@@ -1089,7 +1089,7 @@ METRICS: List[MetricConfig] = [
         short_name="Size",
         getter_function=get_size_at_date,
         reverse_sort=False,  # Higher revenue is better
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="size_date",
         load_years=(2002, 2004)
     ),
@@ -1099,7 +1099,7 @@ METRICS: List[MetricConfig] = [
         short_name="EBIT/PPE",
         getter_function=get_ebit_ppe_at_date,
         reverse_sort=False,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="ebit_date",
         load_years=(2002, 2004)
     ),
@@ -1109,7 +1109,7 @@ METRICS: List[MetricConfig] = [
         short_name="Operating Margin",
         getter_function=get_operating_margin_at_date,
         reverse_sort=False,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="om_date",
         load_years=(2002, 2004)
     ),
@@ -1119,7 +1119,7 @@ METRICS: List[MetricConfig] = [
         short_name="Gross Margin",
         getter_function=get_gross_margin_at_date,
         reverse_sort=False,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="gm_date",
         load_years=(2002, 2004)
     ),
@@ -1129,7 +1129,7 @@ METRICS: List[MetricConfig] = [
         short_name="5Y Rev CAGR",
         getter_function=get_5y_revenue_cagr_at_date,
         reverse_sort=False,
-        needs_5y_history=True,
+        years_of_history_needed=5,
         date_key="cagr_date",
         load_years=(2007, 2009)
     ),
@@ -1139,7 +1139,7 @@ METRICS: List[MetricConfig] = [
         short_name="5Y Rev Growth",
         getter_function=get_5y_revenue_growth_rate_at_date,
         reverse_sort=False,
-        needs_5y_history=True,
+        years_of_history_needed=5,
         date_key="growth_rate_date",
         load_years=(2007, 2009)
     ),
@@ -1149,7 +1149,7 @@ METRICS: List[MetricConfig] = [
         short_name="Consistency Growth",
         getter_function=get_consistency_of_growth_at_date,
         reverse_sort=True,
-        needs_5y_history=True,
+        years_of_history_needed=5,
         date_key="consistency_date",
         load_years=(2007, 2009)
     ),
@@ -1159,7 +1159,7 @@ METRICS: List[MetricConfig] = [
         short_name="Consistency OM",
         getter_function=get_consistency_of_operating_margin_at_date,
         reverse_sort=True,
-        needs_5y_history=True,
+        years_of_history_needed=5,
         date_key="consistency_om_date",
         load_years=(2007, 2009)
     ),
@@ -1169,7 +1169,7 @@ METRICS: List[MetricConfig] = [
         short_name="Dividend Yield",
         getter_function=get_dividend_yield_at_date,
         reverse_sort=False,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="div_yield_date",
         load_years=(2001, 2005)  # Wider range for dividend yield
     ),
@@ -1179,7 +1179,7 @@ METRICS: List[MetricConfig] = [
         short_name="EV/EBIT",
         getter_function=get_ev_to_ebit_at_date,
         reverse_sort=True,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="ev_date",
         load_years=(2002, 2004)
     ),
@@ -1189,7 +1189,7 @@ METRICS: List[MetricConfig] = [
         short_name="Net Debt/EBIT",
         getter_function=get_net_debt_to_ebit_at_date,
         reverse_sort=True,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="net_debt_ebit_date",
         load_years=(2002, 2004)
     ),
@@ -1199,7 +1199,7 @@ METRICS: List[MetricConfig] = [
         short_name="ROA",
         getter_function=get_roa_at_date,
         reverse_sort=False,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="roa_date",
         load_years=(2002, 2004)
     ),
@@ -1209,7 +1209,7 @@ METRICS: List[MetricConfig] = [
         short_name="P/B",
         getter_function=get_price_to_book_at_date,
         reverse_sort=True,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="pb_date",
         load_years=(2002, 2004)
     ),
@@ -1219,7 +1219,7 @@ METRICS: List[MetricConfig] = [
         short_name="Total Return",
         getter_function=get_total_past_return_at_date,
         reverse_sort=False,
-        needs_5y_history=False,
+        years_of_history_needed=0,
         date_key="total_return_date",
         load_years=(2002, 2004)
     ),
@@ -1229,7 +1229,7 @@ METRICS: List[MetricConfig] = [
         short_name="Relative PS",
         getter_function=get_relative_ps_at_date,
         reverse_sort=True,
-        needs_5y_history=True,
+        years_of_history_needed=5,
         date_key="ps_date",
         load_years=(2007, 2009)
     ),
@@ -1239,8 +1239,21 @@ METRICS: List[MetricConfig] = [
 METRICS_BY_KEY = {m.key: m for m in METRICS}
 METRICS_GETTER_FUNCTIONS = {m.key: m.getter_function for m in METRICS}
 REVERSE_SORT_METRICS = {m.key: m.reverse_sort for m in METRICS if m.reverse_sort}
-METRICS_NEEDING_5Y_HISTORY = {m.key for m in METRICS if m.needs_5y_history}
+METRICS_YEARS_OF_HISTORY = {m.key: m.years_of_history_needed for m in METRICS}
 METRICS_DATE_KEYS = {m.key: m.date_key for m in METRICS}
+
+# Backward compatibility - metrics needing 5 years of history
+METRICS_NEEDING_5Y_HISTORY = {m.key for m in METRICS if m.years_of_history_needed >= 5}
+
+def get_start_year_for_metric(metric_key: str) -> int:
+    """Get the start year for a metric: 2002 + years_of_history_needed"""
+    years_needed = METRICS_YEARS_OF_HISTORY.get(metric_key, 0)
+    return 2002 + years_needed
+
+def get_start_year_for_combined_metrics(metric_keys: List[str]) -> int:
+    """Get the start year for combined metrics: 2002 + max(years_of_history_needed)"""
+    max_years_needed = max([METRICS_YEARS_OF_HISTORY.get(key, 0) for key in metric_keys], default=0)
+    return 2002 + max_years_needed
 
 def get_metric_at_date(stock_data: Dict, metric_name: str, target_year: int) -> Optional[Tuple[float, str]]:
     """Get a metric value for a stock at a specific year"""
@@ -1401,8 +1414,8 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     print(f"Running REBALANCING backtest for: {metric_name}")
     print("=" * 80)
     
-    # Determine start year based on metric requirements (from registry)
-    start_year = 2007 if selected_metric in METRICS_NEEDING_5Y_HISTORY else 2002
+    # Determine start year based on metric requirements: 2002 + years_of_history_needed
+    start_year = get_start_year_for_metric(selected_metric)
     
     # Get date key from registry
     metric_date_key = METRICS_DATE_KEYS.get(selected_metric, 'revenue_date')
@@ -1682,8 +1695,8 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     print(f"Running REBALANCING backtest for COMBINED METRICS: {combined_metric_name}")
     print("=" * 80)
     
-    # Determine start year based on metric requirements (from registry)
-    start_year = 2007 if any(m in METRICS_NEEDING_5Y_HISTORY for m in selected_metrics) else 2002
+    # Determine start year based on metric requirements: 2002 + max(years_of_history_needed)
+    start_year = get_start_year_for_combined_metrics(selected_metrics)
     
     # Filter stocks that have at least one of the selected metrics at the start year
     stock_info = []
