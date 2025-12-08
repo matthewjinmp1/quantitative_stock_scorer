@@ -1070,7 +1070,21 @@ def create_comparison_chart(results: List[Dict], output_folder: str, chart_type:
 #    - load_years: tuple of (start_year, end_year) for initial data loading
 # 3. That's it! The metric will automatically be available everywhere.
 
+def get_size_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Size (Revenue) for a stock at a specific date - uses revenue as the metric value"""
+    return get_revenue_at_date(stock_data, target_year)
+
 METRICS: List[MetricConfig] = [
+    MetricConfig(
+        key="size",
+        display_name="Size",
+        short_name="Size",
+        getter_function=get_size_at_date,
+        reverse_sort=False,  # Higher revenue is better
+        needs_5y_history=False,
+        date_key="size_date",
+        load_years=(2002, 2004)
+    ),
     MetricConfig(
         key="ebit_ppe",
         display_name="EBIT/PPE",
