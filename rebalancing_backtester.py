@@ -859,6 +859,89 @@ def save_result_to_cache(cache_file: str, result: Dict):
     except IOError as e:
         print(f"   Warning: Could not save to cache file {cache_file}: {e}")
 
+def rename_existing_chart_files(output_folder: str = "rebalancing_backtest_results"):
+    """Rename existing chart files to use the new number/equation format"""
+    cache_file = os.path.join(output_folder, "rebalancing_backtest_cache.json")
+    cached_results = load_cached_results(cache_file)
+    
+    if not cached_results:
+        print(f"No cached results found. Cannot rename files.")
+        return
+    
+    renamed_count = 0
+    for result in cached_results:
+        metric_key = result.get('metric', '').strip()
+        if not metric_key:
+            continue
+        
+        # Generate new filename
+        new_filename_base = format_metric_name_for_filename(metric_key)
+        
+        # Try to find old files (could be single or combined format)
+        old_patterns = [
+            f"{metric_key.replace('/', '_').replace(' ', '_').lower()}_rebalancing_backtest.png",
+            f"{metric_key.replace('/', '_').replace(' ', '_').lower()}_combined_rebalancing_backtest.png"
+        ]
+        
+        # For combined metrics, also try the joined format
+        if '+' in metric_key:
+            metric_keys = [k.strip() for k in metric_key.split('+')]
+            old_patterns.append('_'.join([m.replace('/', '_').replace(' ', '_').lower() for m in metric_keys]) + '_combined_rebalancing_backtest.png')
+        
+        new_filename = f"{new_filename_base}_rebalancing_backtest.png"
+        new_path = os.path.join(output_folder, new_filename)
+        
+        # Skip if new file already exists
+        if os.path.exists(new_path):
+            continue
+        
+        # Try to rename old files
+        for old_pattern in old_patterns:
+            old_path = os.path.join(output_folder, old_pattern)
+            if os.path.exists(old_path):
+                try:
+                    os.rename(old_path, new_path)
+                    print(f"Renamed: {old_pattern} -> {new_filename}")
+                    renamed_count += 1
+                    break
+                except Exception as e:
+                    print(f"Error renaming {old_pattern}: {e}")
+    
+    if renamed_count > 0:
+        print(f"\nRenamed {renamed_count} chart file(s)")
+    else:
+        print("No files needed renaming (either already renamed or not found)")
+
+def format_metric_name_for_filename(metric_key: str) -> str:
+    """Format metric key(s) for use in filenames using numbers/equations"""
+    # Create mapping of metric keys to numbers (1-based)
+    metric_key_to_number = {m.key: idx + 1 for idx, m in enumerate(METRICS)}
+    
+    metric_key = metric_key.strip()
+    
+    # Check if it's a combined metric (contains '+')
+    if '+' in metric_key:
+        # Parse the metric keys and convert to numbers
+        metric_keys = [k.strip() for k in metric_key.split('+')]
+        metric_numbers = []
+        for key in metric_keys:
+            if key and key in metric_key_to_number:
+                metric_numbers.append(str(metric_key_to_number[key]))
+        if metric_numbers:
+            # Sort numbers for consistent display
+            metric_numbers.sort(key=int)
+            return '+'.join(metric_numbers)
+        else:
+            # Fallback if parsing fails
+            return metric_key.replace('/', '_').replace(' ', '_').lower()
+    else:
+        # Single metric - return number
+        if metric_key and metric_key in metric_key_to_number:
+            return str(metric_key_to_number[metric_key])
+        else:
+            # Fallback if key not found
+            return metric_key.replace('/', '_').replace(' ', '_').lower()
+
 def create_comparison_chart(results: List[Dict], output_folder: str, chart_type: str):
     """Create a comparison chart showing excess returns vs benchmark"""
     if not results:
@@ -1550,7 +1633,7 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     plt.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
     plt.tight_layout()
     
-    metric_filename = selected_metric.replace('/', '_').replace(' ', '_').lower()
+    metric_filename = format_metric_name_for_filename(selected_metric)
     chart_filename = f'{output_folder}/{metric_filename}_rebalancing_backtest.png'
     plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
     print(f"      Chart saved to {chart_filename}")
@@ -1800,8 +1883,10 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     plt.axhline(y=0, color='black', linestyle='--', linewidth=1, alpha=0.5)
     plt.tight_layout()
     
-    metric_filename = '_'.join([m.replace('/', '_').replace(' ', '_').lower() for m in selected_metrics])
-    chart_filename = f'{output_folder}/{metric_filename}_combined_rebalancing_backtest.png'
+    # Format combined metrics as equation (e.g., "1+3")
+    combined_metric_key = '+'.join(selected_metrics)
+    metric_filename = format_metric_name_for_filename(combined_metric_key)
+    chart_filename = f'{output_folder}/{metric_filename}_rebalancing_backtest.png'
     plt.savefig(chart_filename, dpi=300, bbox_inches='tight')
     print(f"      Chart saved to {chart_filename}")
     plt.close()
@@ -2058,7 +2143,9 @@ def main():
     
     # Always create/update comparison chart with all results
     if all_results:
-        print(f"\n3. Creating metric comparison chart with {len(all_results)} metric(s)...")
+        print(f"\n3. Renaming existing chart files to new format...")
+        rename_existing_chart_files(output_folder)
+        print(f"\n   Creating metric comparison chart with {len(all_results)} metric(s)...")
         create_comparison_chart(all_results, output_folder, "Rebalancing")
     else:
         print("\n3. No results available for comparison chart")
