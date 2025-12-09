@@ -367,6 +367,60 @@ def get_5y_share_growth_at_date(stock_data: Dict, target_year: int = 2000) -> Op
     
     return None
 
+def get_ttm_share_buyback_to_market_cap_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get TTM Share Buyback to Market Cap for a stock at a specific date
+    Uses last 4 quarters (TTM):
+    - shares_current = shares at current quarter
+    - shares_4q_ago = shares 4 quarters ago
+    - share_reduction = shares_4q_ago - shares_current (positive if buyback)
+    - market_cap = market cap at current quarter
+    - metric = share_reduction / market_cap
+    Higher is better (more buybacks is better)
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    shares = data.get("shares_diluted", [])
+    market_cap = data.get("market_cap", [])
+    
+    if not isinstance(shares, list) or not isinstance(market_cap, list):
+        return None
+    
+    if len(shares) < 5 or len(market_cap) < 1:  # Need at least 5 quarters of shares data
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 4:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 4 and idx < len(period_dates) and idx < len(shares) and idx < len(market_cap):
+            # Get shares at current quarter and 4 quarters ago
+            shares_current = shares[idx] if idx < len(shares) else None
+            shares_4q_ago = shares[idx - 4] if (idx - 4) >= 0 and (idx - 4) < len(shares) else None
+            market_cap_current = market_cap[idx] if idx < len(market_cap) else None
+            
+            if (shares_current is not None and shares_4q_ago is not None and 
+                market_cap_current is not None and 
+                shares_current > 0 and shares_4q_ago > 0 and market_cap_current > 0):
+                
+                # Calculate share reduction (positive if buyback, negative if dilution)
+                share_reduction = shares_4q_ago - shares_current
+                
+                # Calculate metric: share buyback as fraction of market cap
+                # This represents the percentage of market cap that was used for buybacks
+                buyback_to_market_cap = share_reduction / market_cap_current
+                
+                return (buyback_to_market_cap, period_dates[idx])
+    
+    return None
+
 def get_acceleration_of_growth_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get Acceleration of Growth for a stock at a specific date
     Uses 21 quarters:
@@ -1389,6 +1443,16 @@ METRICS: List[MetricConfig] = [
         years_of_history_needed=5,
         date_key="share_growth_date",
         load_years=(2007, 2009)
+    ),
+    MetricConfig(
+        key="ttm_share_buyback_to_market_cap",
+        display_name="TTM Share Buyback to Market Cap",
+        short_name="TTM Buyback/MCap",
+        getter_function=get_ttm_share_buyback_to_market_cap_at_date,
+        reverse_sort=False,  # Higher is better (more buybacks is better)
+        years_of_history_needed=1,  # Needs 4 quarters (1 year)
+        date_key="buyback_mcap_date",
+        load_years=(2003, 2005)
     ),
 ]
 
