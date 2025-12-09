@@ -1227,16 +1227,6 @@ METRICS: List[MetricConfig] = [
         load_years=(2007, 2009)
     ),
     MetricConfig(
-        key="acceleration_of_growth",
-        display_name="Acceleration of Growth",
-        short_name="Acceleration Growth",
-        getter_function=get_acceleration_of_growth_at_date,
-        reverse_sort=False,
-        years_of_history_needed=6,  # Needs 21 quarters (5.25 years)
-        date_key="acceleration_date",
-        load_years=(2008, 2010)
-    ),
-    MetricConfig(
         key="consistency_of_growth",
         display_name="Consistency of Growth",
         short_name="Consistency Growth",
@@ -1325,6 +1315,16 @@ METRICS: List[MetricConfig] = [
         years_of_history_needed=5,
         date_key="ps_date",
         load_years=(2007, 2009)
+    ),
+    MetricConfig(
+        key="acceleration_of_growth",
+        display_name="Acceleration of Growth",
+        short_name="Acceleration Growth",
+        getter_function=get_acceleration_of_growth_at_date,
+        reverse_sort=False,
+        years_of_history_needed=6,  # Needs 21 quarters (5.25 years)
+        date_key="acceleration_date",
+        load_years=(2008, 2010)
     ),
 ]
 
