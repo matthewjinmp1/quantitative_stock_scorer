@@ -313,6 +313,79 @@ def get_5y_revenue_growth_rate_at_date(stock_data: Dict, target_year: int = 2000
     
     return None
 
+def get_acceleration_of_growth_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get Acceleration of Growth for a stock at a specific date
+    Uses 21 quarters:
+    - sum1 = revenue of quarters 1-7 (indices idx-20 to idx-14)
+    - sum2 = revenue of quarters 8-14 (indices idx-13 to idx-7)
+    - sum3 = revenue of quarters 15-21 (indices idx-6 to idx)
+    acceleration = (sum3 / sum2) / (sum2 / sum1)
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    revenue = data.get("revenue", [])
+    if not isinstance(revenue, list) or len(revenue) < 21:
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 20:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 20 and idx < len(period_dates) and idx < len(revenue):
+            # Sum quarters 1-7 (indices idx-20 to idx-14, inclusive)
+            sum1 = 0.0
+            valid_sum1 = True
+            for i in range(idx - 20, idx - 13):
+                if i < len(revenue) and revenue[i] is not None and revenue[i] > 0:
+                    sum1 += revenue[i]
+                else:
+                    valid_sum1 = False
+                    break
+            
+            if not valid_sum1 or sum1 <= 0:
+                continue
+            
+            # Sum quarters 8-14 (indices idx-13 to idx-7, inclusive)
+            sum2 = 0.0
+            valid_sum2 = True
+            for i in range(idx - 13, idx - 6):
+                if i < len(revenue) and revenue[i] is not None and revenue[i] > 0:
+                    sum2 += revenue[i]
+                else:
+                    valid_sum2 = False
+                    break
+            
+            if not valid_sum2 or sum2 <= 0:
+                continue
+            
+            # Sum quarters 15-21 (indices idx-6 to idx, inclusive)
+            sum3 = 0.0
+            valid_sum3 = True
+            for i in range(idx - 6, idx + 1):
+                if i < len(revenue) and revenue[i] is not None and revenue[i] > 0:
+                    sum3 += revenue[i]
+                else:
+                    valid_sum3 = False
+                    break
+            
+            if valid_sum3 and sum3 > 0 and sum2 > 0:
+                # acceleration = (sum3 / sum2) / (sum2 / sum1)
+                growth_rate_2_to_3 = sum3 / sum2
+                growth_rate_1_to_2 = sum2 / sum1
+                if growth_rate_1_to_2 > 0:
+                    acceleration = growth_rate_2_to_3 / growth_rate_1_to_2
+                    return (acceleration, period_dates[idx])
+    
+    return None
+
 def get_consistency_of_growth_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get Consistency of Growth metric for a stock at a specific date
     Takes past 20 quarters of revenue, calculates YoY growth rates, then calculates stdev
@@ -1152,6 +1225,16 @@ METRICS: List[MetricConfig] = [
         years_of_history_needed=5,
         date_key="growth_rate_date",
         load_years=(2007, 2009)
+    ),
+    MetricConfig(
+        key="acceleration_of_growth",
+        display_name="Acceleration of Growth",
+        short_name="Acceleration Growth",
+        getter_function=get_acceleration_of_growth_at_date,
+        reverse_sort=False,
+        years_of_history_needed=6,  # Needs 21 quarters (5.25 years)
+        date_key="acceleration_date",
+        load_years=(2008, 2010)
     ),
     MetricConfig(
         key="consistency_of_growth",
