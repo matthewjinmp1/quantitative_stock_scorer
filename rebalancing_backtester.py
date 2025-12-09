@@ -1703,13 +1703,29 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     
     # Get all available dates from stock returns
     print(f"\n   Calculating returns and collecting dates...")
+    
+    # First, find a common start date for all stocks
+    # Use the earliest date where we have data for all stocks
+    all_stock_start_dates = []
+    for stock in stock_info:
+        start_date = stock.get(metric_date_key) or stock.get('initial_revenue_date')
+        if start_date:
+            all_stock_start_dates.append(start_date)
+    
+    # Use the earliest start date as the common portfolio start date
+    # This ensures all stocks start calculating returns from the same point
+    portfolio_start_date = None
+    if all_stock_start_dates:
+        portfolio_start_date = min(all_stock_start_dates)
+        print(f"   Using common portfolio start date: {portfolio_start_date}")
+    
+    # Calculate returns for all stocks from the common start date
     all_dates = set()
     stock_returns_by_date = {}  # ticker -> {date: return_pct}
     
     for stock in stock_info:
-        # Use metric-specific date or initial revenue date for start
-        start_date = stock.get(metric_date_key) or stock.get('initial_revenue_date')
-        returns = calculate_total_return_with_dividends(stock['stock_data'], start_year, start_date)
+        # Use the common portfolio start date for all stocks
+        returns = calculate_total_return_with_dividends(stock['stock_data'], start_year, portfolio_start_date)
         if returns:
             ticker = stock['ticker']
             stock_returns_by_date[ticker] = {}
@@ -1751,8 +1767,8 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
     portfolio_value_metric = 1.0  # Start at 1.0
     portfolio_value_revenue = 1.0  # Start at 1.0
     
-    # Track last known returns per stock (for inactive stocks) - updated as we iterate
-    stock_last_return = {ticker: 0.0 for ticker in revenue_weights.keys()}
+    # Track previous cumulative returns per stock to calculate period returns
+    stock_prev_cumulative_return = {ticker: 0.0 for ticker in revenue_weights.keys()}
     
     for date in sorted_dates:
         current_year = date.year
@@ -1806,47 +1822,55 @@ def run_rebalancing_backtest_for_metric(stock_info_base: List[Dict], selected_me
             
             last_rebalance_year = current_year
         
-        # Calculate portfolio values for this date (optimized)
-        # Track last known returns per stock as we iterate (since dates are sorted)
-        portfolio_value_metric = 0.0
-        portfolio_value_revenue = 0.0
-        total_active_weight_metric = 0.0
-        total_active_weight_revenue = 0.0
-        inactive_value_metric = 0.0
-        inactive_value_revenue = 0.0
+        # Calculate portfolio period return for this date
+        # Convert cumulative returns to period returns and compound
+        period_return_metric = 0.0
+        period_return_revenue = 0.0
+        total_weight_metric = 0.0
+        total_weight_revenue = 0.0
         
         for stock in stock_info:
             ticker = stock['ticker']
             metric_weight = current_metric_weights.get(ticker, 0.0) / 100.0
             revenue_weight = revenue_weights.get(ticker, 0.0) / 100.0
             
-            # Get return for this date (O(1) lookup)
-            stock_return_pct = None
+            # Get cumulative return for this date
+            stock_cumulative_return_pct = None
             if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
-                stock_return_pct = stock_returns_by_date[ticker][date]
-                stock_last_return[ticker] = stock_return_pct  # Update last known return
+                stock_cumulative_return_pct = stock_returns_by_date[ticker][date]
             
-            if stock_return_pct is not None:
-                stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
-                # Active stock
-                portfolio_value_metric += metric_weight * stock_value_multiplier
-                portfolio_value_revenue += revenue_weight * stock_value_multiplier
-                total_active_weight_metric += metric_weight
-                total_active_weight_revenue += revenue_weight
+            # Use last known return if current date doesn't have data
+            if stock_cumulative_return_pct is None:
+                stock_cumulative_return_pct = stock_prev_cumulative_return.get(ticker, 0.0)
+            
+            # Calculate period return: (current_cumulative - previous_cumulative) / (1 + previous_cumulative/100)
+            prev_cumulative = stock_prev_cumulative_return.get(ticker, 0.0)
+            if prev_cumulative != stock_cumulative_return_pct:
+                # Period return = (new_cumulative - old_cumulative) / (1 + old_cumulative/100)
+                period_return_pct = (stock_cumulative_return_pct - prev_cumulative) / (1.0 + prev_cumulative / 100.0)
             else:
-                # Inactive stock - use last known return
-                last_return = stock_last_return.get(ticker, 0.0)
-                stock_value_multiplier = 1.0 + (last_return / 100.0)
-                inactive_value_metric += metric_weight * stock_value_multiplier
-                inactive_value_revenue += revenue_weight * stock_value_multiplier
+                period_return_pct = 0.0
+            
+            # Update previous cumulative return
+            stock_prev_cumulative_return[ticker] = stock_cumulative_return_pct
+            
+            # Weighted period return contribution
+            period_return_metric += metric_weight * period_return_pct
+            period_return_revenue += revenue_weight * period_return_pct
+            total_weight_metric += metric_weight
+            total_weight_revenue += revenue_weight
         
-        # Redistribute inactive stocks' value proportionally to active stocks
-        if total_active_weight_metric > 0:
-            portfolio_value_metric += inactive_value_metric
-        if total_active_weight_revenue > 0:
-            portfolio_value_revenue += inactive_value_revenue
+        # Normalize by total weight (in case weights don't sum to 1.0)
+        if total_weight_metric > 0:
+            period_return_metric /= total_weight_metric
+        if total_weight_revenue > 0:
+            period_return_revenue /= total_weight_revenue
         
-        # Calculate cumulative returns
+        # Compound portfolio values
+        portfolio_value_metric *= (1.0 + period_return_metric / 100.0)
+        portfolio_value_revenue *= (1.0 + period_return_revenue / 100.0)
+        
+        # Calculate cumulative returns from portfolio values
         cumulative_return_metric = (portfolio_value_metric - 1.0) * 100
         cumulative_return_revenue = (portfolio_value_revenue - 1.0) * 100
         cumulative_returns_metric_weighted.append(cumulative_return_metric)
@@ -1978,12 +2002,29 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     
     # Get all available dates from stock returns
     print(f"\n   Calculating returns and collecting dates...")
+    
+    # First, find a common start date for all stocks
+    # Use the earliest date where we have data for all stocks
+    all_stock_start_dates = []
+    for stock in stock_info:
+        start_date = stock.get('initial_revenue_date')
+        if start_date:
+            all_stock_start_dates.append(start_date)
+    
+    # Use the earliest start date as the common portfolio start date
+    # This ensures all stocks start calculating returns from the same point
+    portfolio_start_date = None
+    if all_stock_start_dates:
+        portfolio_start_date = min(all_stock_start_dates)
+        print(f"   Using common portfolio start date: {portfolio_start_date}")
+    
+    # Calculate returns for all stocks from the common start date
     all_dates = set()
     stock_returns_by_date = {}
     
     for stock in stock_info:
-        start_date = stock.get('initial_revenue_date')
-        returns = calculate_total_return_with_dividends(stock['stock_data'], start_year, start_date)
+        # Use the common portfolio start date for all stocks
+        returns = calculate_total_return_with_dividends(stock['stock_data'], start_year, portfolio_start_date)
         if returns:
             ticker = stock['ticker']
             stock_returns_by_date[ticker] = {}
@@ -2019,8 +2060,8 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
     portfolio_value_metric = 1.0
     portfolio_value_revenue = 1.0
     
-    # Track last known returns per stock (for inactive stocks) - updated as we iterate
-    stock_last_return = {ticker: 0.0 for ticker in revenue_weights.keys()}
+    # Track previous cumulative returns per stock to calculate period returns
+    stock_prev_cumulative_return = {ticker: 0.0 for ticker in revenue_weights.keys()}
     
     for date in sorted_dates:
         current_year = date.year
@@ -2061,45 +2102,55 @@ def run_rebalancing_backtest_for_combined_metrics(stock_info_base: List[Dict], s
             
             last_rebalance_year = current_year
         
-        # Calculate portfolio values for this date (optimized)
-        portfolio_value_metric = 0.0
-        portfolio_value_revenue = 0.0
-        total_active_weight_metric = 0.0
-        total_active_weight_revenue = 0.0
-        inactive_value_metric = 0.0
-        inactive_value_revenue = 0.0
+        # Calculate portfolio period return for this date
+        # Convert cumulative returns to period returns and compound
+        period_return_metric = 0.0
+        period_return_revenue = 0.0
+        total_weight_metric = 0.0
+        total_weight_revenue = 0.0
         
         for stock in stock_info:
             ticker = stock['ticker']
             metric_weight = current_metric_weights.get(ticker, 0.0) / 100.0
             revenue_weight = revenue_weights.get(ticker, 0.0) / 100.0
             
-            # Get return for this date (O(1) lookup)
-            stock_return_pct = None
+            # Get cumulative return for this date
+            stock_cumulative_return_pct = None
             if ticker in stock_returns_by_date and date in stock_returns_by_date[ticker]:
-                stock_return_pct = stock_returns_by_date[ticker][date]
-                stock_last_return[ticker] = stock_return_pct  # Update last known return
+                stock_cumulative_return_pct = stock_returns_by_date[ticker][date]
             
-            if stock_return_pct is not None:
-                stock_value_multiplier = 1.0 + (stock_return_pct / 100.0)
-                # Active stock
-                portfolio_value_metric += metric_weight * stock_value_multiplier
-                portfolio_value_revenue += revenue_weight * stock_value_multiplier
-                total_active_weight_metric += metric_weight
-                total_active_weight_revenue += revenue_weight
+            # Use last known return if current date doesn't have data
+            if stock_cumulative_return_pct is None:
+                stock_cumulative_return_pct = stock_prev_cumulative_return.get(ticker, 0.0)
+            
+            # Calculate period return: (current_cumulative - previous_cumulative) / (1 + previous_cumulative/100)
+            prev_cumulative = stock_prev_cumulative_return.get(ticker, 0.0)
+            if prev_cumulative != stock_cumulative_return_pct:
+                # Period return = (new_cumulative - old_cumulative) / (1 + old_cumulative/100)
+                period_return_pct = (stock_cumulative_return_pct - prev_cumulative) / (1.0 + prev_cumulative / 100.0)
             else:
-                # Inactive stock - use last known return
-                last_return = stock_last_return.get(ticker, 0.0)
-                stock_value_multiplier = 1.0 + (last_return / 100.0)
-                inactive_value_metric += metric_weight * stock_value_multiplier
-                inactive_value_revenue += revenue_weight * stock_value_multiplier
+                period_return_pct = 0.0
+            
+            # Update previous cumulative return
+            stock_prev_cumulative_return[ticker] = stock_cumulative_return_pct
+            
+            # Weighted period return contribution
+            period_return_metric += metric_weight * period_return_pct
+            period_return_revenue += revenue_weight * period_return_pct
+            total_weight_metric += metric_weight
+            total_weight_revenue += revenue_weight
         
-        # Redistribute inactive stocks' value proportionally to active stocks
-        if total_active_weight_metric > 0:
-            portfolio_value_metric += inactive_value_metric
-        if total_active_weight_revenue > 0:
-            portfolio_value_revenue += inactive_value_revenue
+        # Normalize by total weight (in case weights don't sum to 1.0)
+        if total_weight_metric > 0:
+            period_return_metric /= total_weight_metric
+        if total_weight_revenue > 0:
+            period_return_revenue /= total_weight_revenue
         
+        # Compound portfolio values
+        portfolio_value_metric *= (1.0 + period_return_metric / 100.0)
+        portfolio_value_revenue *= (1.0 + period_return_revenue / 100.0)
+        
+        # Calculate cumulative returns from portfolio values
         cumulative_return_metric = (portfolio_value_metric - 1.0) * 100
         cumulative_return_revenue = (portfolio_value_revenue - 1.0) * 100
         cumulative_returns_metric_weighted.append(cumulative_return_metric)
