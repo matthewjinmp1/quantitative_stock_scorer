@@ -313,6 +313,60 @@ def get_5y_revenue_growth_rate_at_date(stock_data: Dict, target_year: int = 2000
     
     return None
 
+def get_5y_share_growth_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
+    """Get 5y share growth for a stock at a specific date
+    Uses 20 quarters: sum of first 10 quarters vs sum of last 10 quarters
+    growth = sum2 / sum1
+    Lower is better (fewer shares is better)
+    """
+    if not stock_data or "data" not in stock_data:
+        return None
+    
+    data = stock_data.get("data", {})
+    period_dates = get_period_dates(data)
+    if not period_dates or not isinstance(period_dates, list) or len(period_dates) == 0:
+        return None
+    
+    shares = data.get("shares_diluted", [])
+    if not isinstance(shares, list) or len(shares) < 20:
+        return None
+    
+    quarter_idx = find_quarter_near_date(period_dates, target_year, allow_earlier=True)
+    if quarter_idx is None or quarter_idx < 19:
+        return None
+    
+    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
+        idx = quarter_idx + offset
+        if idx >= 19 and idx < len(period_dates) and idx < len(shares):
+            # Sum last 10 quarters (quarters idx-9 to idx, inclusive)
+            sum2 = 0.0
+            valid_sum2 = True
+            for i in range(idx - 9, idx + 1):
+                if i < len(shares) and shares[i] is not None and shares[i] > 0:
+                    sum2 += shares[i]
+                else:
+                    valid_sum2 = False
+                    break
+            
+            if not valid_sum2 or sum2 <= 0:
+                continue
+            
+            # Sum first 10 quarters (quarters idx-19 to idx-10, inclusive)
+            sum1 = 0.0
+            valid_sum1 = True
+            for i in range(idx - 19, idx - 9):
+                if i < len(shares) and shares[i] is not None and shares[i] > 0:
+                    sum1 += shares[i]
+                else:
+                    valid_sum1 = False
+                    break
+            
+            if valid_sum1 and sum1 > 0:
+                growth = sum2 / sum1
+                return (growth, period_dates[idx])
+    
+    return None
+
 def get_acceleration_of_growth_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
     """Get Acceleration of Growth for a stock at a specific date
     Uses 21 quarters:
@@ -1325,6 +1379,16 @@ METRICS: List[MetricConfig] = [
         years_of_history_needed=6,  # Needs 21 quarters (5.25 years)
         date_key="acceleration_date",
         load_years=(2008, 2010)
+    ),
+    MetricConfig(
+        key="5y_share_growth",
+        display_name="5y share growth",
+        short_name="5y share growth",
+        getter_function=get_5y_share_growth_at_date,
+        reverse_sort=True,  # Lower is better (fewer shares is better)
+        years_of_history_needed=5,
+        date_key="share_growth_date",
+        load_years=(2007, 2009)
     ),
 ]
 
