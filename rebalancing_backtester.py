@@ -2151,46 +2151,55 @@ def main():
         metrics_by_load_years[load_years_key].append(metric)
     
     for stock_data in all_stocks_list:
+        # Load revenue first and check threshold early - skip metric calculation if revenue too low
         revenue_result = None
-        metric_results = {}  # Store results by metric key
-        
-        # Load revenue first (always needed)
         for year in range(2002, 2004):
-            if not revenue_result:
-                revenue_result = get_revenue_at_date(stock_data, year)
+            revenue_result = get_revenue_at_date(stock_data, year)
             if revenue_result:
                 break
         
+        # Early exit if revenue is too low - saves calculating all metrics for stocks that will be filtered
+        if not revenue_result or revenue_result[0] < 100_000_000:
+            continue
+        
+        # Only calculate metrics for stocks that pass revenue threshold
+        revenue, revenue_date = revenue_result
+        metric_results = {}
+        
         # Load all metrics grouped by their load_years
+        # Restructured to break early once each metric is found
         for load_years, metrics_group in metrics_by_load_years.items():
             start_year, end_year = load_years
-            for year in range(start_year, end_year):
-                for metric in metrics_group:
-                    metric_key = metric.key
-                    if metric_key not in metric_results or metric_results[metric_key] is None:
-                        result = metric.getter_function(stock_data, year)
-                        if result:
-                            metric_results[metric_key] = result
-        
-        # Need revenue at minimum
-        if revenue_result and revenue_result[0] >= 100_000_000:  # $100M minimum
-            revenue, revenue_date = revenue_result
-            stock_entry = {
-                'ticker': stock_data.get('symbol'),
-                'stock_data': stock_data,
-                'revenue': revenue,
-                'revenue_date': revenue_date
-            }
-            
-            # Store all metric results dynamically from registry
-            for metric in METRICS:
+            for metric in metrics_group:
                 metric_key = metric.key
+                # Skip if already found
                 if metric_key in metric_results and metric_results[metric_key]:
-                    metric_value, metric_date = metric_results[metric_key]
-                    stock_entry[metric_key] = metric_value
-                    stock_entry[metric.date_key] = metric_date
-            
-            stocks_with_data.append(stock_entry)
+                    continue
+                
+                # Try years until we find the metric, then break
+                for year in range(start_year, end_year):
+                    result = metric.getter_function(stock_data, year)
+                    if result:
+                        metric_results[metric_key] = result
+                        break  # Found it, move to next metric
+        
+        # Create stock entry
+        stock_entry = {
+            'ticker': stock_data.get('symbol'),
+            'stock_data': stock_data,
+            'revenue': revenue,
+            'revenue_date': revenue_date
+        }
+        
+        # Store all metric results dynamically from registry
+        for metric in METRICS:
+            metric_key = metric.key
+            if metric_key in metric_results and metric_results[metric_key]:
+                metric_value, metric_date = metric_results[metric_key]
+                stock_entry[metric_key] = metric_value
+                stock_entry[metric.date_key] = metric_date
+        
+        stocks_with_data.append(stock_entry)
     
     print(f"   Found {len(stocks_with_data)} stocks with data and revenue >= $100M")
     
