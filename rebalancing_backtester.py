@@ -261,7 +261,7 @@ def get_5y_revenue_cagr_at_date(stock_data: Dict, target_year: int = 2000) -> Op
     return None
 
 def get_5y_revenue_growth_rate_at_date(stock_data: Dict, target_year: int = 2000) -> Optional[Tuple[float, str]]:
-    """Get 5-Year Revenue Growth Rate for a stock at a specific date
+    """Get 5y halfway growth for a stock at a specific date
     Uses 20 quarters: sum of first 10 quarters vs sum of last 10 quarters
     growth = sum2 / sum1
     """
@@ -1218,8 +1218,8 @@ METRICS: List[MetricConfig] = [
     ),
     MetricConfig(
         key="5y_revenue_growth_rate",
-        display_name="5-Year Revenue Growth Rate",
-        short_name="5Y Rev Growth",
+        display_name="5y halfway growth",
+        short_name="5y halfway growth",
         getter_function=get_5y_revenue_growth_rate_at_date,
         reverse_sort=False,
         years_of_history_needed=5,
