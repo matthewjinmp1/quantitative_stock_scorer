@@ -623,13 +623,8 @@ def rank_metrics_by_bucket_difference(metric_data: MetricData, available_metrics
     """
     Rank all metrics by the difference between top 50% and bottom 50% bucket returns.
     
-    For each time period:
-    1. Rank all stocks by metric value
-    2. Split into top 50% and bottom 50% buckets
-    3. Calculate median return for each bucket
-    4. Average the top bucket medians across all periods
-    5. Average the bottom bucket medians across all periods
-    6. Calculate difference between averaged top and bottom bucket medians
+    This function pools all data across all time periods for the 'total' forward return period,
+    then calculates the bucket difference using the same method as run_buckets_mode.
     
     Args:
         metric_data: MetricData object containing extracted data
@@ -642,47 +637,14 @@ def rank_metrics_by_bucket_difference(metric_data: MetricData, available_metrics
     rankings = []
     
     for metric_key in available_metrics.keys():
-        # Get all time periods for this forward period
-        time_periods = metric_data.get_time_periods(forward_period)
+        # Get all pairs across all time periods for this metric and forward period
+        # This pools all data together, same as run_buckets_mode
+        pairs = metric_data.get_pairs(forward_period, metric_key)
         
-        top_bucket_medians = []
-        bottom_bucket_medians = []
+        # Use the same shared bucket calculation function as run_buckets_mode
+        difference = calculate_bucket_difference(pairs)
         
-        # For each time period, calculate bucket medians
-        for time_period in time_periods:
-            pairs = metric_data.get_pairs(forward_period, metric_key, time_period)
-            
-            if len(pairs) < 2:
-                continue
-            
-            # Rank stocks by metric value and split into buckets for this period
-            metric_values = np.array([p[0] for p in pairs])
-            forward_returns = np.array([p[1] for p in pairs])
-            
-            # Calculate median to split into top 50% and bottom 50%
-            median_metric = np.median(metric_values)
-            
-            # Create masks for top and bottom 50%
-            bottom_mask = metric_values <= median_metric
-            top_mask = metric_values > median_metric
-            
-            bottom_returns = forward_returns[bottom_mask]
-            top_returns = forward_returns[top_mask]
-            
-            if len(bottom_returns) > 0 and len(top_returns) > 0:
-                # Calculate median return for each bucket in this period
-                bottom_median = np.median(bottom_returns)
-                top_median = np.median(top_returns)
-                
-                top_bucket_medians.append(top_median)
-                bottom_bucket_medians.append(bottom_median)
-        
-        # Calculate overall difference: average of top bucket medians - average of bottom bucket medians
-        # We average the medians across periods to get the overall effect
-        if len(top_bucket_medians) > 0 and len(bottom_bucket_medians) > 0:
-            overall_top_avg = np.mean(top_bucket_medians)
-            overall_bottom_avg = np.mean(bottom_bucket_medians)
-            difference = overall_top_avg - overall_bottom_avg
+        if difference is not None:
             rankings.append((metric_key, difference))
         else:
             rankings.append((metric_key, None))
