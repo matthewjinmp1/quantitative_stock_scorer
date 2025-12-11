@@ -242,6 +242,7 @@ def get_stocks_with_revenue_over_threshold(threshold: float = 1_000_000_000) -> 
     print(f"  Loaded {len(all_stocks)} stocks from JSONL files")
     
     qualifying_symbols = set()
+    qualifying_stocks_data = []  # Store stock data for calculating average years
     
     # Check revenue for each stock
     for stock_data in all_stocks:
@@ -260,8 +261,30 @@ def get_stocks_with_revenue_over_threshold(threshold: float = 1_000_000_000) -> 
             revenue, _ = revenue_result
             if revenue >= threshold:
                 qualifying_symbols.add(symbol)
+                qualifying_stocks_data.append(stock_data)
     
     print(f"  Found {len(qualifying_symbols)} stocks with revenue > ${threshold/1e9:.1f}B")
+    
+    # Calculate average years of data per stock
+    if qualifying_stocks_data:
+        total_quarters = 0
+        for stock_data in qualifying_stocks_data:
+            if stock_data and "data" in stock_data:
+                data = stock_data.get("data", {})
+                # Try different possible key names for dates
+                period_dates = None
+                for date_key in ["period_end_date", "fiscal_quarter_key", "original_filing_date"]:
+                    if date_key in data and data[date_key]:
+                        period_dates = data[date_key]
+                        break
+                if period_dates and isinstance(period_dates, list):
+                    total_quarters += len(period_dates)
+        
+        if len(qualifying_stocks_data) > 0:
+            avg_quarters = total_quarters / len(qualifying_stocks_data)
+            avg_years = avg_quarters / 4.0
+            print(f"  Average years of data per stock: {avg_years:.1f} years ({avg_quarters:.1f} quarters)")
+    
     return qualifying_symbols
 
 
