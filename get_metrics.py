@@ -706,41 +706,6 @@ def main():
             data_points = stats[f'{metric_key}_data_points']
             null_points = stats[f'{metric_key}_null_points']
             print(f"  {metric_name:<{max_name_len}}  {data_points:>9,} values, {null_points:>9,} nulls")
-            
-            # Special handling for EBIT/PPE null reasons
-            if metric_key == "ebit_ppe" and stats.get('ebit_ppe_null_reasons'):
-                reasons = stats['ebit_ppe_null_reasons']
-                if any(reasons.values()):
-                    # Find max length of reason descriptions for alignment
-                    reason_descriptions = []
-                    if reasons.get('ppe_zero', 0) > 0:
-                        reason_descriptions.append("- PPE = 0 (division by zero):")
-                    if reasons.get('operating_income_array_too_short', 0) > 0:
-                        reason_descriptions.append("- operating_income array too short (no data for this quarter):")
-                    if reasons.get('ppe_array_too_short', 0) > 0:
-                        reason_descriptions.append("- ppe_net array too short (no data for this quarter):")
-                    if reasons.get('both_arrays_too_short', 0) > 0:
-                        reason_descriptions.append("- Both arrays too short (no data for this quarter):")
-                    if reasons.get('missing_operating_income', 0) > 0:
-                        reason_descriptions.append("- Missing operating_income (None value):")
-                    if reasons.get('missing_ppe', 0) > 0:
-                        reason_descriptions.append("- Missing ppe_net (None value):")
-                    
-                    if reason_descriptions:
-                        max_reason_len = max(len(desc) for desc in reason_descriptions)
-                        print(f"    {'EBIT/PPE null reasons:':<{max_name_len}}")
-                        if reasons.get('ppe_zero', 0) > 0:
-                            print(f"      {'- PPE = 0 (division by zero):':<{max_reason_len}} {reasons['ppe_zero']:>9,}")
-                        if reasons.get('operating_income_array_too_short', 0) > 0:
-                            print(f"      {'- operating_income array too short (no data for this quarter):':<{max_reason_len}} {reasons['operating_income_array_too_short']:>9,}")
-                        if reasons.get('ppe_array_too_short', 0) > 0:
-                            print(f"      {'- ppe_net array too short (no data for this quarter):':<{max_reason_len}} {reasons['ppe_array_too_short']:>9,}")
-                        if reasons.get('both_arrays_too_short', 0) > 0:
-                            print(f"      {'- Both arrays too short (no data for this quarter):':<{max_reason_len}} {reasons['both_arrays_too_short']:>9,}")
-                        if reasons.get('missing_operating_income', 0) > 0:
-                            print(f"      {'- Missing operating_income (None value):':<{max_reason_len}} {reasons['missing_operating_income']:>9,}")
-                        if reasons.get('missing_ppe', 0) > 0:
-                            print(f"      {'- Missing ppe_net (None value):':<{max_reason_len}} {reasons['missing_ppe']:>9,}")
     
     total_time = time.time() - program_start_time
     print(f"{'='*80}")
