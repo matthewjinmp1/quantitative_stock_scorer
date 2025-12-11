@@ -524,6 +524,71 @@ def calculate_bucket_difference(pairs: List[Tuple[float, float]]) -> Optional[fl
     return None
 
 
+def calculate_bucket_difference_by_period(metric_data: MetricData, forward_period: str, metric_key: str) -> Optional[float]:
+    """
+    Calculate bucket difference by grouping points by period, calculating difference per period,
+    then taking the median of all period differences.
+    
+    For each period:
+    1. Find bottom 50% and top 50% of stocks for the metric
+    2. Find median annualized total forward return for both top and bottom
+    3. Calculate difference between these medians
+    
+    Then take the median of all period differences.
+    
+    Args:
+        metric_data: MetricData object containing extracted data
+        forward_period: Forward return period (e.g., 'total', '1y', '3y')
+        metric_key: Metric key to analyze
+    
+    Returns:
+        Median of period differences, or None if insufficient data
+    """
+    # Get all time periods for this forward period
+    time_periods = metric_data.get_time_periods(forward_period)
+    
+    if not time_periods:
+        return None
+    
+    period_differences = []
+    
+    # For each time period, calculate bucket difference
+    for time_period in time_periods:
+        pairs = metric_data.get_pairs(forward_period, metric_key, time_period)
+        
+        if len(pairs) < 2:
+            continue
+        
+        # Calculate bucket difference for this period
+        metric_values = np.array([p[0] for p in pairs])
+        forward_returns = np.array([p[1] for p in pairs])
+        
+        # Calculate median to split into top 50% and bottom 50%
+        median_metric = np.median(metric_values)
+        
+        # Create masks for top and bottom 50%
+        bottom_mask = metric_values <= median_metric
+        top_mask = metric_values > median_metric
+        
+        bottom_returns = forward_returns[bottom_mask]
+        top_returns = forward_returns[top_mask]
+        
+        if len(bottom_returns) > 0 and len(top_returns) > 0:
+            # Find median annualized total forward return for both top and bottom
+            bottom_median = np.median(bottom_returns)
+            top_median = np.median(top_returns)
+            
+            # Calculate difference between these medians
+            period_diff = top_median - bottom_median
+            period_differences.append(period_diff)
+    
+    # Take the median over all periods to get the final stat
+    if len(period_differences) > 0:
+        return np.median(period_differences)
+    
+    return None
+
+
 def calculate_custom_bucket_stats(pairs: List[Tuple[float, float]], num_buckets: int) -> Optional[List[Dict]]:
     """
     Calculate median returns for custom number of buckets.
@@ -623,8 +688,8 @@ def rank_metrics_by_bucket_difference(metric_data: MetricData, available_metrics
     """
     Rank all metrics by the difference between top 50% and bottom 50% bucket returns.
     
-    This function pools all data across all time periods for the 'total' forward return period,
-    then calculates the bucket difference using the same method as run_buckets_mode.
+    This function groups points by period, calculates bucket difference per period,
+    then takes the median of all period differences.
     
     Args:
         metric_data: MetricData object containing extracted data
@@ -637,12 +702,8 @@ def rank_metrics_by_bucket_difference(metric_data: MetricData, available_metrics
     rankings = []
     
     for metric_key in available_metrics.keys():
-        # Get all pairs across all time periods for this metric and forward period
-        # This pools all data together, same as run_buckets_mode
-        pairs = metric_data.get_pairs(forward_period, metric_key)
-        
-        # Use the same shared bucket calculation function as run_buckets_mode
-        difference = calculate_bucket_difference(pairs)
+        # Calculate bucket difference using per-period method
+        difference = calculate_bucket_difference_by_period(metric_data, forward_period, metric_key)
         
         if difference is not None:
             rankings.append((metric_key, difference))
@@ -1289,29 +1350,28 @@ def run_buckets_mode(metric_data: MetricData, available_metrics: dict, metric_ke
         print("-"*100)
         
         for forward_period in FORWARD_RETURN_PERIODS:
-            pairs = metric_data.get_pairs(forward_period, metric_key)
-            
-            if len(pairs) < 2:
-                continue
-            
-            # Use shared bucket calculation function
-            difference = calculate_bucket_difference(pairs)
+            # Use per-period bucket difference calculation
+            difference = calculate_bucket_difference_by_period(metric_data, forward_period, metric_key)
             
             if difference is not None:
-                # Calculate bucket medians for display
-                metric_values = np.array([p[0] for p in pairs])
-                forward_returns = np.array([p[1] for p in pairs])
-                median_metric = np.median(metric_values)
-                bottom_mask = metric_values <= median_metric
-                top_mask = metric_values > median_metric
-                bottom_returns = forward_returns[bottom_mask]
-                top_returns = forward_returns[top_mask]
+                # For display, we still need to show the medians
+                # Get all pairs to calculate overall medians for display
+                pairs = metric_data.get_pairs(forward_period, metric_key)
                 
-                bottom_median = np.median(bottom_returns)
-                top_median = np.median(top_returns)
-                
-                period_display = format_forward_period_display(forward_period)
-                print(f"{period_display:<20} {bottom_median:<30.2f}% {top_median:<30.2f}% {difference:<20.2f}% {len(pairs):<15,}")
+                if len(pairs) >= 2:
+                    metric_values = np.array([p[0] for p in pairs])
+                    forward_returns = np.array([p[1] for p in pairs])
+                    median_metric = np.median(metric_values)
+                    bottom_mask = metric_values <= median_metric
+                    top_mask = metric_values > median_metric
+                    bottom_returns = forward_returns[bottom_mask]
+                    top_returns = forward_returns[top_mask]
+                    
+                    bottom_median = np.median(bottom_returns)
+                    top_median = np.median(top_returns)
+                    
+                    period_display = format_forward_period_display(forward_period)
+                    print(f"{period_display:<20} {bottom_median:<30.2f}% {top_median:<30.2f}% {difference:<20.2f}% {len(pairs):<15,}")
         
         print("="*100)
 
