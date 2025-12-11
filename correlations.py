@@ -1339,41 +1339,66 @@ def run_buckets_mode(metric_data: MetricData, available_metrics: dict, metric_ke
         available_metrics: Dictionary mapping metric keys to display names
         metric_keys_to_process: List of metric keys to analyze
     """
-    for metric_key in metric_keys_to_process:
-        metric_name = available_metrics.get(metric_key, metric_key)
-        
-        # Print results for each forward return period
+    # If processing all metrics, show a summary table
+    if len(metric_keys_to_process) > 1:
         print("\n" + "="*100)
-        print(f"{metric_name} - Median Return by Metric Buckets")
+        print("All Metrics - Bucket Differences by Forward Return Period")
         print("="*100)
-        print(f"\n{'Forward Period':<20} {'Bottom 50% Median Return':<30} {'Top 50% Median Return':<30} {'Difference':<20} {'N Points':<15}")
+        print(f"\n{'Metric':<50} {'Total':<15} {'1y':<15} {'3y':<15} {'5y':<15} {'10y':<15}")
         print("-"*100)
         
-        for forward_period in FORWARD_RETURN_PERIODS:
-            # Use per-period bucket difference calculation
-            difference = calculate_bucket_difference_by_period(metric_data, forward_period, metric_key)
+        for metric_key in metric_keys_to_process:
+            metric_name = available_metrics.get(metric_key, metric_key)
             
-            if difference is not None:
-                # For display, we still need to show the medians
-                # Get all pairs to calculate overall medians for display
-                pairs = metric_data.get_pairs(forward_period, metric_key)
-                
-                if len(pairs) >= 2:
-                    metric_values = np.array([p[0] for p in pairs])
-                    forward_returns = np.array([p[1] for p in pairs])
-                    median_metric = np.median(metric_values)
-                    bottom_mask = metric_values <= median_metric
-                    top_mask = metric_values > median_metric
-                    bottom_returns = forward_returns[bottom_mask]
-                    top_returns = forward_returns[top_mask]
-                    
-                    bottom_median = np.median(bottom_returns)
-                    top_median = np.median(top_returns)
-                    
-                    period_display = format_forward_period_display(forward_period)
-                    print(f"{period_display:<20} {bottom_median:<30.2f}% {top_median:<30.2f}% {difference:<20.2f}% {len(pairs):<15,}")
+            # Calculate bucket difference for each forward period
+            differences = []
+            for forward_period in FORWARD_RETURN_PERIODS:
+                difference = calculate_bucket_difference_by_period(metric_data, forward_period, metric_key)
+                if difference is not None:
+                    differences.append(f"{difference:.2f}%")
+                else:
+                    differences.append("N/A")
+            
+            print(f"{metric_name:<50} {differences[0]:<15} {differences[1]:<15} {differences[2]:<15} {differences[3]:<15} {differences[4]:<15}")
         
         print("="*100)
+    else:
+        # Single metric - show detailed view with top/bottom buckets
+        for metric_key in metric_keys_to_process:
+            metric_name = available_metrics.get(metric_key, metric_key)
+            
+            # Print results for each forward return period
+            print("\n" + "="*100)
+            print(f"{metric_name} - Median Return by Metric Buckets")
+            print("="*100)
+            print(f"\n{'Forward Period':<20} {'Bottom 50% Median Return':<30} {'Top 50% Median Return':<30} {'Difference':<20} {'N Points':<15}")
+            print("-"*100)
+            
+            for forward_period in FORWARD_RETURN_PERIODS:
+                # Use per-period bucket difference calculation
+                difference = calculate_bucket_difference_by_period(metric_data, forward_period, metric_key)
+                
+                if difference is not None:
+                    # For display, we still need to show the medians
+                    # Get all pairs to calculate overall medians for display
+                    pairs = metric_data.get_pairs(forward_period, metric_key)
+                    
+                    if len(pairs) >= 2:
+                        metric_values = np.array([p[0] for p in pairs])
+                        forward_returns = np.array([p[1] for p in pairs])
+                        median_metric = np.median(metric_values)
+                        bottom_mask = metric_values <= median_metric
+                        top_mask = metric_values > median_metric
+                        bottom_returns = forward_returns[bottom_mask]
+                        top_returns = forward_returns[top_mask]
+                        
+                        bottom_median = np.median(bottom_returns)
+                        top_median = np.median(top_returns)
+                        
+                        period_display = format_forward_period_display(forward_period)
+                        print(f"{period_display:<20} {bottom_median:<30.2f}% {top_median:<30.2f}% {difference:<20.2f}% {len(pairs):<15,}")
+            
+            print("="*100)
 
 
 def run_custom_buckets_mode(metric_data: MetricData, available_metrics: dict, metric_keys_to_process: List[str], num_buckets: int):
