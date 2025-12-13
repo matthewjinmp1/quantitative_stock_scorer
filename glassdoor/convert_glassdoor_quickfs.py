@@ -47,6 +47,19 @@ def get_company_name_variations(name: str) -> List[str]:
     if 'and' in name.lower():
         variations.append(name.replace('and', '&'))
     
+    # Remove common prefixes
+    prefixes = ['The ', 'A ', 'An ']
+    for prefix in prefixes:
+        if name.startswith(prefix):
+            variations.append(name[len(prefix):])
+    
+    # Add common suffixes that might be in data but not in Glassdoor name
+    common_suffixes = [' Inc', ' Inc.', ' Corporation', ' Corp', ' Corp.', ' Company', ' Co', ' Co.', 
+                      ' LLC', ' Limited', ' Ltd', ' Ltd.']
+    for suffix in common_suffixes:
+        if not name.endswith(suffix):
+            variations.append(name + suffix)
+    
     return variations
 
 
@@ -217,6 +230,54 @@ def build_company_name_mapping_from_data(stock_dict: Dict[str, Dict]) -> Dict[st
             if normalized.lower() != company_name.lower():
                 mapping[normalized.lower()] = ticker
     
+    # Add known mappings for companies that might not match exactly
+    # These are common variations that might appear in Glassdoor but not in data files
+    known_mappings = {
+        'Capital One': 'COF',
+        'Capital One Financial': 'COF',
+        'Capital One Financial Corporation': 'COF',
+        'FactSet': 'FDS',
+        'Factset': 'FDS',
+        'Fact Set': 'FDS',
+        'FactSet Research Systems': 'FDS',
+        'FactSet Research Systems Inc': 'FDS',
+        'Google': 'GOOGL',
+        'Alphabet': 'GOOGL',
+        'Alphabet Inc': 'GOOGL',
+        'SAP': 'SAP',
+        'Sap': 'SAP',
+        'SAP SE': 'SAP',
+        'Salesforce': 'CRM',
+        'Salesforce.com': 'CRM',
+        'Salesforce.com Inc': 'CRM',
+        'Booz Allen Hamilton': 'BAH',
+        'Booz Allen': 'BAH',
+        'Booz Allen Hamilton Holding': 'BAH',
+        'Genentech': 'DNA',
+        'Genentech Inc': 'DNA',
+        'Wells Fargo': 'WFC',
+        'Wells Fargo & Company': 'WFC',
+        'Wells Fargo Company': 'WFC',
+        'Accenture': 'ACN',
+        'Accenture plc': 'ACN',
+        'Schlumberger': 'SLB',
+        'Schlumberger Limited': 'SLB',
+        'Schlumberger Ltd': 'SLB',
+        'Continental Airlines': 'CAL',
+        'Continental': 'CAL',
+        'Continental Airlines Inc': 'CAL',
+    }
+    
+    # Add known mappings to the main mapping
+    for name, ticker in known_mappings.items():
+        if ticker in stock_dict:  # Only add if ticker exists in our data
+            mapping[name] = ticker
+            mapping[name.lower()] = ticker
+            normalized = normalize_company_name_for_search(name)
+            if normalized != name:
+                mapping[normalized] = ticker
+                mapping[normalized.lower()] = ticker
+    
     return mapping
 
 
@@ -276,6 +337,34 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
                 has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
                 if has_data:
                     return (ticker, info)
+    
+    # Try fuzzy matching - check if any key in data_mapping contains the company name or vice versa
+    company_words = set(company_name.lower().split())
+    company_lower = company_name.lower()
+    
+    # First, try substring matching (one contains the other)
+    for key, ticker in data_mapping.items():
+        key_lower = key.lower()
+        # Check if one name is contained in the other (for cases like "Capital One" vs "Capital One Financial")
+        if (company_lower in key_lower or key_lower in company_lower) and len(company_name) >= 5 and len(key) >= 5:
+            if ticker in stock_dict:
+                has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
+                if has_data:
+                    return (ticker, info)
+    
+    # Then try word overlap matching
+    for key, ticker in data_mapping.items():
+        key_words = set(key.lower().split())
+        # If there's significant overlap in words (at least 2 words match)
+        if len(company_words) >= 2 and len(key_words) >= 2:
+            common_words = company_words.intersection(key_words)
+            # Require at least 2 common words, or all words from the shorter name match
+            min_words = min(len(company_words), len(key_words))
+            if len(common_words) >= 2 and len(common_words) >= min_words * 0.7:  # At least 70% of shorter name matches
+                if ticker in stock_dict:
+                    has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
+                    if has_data:
+                        return (ticker, info)
     
     return None
 
