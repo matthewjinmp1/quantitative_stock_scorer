@@ -296,10 +296,17 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
     Returns:
         Tuple of (ticker, info_message) or None
     """
+    # Known false positives to exclude
+    false_positives = {
+        'Northwestern Mutual': ['NWE'],  # NWE is NorthWestern Corporation, not Northwestern Mutual
+    }
+    
+    excluded_tickers = false_positives.get(company_name, [])
+    
     # Try exact match
     if company_name in data_mapping:
         ticker = data_mapping[company_name]
-        if ticker in stock_dict:
+        if ticker not in excluded_tickers and ticker in stock_dict:
             has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
             if has_data:
                 return (ticker, info)
@@ -308,7 +315,7 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
     normalized = normalize_company_name_for_search(company_name)
     if normalized in data_mapping:
         ticker = data_mapping[normalized]
-        if ticker in stock_dict:
+        if ticker not in excluded_tickers and ticker in stock_dict:
             has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
             if has_data:
                 return (ticker, info)
@@ -317,7 +324,7 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
     company_lower = company_name.lower()
     if company_lower in data_mapping:
         ticker = data_mapping[company_lower]
-        if ticker in stock_dict:
+        if ticker not in excluded_tickers and ticker in stock_dict:
             has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
             if has_data:
                 return (ticker, info)
@@ -327,14 +334,14 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
     for variation in variations:
         if variation in data_mapping:
             ticker = data_mapping[variation]
-            if ticker in stock_dict:
+            if ticker not in excluded_tickers and ticker in stock_dict:
                 has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
                 if has_data:
                     return (ticker, info)
         # Also try lowercase
         if variation.lower() in data_mapping:
             ticker = data_mapping[variation.lower()]
-            if ticker in stock_dict:
+            if ticker not in excluded_tickers and ticker in stock_dict:
                 has_data, info = check_ticker_has_data_for_year(stock_dict[ticker], year)
                 if has_data:
                     return (ticker, info)
@@ -345,6 +352,8 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
     
     # First, try substring matching (one contains the other)
     for key, ticker in data_mapping.items():
+        if ticker in excluded_tickers:
+            continue
         key_lower = key.lower()
         # Check if one name is contained in the other (for cases like "Capital One" vs "Capital One Financial")
         if (company_lower in key_lower or key_lower in company_lower) and len(company_name) >= 5 and len(key) >= 5:
@@ -355,6 +364,8 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
     
     # Then try word overlap matching
     for key, ticker in data_mapping.items():
+        if ticker in excluded_tickers:
+            continue
         key_words = set(key.lower().split())
         # If there's significant overlap in words (at least 2 words match)
         if len(company_words) >= 2 and len(key_words) >= 2:
