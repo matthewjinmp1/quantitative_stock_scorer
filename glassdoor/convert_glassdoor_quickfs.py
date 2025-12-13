@@ -254,6 +254,15 @@ def build_company_name_mapping_from_data(stock_dict: Dict[str, Dict]) -> Dict[st
         'Booz Allen Hamilton': 'BAH',
         'Booz Allen': 'BAH',
         'Booz Allen Hamilton Holding': 'BAH',
+        'T Mobile': 'TMUS',
+        'T-Mobile': 'TMUS',
+        'T-Mobile US': 'TMUS',
+        'Ellie Mae': 'ELLI',
+        'Forrester': 'FORR',
+        'Forrester Research': 'FORR',
+        'Shell': 'SHEL',
+        'Shell Oil': 'SHEL',
+        'Royal Dutch Shell': 'SHEL',
         'Genentech': 'DNA',
         'Genentech Inc': 'DNA',
         'Wells Fargo': 'WFC',
@@ -299,6 +308,10 @@ def find_ticker_for_company(company_name: str, data_mapping: Dict[str, str],
     # Known false positives to exclude
     false_positives = {
         'Northwestern Mutual': ['NWE'],  # NWE is NorthWestern Corporation, not Northwestern Mutual
+        'T Mobile': ['SCKT'],  # SCKT is Socket Mobile Inc, not T-Mobile
+        'T-Mobile': ['SCKT'],  # SCKT is Socket Mobile Inc, not T-Mobile
+        'Liberty National': ['NHLD'],  # NHLD is National Holdings Corporation
+        'Liberty Mutual': ['NHLD'],  # NHLD is National Holdings Corporation
     }
     
     excluded_tickers = false_positives.get(company_name, [])
