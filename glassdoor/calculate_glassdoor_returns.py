@@ -457,6 +457,51 @@ def calculate_portfolio_returns(year: int, stock_dict: Dict[str, Dict]) -> Dict:
         if years > 0:
             annualized_return = ((final_value / total_initial_value) ** (1 / years) - 1) * 100
     
+    # Calculate individual stock returns
+    individual_stock_returns = []
+    for ticker in initial_prices.keys():
+        if ticker not in price_history or not price_history[ticker]:
+            continue
+        
+        # Get company name from matched data
+        company_name = None
+        for m in matched:
+            if m['ticker'] == ticker:
+                company_name = m.get('company', ticker)
+                break
+        
+        initial_price = initial_prices[ticker]
+        prices = price_history[ticker]
+        
+        # Get first and last price dates/values
+        first_price_date, first_price = prices[0]
+        last_price_date, last_price = prices[-1]
+        
+        # Calculate total return
+        stock_total_return = (last_price / initial_price - 1) * 100
+        
+        # Calculate annualized return
+        stock_years = (last_price_date - first_price_date).days / 365.25
+        if stock_years > 0:
+            stock_annualized = ((last_price / initial_price) ** (1 / stock_years) - 1) * 100
+        else:
+            stock_annualized = 0
+        
+        individual_stock_returns.append({
+            'ticker': ticker,
+            'company': company_name,
+            'initial_price': initial_price,
+            'final_price': last_price,
+            'first_date': first_price_date.isoformat(),
+            'last_date': last_price_date.isoformat(),
+            'years_held': round(stock_years, 2),
+            'total_return_pct': round(stock_total_return, 2),
+            'annualized_return_pct': round(stock_annualized, 2)
+        })
+    
+    # Sort by annualized return descending
+    individual_stock_returns.sort(key=lambda x: x['annualized_return_pct'], reverse=True)
+    
     result = {
         'year': year,
         'initial_value': total_initial_value,
@@ -465,7 +510,8 @@ def calculate_portfolio_returns(year: int, stock_dict: Dict[str, Dict]) -> Dict:
         'annualized_return_pct': annualized_return,
         'num_stocks': len(initial_prices),
         'final_num_stocks': len(active_tickers),
-        'portfolio_values': [(d.isoformat(), v) for d, v in portfolio_values]
+        'portfolio_values': [(d.isoformat(), v) for d, v in portfolio_values],
+        'individual_stock_returns': individual_stock_returns
     }
     
     print(f"  Final portfolio value: ${final_value:,.2f}")
@@ -1021,6 +1067,18 @@ def main():
                 with open(results_file, 'w', encoding='utf-8') as f:
                     json.dump(result, f, indent=2, ensure_ascii=False)
                 print(f"  Results saved: {results_file}")
+                
+                # Save individual stock returns to separate JSON
+                if result.get('individual_stock_returns'):
+                    stock_returns_file = os.path.join(RETURNS_JSONS_DIR, f'glassdoor_{year}_stock_returns.json')
+                    stock_returns_data = {
+                        'year': year,
+                        'num_stocks': len(result['individual_stock_returns']),
+                        'stocks': result['individual_stock_returns']
+                    }
+                    with open(stock_returns_file, 'w', encoding='utf-8') as f:
+                        json.dump(stock_returns_data, f, indent=2, ensure_ascii=False)
+                    print(f"  Stock returns saved: {stock_returns_file}")
         except Exception as e:
             print(f"\nError processing {year}: {e}")
             import traceback
