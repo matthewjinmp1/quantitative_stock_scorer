@@ -828,14 +828,6 @@ def create_summary_chart(all_results: List[Dict], output_dir: str):
 
 def main():
     """Main function."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Calculate buy-and-hold returns for Glassdoor portfolios')
-    parser.add_argument('--year', type=int, help='Year to calculate (2009-2025)')
-    parser.add_argument('--all', action='store_true', help='Process all years')
-    
-    args = parser.parse_args()
-    
     current_year = datetime.now().year
     
     # Load stock data once
@@ -843,63 +835,17 @@ def main():
     stock_dict = load_stock_data_by_ticker()
     print(f"Loaded {len(stock_dict)} stocks")
     
-    if args.all:
-        # Find all available years
-        years = []
-        for filename in os.listdir(TICKERS_QUICKFS_DIR):
-            if filename.startswith('glassdoor_') and filename.endswith('_tickers.json'):
-                try:
-                    year = int(filename.split('_')[1])
-                    if 2009 <= year <= current_year:
-                        years.append(year)
-                except (ValueError, IndexError):
-                    continue
-        years = sorted(set(years))
-    elif args.year:
-        if 2009 <= args.year <= current_year:
-            years = [args.year]
-        else:
-            print(f"Error: Year must be between 2009 and {current_year}")
-            return
-    else:
-        # Interactive mode
-        print("Glassdoor Portfolio Returns Calculator")
-        print("=" * 60)
-        print(f"Enter a year (2009-{current_year}) or 'all' for all years")
-        print("=" * 60)
-        
-        while True:
+    # Find all available years
+    years = []
+    for filename in os.listdir(TICKERS_QUICKFS_DIR):
+        if filename.startswith('glassdoor_') and filename.endswith('_tickers.json'):
             try:
-                year_input = input(f"\nEnter the year (2009-{current_year}) or 'all' (or 'quit' to stop): ").strip().lower()
-                
-                if year_input in ['quit', 'exit', 'q']:
-                    print("\nExiting. Goodbye!")
-                    return
-                
-                if year_input == 'all':
-                    years = []
-                    for filename in os.listdir(TICKERS_QUICKFS_DIR):
-                        if filename.startswith('glassdoor_') and filename.endswith('_tickers.json'):
-                            try:
-                                year = int(filename.split('_')[1])
-                                if 2009 <= year <= current_year:
-                                    years.append(year)
-                            except (ValueError, IndexError):
-                                continue
-                    years = sorted(set(years))
-                    break
-                else:
-                    year = int(year_input)
-                    if 2009 <= year <= current_year:
-                        years = [year]
-                        break
-                    else:
-                        print(f"Error: Year must be between 2009 and {current_year}. Please try again.")
-            except ValueError:
-                print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and {current_year}, 'all', or 'quit'.")
-            except KeyboardInterrupt:
-                print("\n\nCalculator cancelled by user. Exiting...")
-                return
+                year = int(filename.split('_')[1])
+                if 2009 <= year <= current_year:
+                    years.append(year)
+            except (ValueError, IndexError):
+                continue
+    years = sorted(set(years))
     
     # Load benchmark data for comparison
     print("\nLoading benchmark data for comparison...")
