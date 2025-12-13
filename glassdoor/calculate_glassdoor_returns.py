@@ -20,6 +20,8 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 GLASSDOOR_DIR = SCRIPT_DIR
 TICKERS_QUICKFS_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'tickers_quickfs')
 RETURNS_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'returns')
+RETURNS_CHARTS_DIR = os.path.join(RETURNS_DIR, 'charts')
+RETURNS_JSONS_DIR = os.path.join(RETURNS_DIR, 'jsons')
 
 
 def parse_date_string(date_str: str) -> Optional[int]:
@@ -534,11 +536,11 @@ def main():
             result = calculate_portfolio_returns(year, stock_dict)
             if result:
                 all_results.append(result)
-                create_returns_chart(result, RETURNS_DIR)
+                create_returns_chart(result, RETURNS_CHARTS_DIR)
                 
                 # Save results to JSON
-                os.makedirs(RETURNS_DIR, exist_ok=True)
-                results_file = os.path.join(RETURNS_DIR, f'glassdoor_{year}_returns.json')
+                os.makedirs(RETURNS_JSONS_DIR, exist_ok=True)
+                results_file = os.path.join(RETURNS_JSONS_DIR, f'glassdoor_{year}_returns.json')
                 with open(results_file, 'w', encoding='utf-8') as f:
                     json.dump(result, f, indent=2, ensure_ascii=False)
                 print(f"  Results saved: {results_file}")
