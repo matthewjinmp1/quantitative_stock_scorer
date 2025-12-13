@@ -932,9 +932,11 @@ def create_benchmark_beat_chart(all_results: List[Dict], benchmark_data: Optiona
     
     # Add summary stats
     avg_beat = np.mean(beats)
+    median_beat = np.median(beats)
     years_outperformed = sum(1 for b in beats if b > 0)
     
     stats_text = f"Average Beat: {avg_beat:+.1f}% per year\n"
+    stats_text += f"Median Beat: {median_beat:+.1f}% per year\n"
     stats_text += f"Years Outperformed: {years_outperformed}/{len(beats)} ({years_outperformed/len(beats)*100:.0f}%)"
     
     ax.text(0.98, 0.98, stats_text, transform=ax.transAxes,
@@ -962,6 +964,7 @@ def create_benchmark_beat_chart(all_results: List[Dict], benchmark_data: Optiona
     # Also save beat data to JSON
     beat_json = {
         'average_beat_pct': avg_beat,
+        'median_beat_pct': median_beat,
         'years_outperformed': years_outperformed,
         'total_years': len(beats),
         'outperformance_rate_pct': years_outperformed / len(beats) * 100,
