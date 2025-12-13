@@ -582,73 +582,91 @@ def create_summary_chart(all_results: List[Dict], output_dir: str):
     all_results = sorted(all_results, key=lambda x: x['year'])
     
     years = [r['year'] for r in all_results]
+    year_labels = [str(y)[2:] for y in years]  # Use '09, '10, etc. for compactness
     total_returns = [r['total_return_pct'] for r in all_results]
     annualized_returns = [r.get('annualized_return_pct', 0) for r in all_results]
     initial_stocks = [r['num_stocks'] for r in all_results]
     final_stocks = [r['final_num_stocks'] for r in all_results]
     
-    # Create figure with 3 subplots
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Glassdoor Best Places to Work - Portfolio Returns Summary', fontsize=16, fontweight='bold', y=0.98)
+    # Create figure with subplots - larger size for better spacing
+    fig, axes = plt.subplots(2, 2, figsize=(18, 13))
+    fig.suptitle('Glassdoor Best Places to Work - Portfolio Returns Summary', fontsize=18, fontweight='bold', y=0.98)
+    plt.subplots_adjust(hspace=0.35, wspace=0.25)
     
     # Color palette
     colors = plt.cm.viridis(np.linspace(0.2, 0.8, len(years)))
     
     # 1. Total Return Bar Chart
     ax1 = axes[0, 0]
-    bars1 = ax1.bar(years, total_returns, color=colors, edgecolor='black', linewidth=0.5)
+    x1 = np.arange(len(years))
+    bars1 = ax1.bar(x1, total_returns, color=colors, edgecolor='black', linewidth=0.5, width=0.7)
     ax1.set_xlabel('Year', fontsize=11)
     ax1.set_ylabel('Total Return (%)', fontsize=11)
-    ax1.set_title('Total Return by Year', fontsize=12, fontweight='bold')
+    ax1.set_title('Total Return by Year', fontsize=13, fontweight='bold')
     ax1.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
     ax1.grid(True, alpha=0.3, axis='y')
-    ax1.set_xticks(years)
-    ax1.set_xticklabels(years, rotation=45, ha='right')
+    ax1.set_xticks(x1)
+    ax1.set_xticklabels([f"'{y}" for y in year_labels], fontsize=9)
     
-    # Add value labels on bars
+    # Add value labels - inside bar for tall bars, above for short
+    max_return = max(total_returns)
     for bar, val in zip(bars1, total_returns):
         height = bar.get_height()
-        ax1.annotate(f'{val:.0f}%',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha='center', va='bottom', fontsize=8, rotation=90)
+        if height > max_return * 0.4:  # Tall bar - put label inside
+            ax1.annotate(f'{val:.0f}%',
+                        xy=(bar.get_x() + bar.get_width() / 2, height - max_return * 0.05),
+                        ha='center', va='top', fontsize=7, fontweight='bold', color='white')
+        else:  # Short bar - put label above
+            ax1.annotate(f'{val:.0f}%',
+                        xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 2), textcoords="offset points",
+                        ha='center', va='bottom', fontsize=7)
+    
+    # Add some padding at top for labels
+    ax1.set_ylim(top=max_return * 1.08)
     
     # 2. Annualized Return Bar Chart
     ax2 = axes[0, 1]
-    bars2 = ax2.bar(years, annualized_returns, color=colors, edgecolor='black', linewidth=0.5)
+    x2 = np.arange(len(years))
+    bars2 = ax2.bar(x2, annualized_returns, color=colors, edgecolor='black', linewidth=0.5, width=0.7)
     ax2.set_xlabel('Year', fontsize=11)
     ax2.set_ylabel('Annualized Return (%)', fontsize=11)
-    ax2.set_title('Annualized Return by Year', fontsize=12, fontweight='bold')
+    ax2.set_title('Annualized Return by Year', fontsize=13, fontweight='bold')
     ax2.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-    ax2.axhline(y=10, color='green', linestyle=':', linewidth=1, alpha=0.7, label='10% benchmark')
+    ax2.axhline(y=10, color='#e74c3c', linestyle='--', linewidth=2, alpha=0.8, label='10% benchmark')
     ax2.grid(True, alpha=0.3, axis='y')
-    ax2.set_xticks(years)
-    ax2.set_xticklabels(years, rotation=45, ha='right')
+    ax2.set_xticks(x2)
+    ax2.set_xticklabels([f"'{y}" for y in year_labels], fontsize=9)
     ax2.legend(loc='upper right', fontsize=9)
     
-    # Add value labels on bars
+    # Add value labels above bars (horizontal, no rotation)
+    max_ann = max(annualized_returns)
     for bar, val in zip(bars2, annualized_returns):
         height = bar.get_height()
-        ax2.annotate(f'{val:.1f}%',
+        ax2.annotate(f'{val:.1f}',
                     xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha='center', va='bottom', fontsize=8, rotation=90)
+                    xytext=(0, 2), textcoords="offset points",
+                    ha='center', va='bottom', fontsize=7)
+    
+    # Add padding at top
+    ax2.set_ylim(top=max_ann * 1.15)
     
     # 3. Stock Retention Chart
     ax3 = axes[1, 0]
-    x = np.arange(len(years))
+    x3 = np.arange(len(years))
     width = 0.35
-    bars3a = ax3.bar(x - width/2, initial_stocks, width, label='Initial Stocks', color='#3498db', edgecolor='black', linewidth=0.5)
-    bars3b = ax3.bar(x + width/2, final_stocks, width, label='Final Stocks', color='#2ecc71', edgecolor='black', linewidth=0.5)
+    bars3a = ax3.bar(x3 - width/2, initial_stocks, width, label='Initial Stocks', color='#3498db', edgecolor='black', linewidth=0.5)
+    bars3b = ax3.bar(x3 + width/2, final_stocks, width, label='Final Stocks', color='#2ecc71', edgecolor='black', linewidth=0.5)
     ax3.set_xlabel('Year', fontsize=11)
     ax3.set_ylabel('Number of Stocks', fontsize=11)
-    ax3.set_title('Stock Retention by Year', fontsize=12, fontweight='bold')
-    ax3.set_xticks(x)
-    ax3.set_xticklabels(years, rotation=45, ha='right')
-    ax3.legend(loc='upper right', fontsize=9)
+    ax3.set_title('Stock Retention by Year', fontsize=13, fontweight='bold')
+    ax3.set_xticks(x3)
+    ax3.set_xticklabels([f"'{y}" for y in year_labels], fontsize=9)
+    ax3.legend(loc='upper left', fontsize=9)
     ax3.grid(True, alpha=0.3, axis='y')
+    
+    # Add padding at top
+    ax3.set_ylim(top=max(initial_stocks) * 1.1)
     
     # 4. Summary Statistics Table
     ax4 = axes[1, 1]
@@ -659,18 +677,20 @@ def create_summary_chart(all_results: List[Dict], output_dir: str):
     avg_annualized = np.mean(annualized_returns)
     best_year_idx = np.argmax(total_returns)
     worst_year_idx = np.argmin(total_returns)
+    best_ann_idx = np.argmax(annualized_returns)
     avg_retention = np.mean([f/i*100 for i, f in zip(initial_stocks, final_stocks)])
     
     # Create table data
     table_data = [
         ['Metric', 'Value'],
         ['Years Analyzed', f'{len(years)} ({min(years)}-{max(years)})'],
-        ['Avg Total Return', f'{avg_total_return:.1f}%'],
+        ['Avg Total Return', f'{avg_total_return:,.0f}%'],
         ['Avg Annualized Return', f'{avg_annualized:.1f}%'],
-        ['Best Year (Total)', f'{years[best_year_idx]} ({total_returns[best_year_idx]:.1f}%)'],
-        ['Worst Year (Total)', f'{years[worst_year_idx]} ({total_returns[worst_year_idx]:.1f}%)'],
+        ['Best Year (Total)', f'{years[best_year_idx]} ({total_returns[best_year_idx]:,.0f}%)'],
+        ['Best Year (Annualized)', f'{years[best_ann_idx]} ({annualized_returns[best_ann_idx]:.1f}%)'],
+        ['Worst Year (Total)', f'{years[worst_year_idx]} ({total_returns[worst_year_idx]:.0f}%)'],
         ['Avg Stock Retention', f'{avg_retention:.1f}%'],
-        ['Total Stocks Analyzed', f'{sum(initial_stocks)}'],
+        ['Total Stocks Analyzed', f'{sum(initial_stocks):,}'],
     ]
     
     # Create table
@@ -678,24 +698,25 @@ def create_summary_chart(all_results: List[Dict], output_dir: str):
         cellText=table_data,
         cellLoc='center',
         loc='center',
-        colWidths=[0.5, 0.5]
+        colWidths=[0.55, 0.45]
     )
     table.auto_set_font_size(False)
-    table.set_fontsize(11)
-    table.scale(1.2, 2)
+    table.set_fontsize(12)
+    table.scale(1.3, 2.2)
     
     # Style header row
     for i in range(2):
         table[(0, i)].set_facecolor('#2E86AB')
-        table[(0, i)].set_text_props(color='white', fontweight='bold')
+        table[(0, i)].set_text_props(color='white', fontweight='bold', fontsize=13)
     
-    # Alternate row colors
+    # Alternate row colors and style
     for i in range(1, len(table_data)):
-        color = '#f0f0f0' if i % 2 == 0 else 'white'
+        color = '#e8f4f8' if i % 2 == 0 else 'white'
         for j in range(2):
             table[(i, j)].set_facecolor(color)
+            table[(i, j)].set_text_props(fontsize=11)
     
-    ax4.set_title('Summary Statistics', fontsize=12, fontweight='bold', pad=20)
+    ax4.set_title('Summary Statistics', fontsize=13, fontweight='bold', pad=10)
     
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     
