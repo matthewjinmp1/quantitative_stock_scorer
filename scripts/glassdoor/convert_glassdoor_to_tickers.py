@@ -1,6 +1,7 @@
 """
 Convert Glassdoor company names to stock tickers using yfinance.
 Checks if companies were public at the time of the list.
+Handles delisted companies by checking historical data.
 """
 import json
 import os
@@ -9,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import pandas as pd
 import yfinance as yf
 
 # Get project root directory (2 levels up from this script)
@@ -474,48 +476,133 @@ def check_company_public_at_year(ticker: str, year: int) -> Tuple[bool, Optional
     try:
         stock = yf.Ticker(ticker)
         
-        # Try to get historical data first (more reliable for old years and delisted companies)
+        # PRIORITY 1: Try to get historical data first (most reliable for delisted companies)
+        # This works even if the company is no longer public today
         try:
-            # Get data up to the year we're checking
-            end_date = f"{year}-12-31"
-            hist = stock.history(start=f"{year}-01-01", end=end_date)
+            # First, try to get max history to see if company ever existed
+            full_hist = stock.history(period="max")
             
-            if hist is not None and len(hist) > 0:
-                # Company was trading in this year, so it was public
-                # Get first available date for IPO info
-                try:
-                    full_hist = stock.history(period="max")
-                    if full_hist is not None and len(full_hist) > 0:
-                        first_date = full_hist.index[0]
-                        ipo_year = first_date.year
-                        if ipo_year <= year:
-                            return True, f"First trade: {first_date.strftime('%Y-%m-%d')}"
-                except:
-                    # If we can't get full history, but we have data for the year, assume it was public
-                    return True, f"Trading data found for {year}"
+            if full_hist is not None and len(full_hist) > 0:
+                # Company has historical data - check if it was trading in the target year
+                first_date = full_hist.index[0]
+                last_date = full_hist.index[-1]
+                
+                # Get years from dates
+                if isinstance(full_hist.index, pd.DatetimeIndex):
+                    first_year = first_date.year
+                    last_year = last_date.year
+                    
+                    # Check if company was trading during the target year
+                    if first_year <= year <= last_year:
+                        # Company was trading during this period - check specific year
+                        year_data = full_hist[full_hist.index.year == year]
+                        if len(year_data) > 0:
+                            # Company was definitely trading in this year
+                            first_date_str = first_date.strftime('%Y-%m-%d')
+                            return True, f"First trade: {first_date_str} (historical data)"
+                        elif first_year <= year:
+                            # Company started before or during the year, assume it was public
+                            first_date_str = first_date.strftime('%Y-%m-%d')
+                            return True, f"First trade: {first_date_str} (historical data, may be delisted)"
+                else:
+                    # Fallback: try to parse dates
+                    try:
+                        first_year = pd.to_datetime(first_date).year
+                        last_year = pd.to_datetime(last_date).year
+                        if first_year <= year <= last_year:
+                            first_date_str = str(first_date)
+                            return True, f"First trade: {first_date_str} (historical data)"
+                    except:
+                        pass
         except Exception as e:
-            # Continue to try other methods
+            # Historical data check failed, continue to other methods
             pass
         
-        # Try to get info (may fail for delisted companies)
+        # PRIORITY 2: Try to get info (may fail for delisted companies, but worth trying)
         try:
             info = stock.info
         except:
             info = None
         
+        # If we have info, use it
+        if info:
+            # Get IPO date from info
+            ipo_date = info.get('ipoDate')
+            if ipo_date:
+                # Parse IPO date
+                if isinstance(ipo_date, (int, float)):
+                    try:
+                        ipo_datetime = datetime.fromtimestamp(ipo_date / 1000)  # Assume milliseconds
+                        ipo_year = ipo_datetime.year
+                    except:
+                        # Try to get from historical data instead
+                        try:
+                            hist = stock.history(period="max")
+                            if hist is not None and len(hist) > 0:
+                                first_date = hist.index[0]
+                                first_year = first_date.year if hasattr(first_date, 'year') else pd.to_datetime(first_date).year
+                                if first_year <= year:
+                                    return True, f"First trade: {str(first_date)}"
+                        except:
+                            pass
+                        return False, f"Could not parse IPO timestamp: {ipo_date}"
+                elif isinstance(ipo_date, str):
+                    try:
+                        for fmt in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S%z']:
+                            try:
+                                ipo_datetime = datetime.strptime(ipo_date, fmt)
+                                ipo_year = ipo_datetime.year
+                                break
+                            except:
+                                continue
+                        else:
+                            # If parsing failed, try historical data
+                            try:
+                                hist = stock.history(period="max")
+                                if hist is not None and len(hist) > 0:
+                                    first_date = hist.index[0]
+                                    first_year = first_date.year if hasattr(first_date, 'year') else pd.to_datetime(first_date).year
+                                    if first_year <= year:
+                                        return True, f"First trade: {str(first_date)}"
+                            except:
+                                pass
+                            return False, f"Could not parse IPO date: {ipo_date}"
+                    except:
+                        return False, f"Could not parse IPO date: {ipo_date}"
+                else:
+                    return False, f"Unexpected IPO date format: {type(ipo_date)}"
+                
+                # Check if IPO was before or during the year
+                if ipo_year <= year:
+                    return True, str(ipo_date)
+                else:
+                    return False, f"IPO: {ipo_date} (after {year})"
+        
+        # PRIORITY 3: If no info but we might have historical data, try one more time
         if not info:
-            # If no info but we have historical data, try one more time with max period
             try:
                 hist = stock.history(period="max")
                 if hist is not None and len(hist) > 0:
-                    # Check if any data exists before or during the year
-                    relevant_data = hist[hist.index.year <= year]
-                    if len(relevant_data) > 0:
-                        first_date = hist.index[0]
-                        return True, f"First trade: {first_date.strftime('%Y-%m-%d')} (delisted)"
+                    first_date = hist.index[0]
+                    if isinstance(hist.index, pd.DatetimeIndex):
+                        first_year = first_date.year
+                        if first_year <= year:
+                            # Check if company was trading in the target year
+                            year_data = hist[hist.index.year == year]
+                            if len(year_data) > 0 or first_year <= year:
+                                first_date_str = first_date.strftime('%Y-%m-%d')
+                                return True, f"First trade: {first_date_str} (delisted, no current info)"
+                    else:
+                        # Fallback
+                        try:
+                            first_year = pd.to_datetime(first_date).year
+                            if first_year <= year:
+                                return True, f"First trade: {str(first_date)} (delisted, no current info)"
+                        except:
+                            pass
             except:
                 pass
-            return False, "No info available"
+            return False, "No info or historical data available"
         
         # Get IPO date from info
         ipo_date = info.get('ipoDate')
