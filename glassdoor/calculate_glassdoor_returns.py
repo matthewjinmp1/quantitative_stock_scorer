@@ -477,8 +477,70 @@ def calculate_portfolio_returns(year: int, stock_dict: Dict[str, Dict]) -> Dict:
     return result
 
 
-def create_returns_chart(results: Dict, output_dir: str):
-    """Create a chart showing portfolio returns over time."""
+def load_benchmark_data() -> Optional[Dict]:
+    """Load benchmark data from JSON file."""
+    benchmark_file = os.path.join(GLASSDOOR_DIR, 'data', 'benchmark', 'benchmark_top500_returns.json')
+    if not os.path.exists(benchmark_file):
+        return None
+    
+    try:
+        with open(benchmark_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Warning: Could not load benchmark data: {e}")
+        return None
+
+
+def get_benchmark_returns_for_period(benchmark_data: Dict, start_date: datetime, end_date: datetime) -> List[Tuple[datetime, float]]:
+    """
+    Get benchmark returns normalized to start at 0% from the given start date.
+    
+    Returns:
+        List of (date, return_pct) tuples
+    """
+    if not benchmark_data or 'portfolio_values' not in benchmark_data:
+        return []
+    
+    # Parse benchmark values
+    benchmark_values = []
+    for date_str, value in benchmark_data['portfolio_values']:
+        try:
+            date = datetime.fromisoformat(date_str)
+            benchmark_values.append((date, value))
+        except:
+            continue
+    
+    benchmark_values.sort(key=lambda x: x[0])
+    
+    # Filter to the period we need
+    filtered = [(d, v) for d, v in benchmark_values if start_date <= d <= end_date]
+    
+    if not filtered:
+        return []
+    
+    # Find the benchmark value at or just before start_date to normalize
+    start_value = None
+    for d, v in benchmark_values:
+        if d <= start_date:
+            start_value = v
+        else:
+            break
+    
+    # If no value before start_date, use the first available value in the period
+    if start_value is None and filtered:
+        start_value = filtered[0][1]
+    
+    if start_value is None or start_value <= 0:
+        return []
+    
+    # Calculate returns as percentage from start
+    returns = [(d, (v / start_value - 1) * 100) for d, v in filtered]
+    
+    return returns
+
+
+def create_returns_chart(results: Dict, output_dir: str, benchmark_data: Optional[Dict] = None):
+    """Create a chart showing portfolio returns over time with benchmark comparison."""
     if not results or 'portfolio_values' not in results:
         return
     
@@ -499,20 +561,33 @@ def create_returns_chart(results: Dict, output_dir: str):
     # Create chart
     fig, ax = plt.subplots(figsize=(14, 7))
     
-    # Plot with quarterly markers - show markers more frequently for better granularity
-    marker_frequency = max(1, len(dates)//30)  # Show more markers
-    ax.plot(dates, returns_pct, linewidth=2, color='#2E86AB', marker='o', markersize=2.5, markevery=marker_frequency, alpha=0.9)
+    # Plot Glassdoor returns with quarterly markers
+    marker_frequency = max(1, len(dates)//30)
+    ax.plot(dates, returns_pct, linewidth=2.5, color='#2E86AB', marker='o', markersize=3, 
+            markevery=marker_frequency, alpha=0.9, label=f'Glassdoor {year}')
+    ax.fill_between(dates, 0, returns_pct, alpha=0.2, color='#2E86AB')
+    
+    # Add benchmark comparison if available
+    benchmark_label = None
+    if benchmark_data:
+        benchmark_returns = get_benchmark_returns_for_period(benchmark_data, dates[0], dates[-1])
+        if benchmark_returns:
+            bench_dates = [d for d, _ in benchmark_returns]
+            bench_returns = [r for _, r in benchmark_returns]
+            ax.plot(bench_dates, bench_returns, linewidth=2, color='#e74c3c', 
+                    linestyle='--', alpha=0.8, label='Benchmark (Top 500)')
+            benchmark_label = f"Benchmark: {bench_returns[-1]:.1f}%" if bench_returns else None
+    
     ax.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-    ax.fill_between(dates, 0, returns_pct, alpha=0.3, color='#2E86AB')
     
     ax.set_xlabel('Date', fontsize=12)
     ax.set_ylabel('Total Return (%)', fontsize=12)
-    ax.set_title(f'Glassdoor Best Places to Work {year} - Buy & Hold Returns (Quarterly Data)', fontsize=14, fontweight='bold')
+    ax.set_title(f'Glassdoor Best Places to Work {year} - Buy & Hold Returns vs Benchmark', fontsize=14, fontweight='bold')
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
     ax.grid(True, alpha=0.1, which='minor')
+    ax.legend(loc='upper left', fontsize=10)
     
     # Format x-axis dates with quarterly granularity
-    # Always show quarterly information in labels
     date_range = (dates[-1] - dates[0]).days
     years_span = date_range / 365.25
     
@@ -520,7 +595,6 @@ def create_returns_chart(results: Dict, output_dir: str):
     def format_quarterly(x, pos=None):
         dt = mdates.num2date(x)
         quarter = (dt.month - 1) // 3 + 1
-        # Always show quarter information
         return f'{dt.year} Q{quarter}'
     
     # Set quarterly minor ticks always for visual granularity
@@ -528,39 +602,27 @@ def create_returns_chart(results: Dict, output_dir: str):
     
     # Determine major tick interval based on range
     if years_span <= 3:
-        # Short range: show every quarter
         major_interval = 3
     elif years_span <= 8:
-        # Medium range: show every 2 quarters (6 months)
         major_interval = 6
     else:
-        # Long range: show every 4 quarters (yearly) but label with quarters
         major_interval = 12
     
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=major_interval))
     ax.xaxis.set_major_formatter(FuncFormatter(format_quarterly))
     plt.xticks(rotation=45, ha='right')
     
-    # Make markers more visible for quarterly data points
-    # Update the existing plot line to show quarterly markers more clearly
-    for line in ax.lines:
-        if line.get_label() == '' or 'returns' in line.get_label().lower():
-            line.set_marker('o')
-            line.set_markersize(2.5)
-            line.set_markevery(max(1, len(dates)//40))
-            line.set_alpha(0.9)
-    
     # Add statistics text
-    stats_text = f"Initial: ${results['initial_value']:,.0f} | "
-    stats_text += f"Final: ${results['final_value']:,.0f} | "
-    stats_text += f"Return: {results['total_return_pct']:.1f}%"
+    stats_text = f"Glassdoor: {results['total_return_pct']:.1f}%"
     if results.get('annualized_return_pct'):
-        stats_text += f" | Annualized: {results['annualized_return_pct']:.1f}%"
+        stats_text += f" ({results['annualized_return_pct']:.1f}% ann.)"
+    if benchmark_label:
+        stats_text += f"\n{benchmark_label}"
     stats_text += f"\nStocks: {results['num_stocks']} → {results['final_num_stocks']}"
     
     ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
-            fontsize=9, verticalalignment='top',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            fontsize=10, verticalalignment='top',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.7))
     
     plt.tight_layout()
     
@@ -839,6 +901,14 @@ def main():
                 print("\n\nCalculator cancelled by user. Exiting...")
                 return
     
+    # Load benchmark data for comparison
+    print("\nLoading benchmark data for comparison...")
+    benchmark_data = load_benchmark_data()
+    if benchmark_data:
+        print(f"Benchmark data loaded: {benchmark_data.get('start_year', '?')}-{benchmark_data.get('end_year', '?')}")
+    else:
+        print("Warning: Benchmark data not found. Charts will not include benchmark comparison.")
+    
     # Process each year
     all_results = []
     for year in years:
@@ -846,7 +916,7 @@ def main():
             result = calculate_portfolio_returns(year, stock_dict)
             if result:
                 all_results.append(result)
-                create_returns_chart(result, RETURNS_CHARTS_DIR)
+                create_returns_chart(result, RETURNS_CHARTS_DIR, benchmark_data)
                 
                 # Save results to JSON
                 os.makedirs(RETURNS_JSONS_DIR, exist_ok=True)
