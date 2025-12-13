@@ -14,6 +14,7 @@ from datetime import datetime
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 GLASSDOOR_DIR = os.path.join(DATA_DIR, 'glassdoor')
+COMPANIES_DIR = os.path.join(GLASSDOOR_DIR, 'companies')
 
 
 def normalize_company_name(url_part: str) -> str:
@@ -370,10 +371,10 @@ def save_companies(companies: List[str], year: int, filename: str = None) -> Non
         filename: Output filename (defaults to data/glassdoor/glassdoor_{year}_companies.txt)
     """
     # Ensure glassdoor directory exists
-    os.makedirs(GLASSDOOR_DIR, exist_ok=True)
+    os.makedirs(COMPANIES_DIR, exist_ok=True)
     
     if filename is None:
-        filename = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_companies.txt')
+        filename = os.path.join(COMPANIES_DIR, f'glassdoor_{year}_companies.txt')
     with open(filename, 'w', encoding='utf-8') as f:
         for company in companies:
             f.write(f"{company}\n")
@@ -390,10 +391,10 @@ def save_companies_json(companies: List[str], year: int, filename: str = None) -
         filename: Output filename (defaults to data/glassdoor/glassdoor_{year}_companies.json)
     """
     # Ensure glassdoor directory exists
-    os.makedirs(GLASSDOOR_DIR, exist_ok=True)
+    os.makedirs(COMPANIES_DIR, exist_ok=True)
     
     if filename is None:
-        filename = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_companies.json')
+        filename = os.path.join(COMPANIES_DIR, f'glassdoor_{year}_companies.json')
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(companies, f, indent=2, ensure_ascii=False)
     print(f"Saved {len(companies)} companies to {filename}")

@@ -17,6 +17,7 @@ import yfinance as yf
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 GLASSDOOR_DIR = os.path.join(DATA_DIR, 'glassdoor')
+COMPANIES_DIR = os.path.join(GLASSDOOR_DIR, 'companies')
 TICKERS_DIR = os.path.join(GLASSDOOR_DIR, 'tickers')
 
 
@@ -777,7 +778,7 @@ def convert_glassdoor_year_to_tickers(year: int, max_workers: int = 10, use_cach
     print(f"Loaded {len(data_mapping)} company name mappings from data files")
     
     # Load Glassdoor companies for the year
-    glassdoor_file = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_companies.json')
+    glassdoor_file = os.path.join(COMPANIES_DIR, f'glassdoor_{year}_companies.json')
     
     if not os.path.exists(glassdoor_file):
         print(f"Error: {glassdoor_file} not found")
