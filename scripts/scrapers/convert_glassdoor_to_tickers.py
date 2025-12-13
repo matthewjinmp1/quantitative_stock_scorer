@@ -661,17 +661,28 @@ def process_single_company(company_name: str, year: int, data_mapping: Dict[str,
         return None, company_name, index
 
 
-def convert_glassdoor_year_to_tickers(year: int, max_workers: int = 10) -> Dict:
+def convert_glassdoor_year_to_tickers(year: int, max_workers: int = 10, use_cache: bool = True) -> Dict:
     """
     Convert Glassdoor company names to tickers for a specific year using multithreading.
+    Uses caching to only re-process previously unmatched companies.
     
     Args:
         year: Year to process
         max_workers: Maximum number of worker threads (default: 10)
+        use_cache: Whether to use cached results and only process unmatched companies (default: True)
     
     Returns:
         Dict with 'year', 'companies', 'matched', 'unmatched', 'stats'
     """
+    # Load existing results if available
+    cached_results = None
+    if use_cache:
+        cached_results = load_existing_ticker_mapping(year)
+        if cached_results:
+            print(f"Found cached results for year {year}")
+            print(f"  Previously matched: {len(cached_results.get('matched', []))}")
+            print(f"  Previously unmatched: {len(cached_results.get('unmatched', []))}")
+    
     # Build company name mapping from existing data files
     print("Building company name mapping from existing stock data...")
     data_mapping = build_company_name_mapping_from_data()
@@ -687,41 +698,85 @@ def convert_glassdoor_year_to_tickers(year: int, max_workers: int = 10) -> Dict:
     with open(glassdoor_file, 'r', encoding='utf-8') as f:
         glassdoor_companies = json.load(f)
     
-    print(f"\nProcessing {len(glassdoor_companies)} companies for year {year} using {max_workers} threads...")
+    # Determine which companies to process
+    companies_to_process = []
+    cached_matched = {}
+    cached_unmatched = set()
+    
+    if cached_results:
+        # Build lookup dictionaries from cache
+        for match in cached_results.get('matched', []):
+            cached_matched[match.get('glassdoor_name', '')] = match
+        
+        for unmatched_name in cached_results.get('unmatched', []):
+            cached_unmatched.add(unmatched_name)
+        
+        # Only process companies that were previously unmatched
+        companies_to_process = [c for c in glassdoor_companies if c in cached_unmatched]
+        
+        print(f"\nUsing cache: {len(cached_matched)} already matched, {len(cached_unmatched)} to re-process")
+        print(f"Processing {len(companies_to_process)} previously unmatched companies using {max_workers} threads...")
+    else:
+        # No cache, process all companies
+        companies_to_process = glassdoor_companies
+        print(f"\nProcessing {len(glassdoor_companies)} companies for year {year} using {max_workers} threads...")
+    
+    # If nothing to process, return cached results
+    if not companies_to_process and cached_results:
+        print("All companies already processed. Using cached results.")
+        return cached_results
     
     matched = []
     unmatched = []
     results_lock = threading.Lock()
     completed_count = 0
-    total_count = len(glassdoor_companies)
+    total_count = len(companies_to_process)
     
     # Use ThreadPoolExecutor to process companies in parallel
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        future_to_company = {
-            executor.submit(process_single_company, company_name, year, data_mapping, i, total_count): company_name
-            for i, company_name in enumerate(glassdoor_companies, 1)
-        }
+    if companies_to_process:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_company = {
+                executor.submit(process_single_company, company_name, year, data_mapping, i, total_count): company_name
+                for i, company_name in enumerate(companies_to_process, 1)
+            }
+            
+            # Process completed tasks as they finish
+            for future in as_completed(future_to_company):
+                company_name = future_to_company[future]
+                try:
+                    result, processed_name, index = future.result()
+                    
+                    with results_lock:
+                        completed_count += 1
+                        if result:
+                            matched.append(result)
+                            print(f"[{completed_count}/{total_count}] ✓ {processed_name} -> {result['ticker']} (IPO: {result['ipo_date']})")
+                        else:
+                            unmatched.append(processed_name)
+                            print(f"[{completed_count}/{total_count}] ✗ {processed_name} (No match or not public)")
+                except Exception as e:
+                    with results_lock:
+                        completed_count += 1
+                        unmatched.append(company_name)
+                        print(f"[{completed_count}/{total_count}] ✗ {company_name} (Error: {e})")
+    
+    # Merge cached and new results
+    if cached_results:
+        # Add cached matched companies
+        for match in cached_results.get('matched', []):
+            if match.get('glassdoor_name') not in [m.get('glassdoor_name') for m in matched]:
+                matched.append(match)
         
-        # Process completed tasks as they finish
-        for future in as_completed(future_to_company):
-            company_name = future_to_company[future]
-            try:
-                result, processed_name, index = future.result()
-                
-                with results_lock:
-                    completed_count += 1
-                    if result:
-                        matched.append(result)
-                        print(f"[{completed_count}/{total_count}] ✓ {processed_name} -> {result['ticker']} (IPO: {result['ipo_date']})")
-                    else:
-                        unmatched.append(processed_name)
-                        print(f"[{completed_count}/{total_count}] ✗ {processed_name} (No match or not public)")
-            except Exception as e:
-                with results_lock:
-                    completed_count += 1
-                    unmatched.append(company_name)
-                    print(f"[{completed_count}/{total_count}] ✗ {company_name} (Error: {e})")
+        # Remove companies from unmatched if they're now matched
+        new_unmatched = [u for u in unmatched if u not in [m.get('glassdoor_name') for m in matched]]
+        
+        # Add companies that are still unmatched (from cache) but weren't re-processed
+        for cached_unmatched_name in cached_unmatched:
+            if cached_unmatched_name not in companies_to_process:
+                new_unmatched.append(cached_unmatched_name)
+        
+        unmatched = new_unmatched
     
     # Sort matched and unmatched to maintain original order
     matched_dict = {m['glassdoor_name']: m for m in matched}
@@ -740,6 +795,21 @@ def convert_glassdoor_year_to_tickers(year: int, max_workers: int = 10) -> Dict:
             'match_rate': len(matched_sorted) / len(glassdoor_companies) * 100 if glassdoor_companies else 0
         }
     }
+
+
+def load_existing_ticker_mapping(year: int) -> Optional[Dict]:
+    """Load existing ticker mapping results from JSON file if it exists."""
+    output_file = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_tickers.json')
+    
+    if not os.path.exists(output_file):
+        return None
+    
+    try:
+        with open(output_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Warning: Could not load existing mapping for {year}: {e}")
+        return None
 
 
 def save_ticker_mapping(results: Dict, year: int):
@@ -796,6 +866,19 @@ def main():
             print("\n\nConverter cancelled by user.")
             return
     
+    # Ask about cache usage
+    use_cache = True
+    try:
+        cache_input = input("Use cached results and only re-process unmatched companies? (Y/n): ").strip().lower()
+        if cache_input in ['n', 'no']:
+            use_cache = False
+            print("Cache disabled. Will process all companies.")
+        else:
+            print("Cache enabled. Will only re-process previously unmatched companies.")
+    except KeyboardInterrupt:
+        print("\n\nConverter cancelled by user.")
+        return
+    
     # Process each year
     for year in years:
         print(f"\n{'='*60}")
@@ -803,7 +886,7 @@ def main():
         print(f"{'='*60}")
         
         start_time = time.time()
-        results = convert_glassdoor_year_to_tickers(year, max_workers=max_workers)
+        results = convert_glassdoor_year_to_tickers(year, max_workers=max_workers, use_cache=use_cache)
         elapsed_time = time.time() - start_time
         
         if results:
