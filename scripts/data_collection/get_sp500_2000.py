@@ -135,7 +135,7 @@ def fetch_sp500_alternative_method() -> List[str]:
     print("Alternative method not yet implemented")
     return []
 
-def save_to_json(tickers: List[str], filename: str = "sp500_2000.json"):
+def save_to_json(tickers: List[str], filename: str = "data/sp500_2000.json"):
     """
     Save tickers to JSON file
     
@@ -164,7 +164,7 @@ def main():
     tickers = fetch_sp500_historical_2000()
     
     if tickers:
-        save_to_json(tickers, "sp500_2000.json")
+        save_to_json(tickers, "data/sp500_2000.json")
         
         # Print first 20 tickers as sample
         print(f"\nSample tickers (first 20):")

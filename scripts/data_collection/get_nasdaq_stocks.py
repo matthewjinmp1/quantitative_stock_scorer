@@ -1,5 +1,5 @@
 """
-Program to fetch all NYSE stocks from QuickFS API and save to nyse.json
+Program to fetch all NASDAQ stocks from QuickFS API and save to nasdaq.json
 """
 import json
 from quickfs import QuickFS
@@ -8,27 +8,27 @@ from config import QUICKFS_API_KEY
 # QuickFS API Configuration
 API_KEY = QUICKFS_API_KEY
 
-def get_nyse_stocks():
+def get_nasdaq_stocks():
     """
-    Fetch all NYSE stocks from QuickFS API
+    Fetch all NASDAQ stocks from QuickFS API
     
     Returns:
-        List of ticker symbols for NYSE stocks
+        List of ticker symbols for NASDAQ stocks
     """
     try:
-        print("Fetching NYSE stocks from QuickFS API...")
+        print("Fetching NASDAQ stocks from QuickFS API...")
         client = QuickFS(API_KEY)
         
-        # Get all companies listed on NYSE
-        nyse_companies = client.get_supported_companies(country='US', exchange='NYSE')
+        # Get all companies listed on NASDAQ
+        nasdaq_companies = client.get_supported_companies(country='US', exchange='NASDAQ')
         
-        if not nyse_companies:
-            print("Warning: No NYSE companies returned from API")
+        if not nasdaq_companies:
+            print("Warning: No NASDAQ companies returned from API")
             return []
         
         # Extract ticker symbols (remove :US suffix if present)
         tickers = []
-        for company in nyse_companies:
+        for company in nasdaq_companies:
             if isinstance(company, str):
                 # If it's already a string (ticker symbol)
                 ticker = company.replace(':US', '').strip()
@@ -50,16 +50,16 @@ def get_nyse_stocks():
                 seen.add(ticker)
                 unique_tickers.append(ticker)
         
-        print(f"Found {len(unique_tickers)} unique NYSE ticker(s)")
+        print(f"Found {len(unique_tickers)} unique NASDAQ ticker(s)")
         return unique_tickers
         
     except Exception as e:
-        print(f"Error fetching NYSE stocks: {e}")
+        print(f"Error fetching NASDAQ stocks: {e}")
         return []
 
-def save_to_json(tickers, filename='nyse.json'):
+def save_to_json(tickers, filename='data/nasdaq.json'):
     """
-    Save ticker symbols to JSON file
+    Save ticker symbols to JSON file in the same format as nyse.json
     
     Args:
         tickers: List of ticker symbols
@@ -73,28 +73,28 @@ def save_to_json(tickers, filename='nyse.json'):
         with open(filename, 'w') as f:
             json.dump(data, f, indent=2)
         
-        print(f"\nNYSE stocks saved to {filename}")
+        print(f"\nNASDAQ stocks saved to {filename}")
         print(f"Total tickers: {len(tickers)}")
     except Exception as e:
         print(f"Error saving to {filename}: {e}")
 
 def main():
     """
-    Main function to fetch NYSE stocks and save to JSON
+    Main function to fetch NASDAQ stocks and save to JSON
     """
     print("=" * 60)
-    print("Fetching NYSE Stocks from QuickFS API")
+    print("Fetching NASDAQ Stocks from QuickFS API")
     print("=" * 60)
     
-    # Fetch NYSE stocks
-    tickers = get_nyse_stocks()
+    # Fetch NASDAQ stocks
+    tickers = get_nasdaq_stocks()
     
     if not tickers:
         print("No tickers found. Please check your API key and connection.")
         return
     
     # Save to JSON file
-    save_to_json(tickers, 'nyse.json')
+    save_to_json(tickers, 'data/nasdaq.json')
     
     print("\nDone!")
 

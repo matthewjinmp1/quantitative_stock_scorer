@@ -235,8 +235,8 @@ def get_stocks_with_revenue_over_threshold(threshold: float = 1_000_000_000) -> 
     print(f"Loading stock data to filter by revenue > ${threshold/1e9:.1f}B...")
     
     # Load from both NYSE and NASDAQ
-    nyse_stocks = load_data_from_jsonl("nyse_data.jsonl")
-    nasdaq_stocks = load_data_from_jsonl("nasdaq_data.jsonl")
+    nyse_stocks = load_data_from_jsonl("data/nyse_data.jsonl")
+    nasdaq_stocks = load_data_from_jsonl("data/nasdaq_data.jsonl")
     all_stocks = nyse_stocks + nasdaq_stocks
     
     print(f"  Loaded {len(all_stocks)} stocks from JSONL files")
@@ -288,7 +288,7 @@ def get_stocks_with_revenue_over_threshold(threshold: float = 1_000_000_000) -> 
     return qualifying_symbols
 
 
-def load_data(filename: str = "metrics.json") -> List[dict]:
+def load_data(filename: str = "data/metrics.json") -> List[dict]:
     """
     Load stock data from JSON file (metrics.json)
     
@@ -1673,8 +1673,8 @@ def main():
         qualifying_symbols = get_stocks_with_revenue_over_threshold(1_000_000_000)
         
         # Load data first to detect available metrics
-        print("\nLoading data from metrics.json...")
-        data = load_data("metrics.json")
+        print("\nLoading data from data/metrics.json...")
+        data = load_data("data/metrics.json")
         
         if not data:
             print("No data loaded. Exiting.")

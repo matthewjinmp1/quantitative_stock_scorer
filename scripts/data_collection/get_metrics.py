@@ -19,7 +19,7 @@ import os
 import time
 from typing import Dict, List, Optional
 
-def load_data_from_jsonl(filename: str = "nyse_data.jsonl") -> List[Dict]:
+def load_data_from_jsonl(filename: str = "data/nyse_data.jsonl") -> List[Dict]:
     """
     Load stock data from JSONL file (one JSON object per line)
     
@@ -556,7 +556,7 @@ def calculate_metrics_for_all_stocks(stocks: List[Dict]) -> tuple:
     
     return results, stats
 
-def save_metrics_to_json(metrics_data: List[Dict], filename: str = "metrics.json"):
+def save_metrics_to_json(metrics_data: List[Dict], filename: str = "data/metrics.json"):
     """
     Save calculated metrics to JSON file
     
@@ -614,17 +614,17 @@ def main():
     print("=" * 80)
     
     # Load data from NASDAQ file
-    print("\nLoading data from nasdaq_data.jsonl...")
-    stocks = load_data_from_jsonl("nasdaq_data.jsonl")
+    print("\nLoading data from data/nasdaq_data.jsonl...")
+    stocks = load_data_from_jsonl("data/nasdaq_data.jsonl")
     
     if not stocks:
-        print("No stock data found in nasdaq_data.jsonl")
+        print("No stock data found in data/nasdaq_data.jsonl")
         total_time = time.time() - program_start_time
         print(f"\n{'='*80}")
         print(f"Total program execution time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
         return
     
-    print(f"Found {len(stocks)} stock(s) in nasdaq_data.jsonl\n")
+    print(f"Found {len(stocks)} stock(s) in data/nasdaq_data.jsonl\n")
     
     # Calculate metrics for all stocks
     print("Calculating metrics (total_return, forward_return, forward returns 1y/3y/5y/10y, ROA, EBIT/PPE, EBIT/PPE TTM, Gross Margin, Operating Margin, EV/EBIT, Relative PS, 5-Year Revenue CAGR)...")
@@ -641,8 +641,8 @@ def main():
         print(f"{'='*80}")
         return
     
-    # Save to metrics.json
-    save_metrics_to_json(metrics_data, "metrics.json")
+    # Save to data/metrics.json
+    save_metrics_to_json(metrics_data, "data/metrics.json")
     
     # Print summary statistics
     print(f"\n{'='*80}")

@@ -16,7 +16,7 @@ from config import QUICKFS_API_KEY
 # QuickFS API Configuration
 API_KEY = QUICKFS_API_KEY
 
-def load_tickers(filename: str = "tickers.json") -> List[str]:
+def load_tickers(filename: str = "data/tickers.json") -> List[str]:
     """
     Load ticker symbols from JSON file
     
@@ -121,7 +121,7 @@ def fetch_single_ticker(ticker: str, max_retries: int = 3) -> Optional[Dict]:
     return None
 
 def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25, 
-                                  output_file: str = "nyse_data.jsonl") -> List[Optional[Dict]]:
+                                  output_file: str = "data/nyse_data.jsonl") -> List[Optional[Dict]]:
     """
     Fetch data for all tickers one at a time, sequentially (no threading)
     Appends data to JSON file as each ticker is fetched
@@ -189,7 +189,7 @@ def fetch_all_tickers_individual(tickers: List[str], max_workers: int = 25,
     
     return results
 
-def load_existing_data(filename: str = "nyse_data.jsonl") -> Tuple[List[Dict], Set[str]]:
+def load_existing_data(filename: str = "data/nyse_data.jsonl") -> Tuple[List[Dict], Set[str]]:
     """
     Load existing data from JSONL file (one JSON object per line) and return set of already processed tickers
     Safely handles incomplete or corrupted lines (e.g., from interrupted writes)
@@ -254,7 +254,7 @@ def format_stock_data_for_json(stock_data: Dict) -> Dict:
     
     return output_stock
 
-def append_stock_to_json(stock_data: Dict, filename: str = "nyse_data.jsonl", file_lock: threading.Lock = None):
+def append_stock_to_json(stock_data: Dict, filename: str = "data/nyse_data.jsonl", file_lock: threading.Lock = None):
     """
     Append a single stock's data to JSONL file (one JSON object per line)
     If ticker already exists, replaces it by rewriting the file atomically
@@ -359,7 +359,7 @@ def append_stock_to_json(stock_data: Dict, filename: str = "nyse_data.jsonl", fi
     except Exception as e:
         print(f"  Error appending {stock_data.get('symbol', 'unknown')} to {filename}: {e}")
 
-def save_to_json(all_data: List[Dict], filename: str = "nyse_data.jsonl"):
+def save_to_json(all_data: List[Dict], filename: str = "data/nyse_data.jsonl"):
     """
     Save all quarterly data to JSONL file (one JSON object per line)
     
@@ -390,16 +390,16 @@ def main():
     print("=" * 80)
     
     # Load tickers
-    tickers = load_tickers("nasdaq.json")
+    tickers = load_tickers("data/nasdaq.json")
     if not tickers:
-        print("No tickers found. Please check nasdaq.json")
+        print("No tickers found. Please check data/nasdaq.json")
         return
     
     print(f"\nFound {len(tickers)} ticker(s)\n")
     
     # Fetch data for all tickers individually (data is appended as fetched)
     # Fetching sequentially (one at a time) to measure baseline speed
-    all_results = fetch_all_tickers_individual(tickers, max_workers=1, output_file="nasdaq_data.jsonl")
+    all_results = fetch_all_tickers_individual(tickers, max_workers=1, output_file="data/nasdaq_data.jsonl")
     
     # Filter out None results for summary
     all_data = [stock_data for stock_data in all_results if stock_data]
@@ -411,7 +411,7 @@ def main():
     print(f"Successfully fetched data for {len(all_data)} stock(s) out of {len(tickers)}")
     if len(all_data) < len(tickers):
         print(f"Failed to fetch data for {len(tickers) - len(all_data)} stock(s)")
-    print(f"\nAll data has been saved to nasdaq_data.jsonl")
+    print(f"\nAll data has been saved to data/nasdaq_data.jsonl")
 
 if __name__ == "__main__":
     main()

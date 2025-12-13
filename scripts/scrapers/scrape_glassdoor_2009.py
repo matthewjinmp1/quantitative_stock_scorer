@@ -336,7 +336,7 @@ def scrape_glassdoor_2009() -> List[str]:
     return []
 
 
-def save_companies(companies: List[str], filename: str = 'glassdoor_2009_companies.txt') -> None:
+def save_companies(companies: List[str], filename: str = 'data/glassdoor_2009_companies.txt') -> None:
     """
     Save company names to a text file.
     
@@ -350,7 +350,7 @@ def save_companies(companies: List[str], filename: str = 'glassdoor_2009_compani
     print(f"Saved {len(companies)} companies to {filename}")
 
 
-def save_companies_json(companies: List[str], filename: str = 'glassdoor_2009_companies.json') -> None:
+def save_companies_json(companies: List[str], filename: str = 'data/glassdoor_2009_companies.json') -> None:
     """
     Save company names to a JSON file.
     
