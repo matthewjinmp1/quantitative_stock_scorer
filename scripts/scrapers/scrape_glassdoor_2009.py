@@ -6,7 +6,12 @@ from bs4 import BeautifulSoup
 import json
 import time
 import re
+import os
 from typing import List, Optional
+
+# Get project root directory (2 levels up from this script)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 
 
 def scrape_from_wayback_machine() -> List[str]:
@@ -336,28 +341,32 @@ def scrape_glassdoor_2009() -> List[str]:
     return []
 
 
-def save_companies(companies: List[str], filename: str = 'data/glassdoor_2009_companies.txt') -> None:
+def save_companies(companies: List[str], filename: str = None) -> None:
     """
     Save company names to a text file.
     
     Args:
         companies: List of company names
-        filename: Output filename
+        filename: Output filename (defaults to data/glassdoor_2009_companies.txt)
     """
+    if filename is None:
+        filename = os.path.join(DATA_DIR, 'glassdoor_2009_companies.txt')
     with open(filename, 'w', encoding='utf-8') as f:
         for company in companies:
             f.write(f"{company}\n")
     print(f"Saved {len(companies)} companies to {filename}")
 
 
-def save_companies_json(companies: List[str], filename: str = 'data/glassdoor_2009_companies.json') -> None:
+def save_companies_json(companies: List[str], filename: str = None) -> None:
     """
     Save company names to a JSON file.
     
     Args:
         companies: List of company names
-        filename: Output filename
+        filename: Output filename (defaults to data/glassdoor_2009_companies.json)
     """
+    if filename is None:
+        filename = os.path.join(DATA_DIR, 'glassdoor_2009_companies.json')
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(companies, f, indent=2, ensure_ascii=False)
     print(f"Saved {len(companies)} companies to {filename}")
