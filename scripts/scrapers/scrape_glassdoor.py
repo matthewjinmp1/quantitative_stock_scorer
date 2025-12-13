@@ -169,6 +169,7 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
             unique_companies.append(company)
     
     # Filter to only include companies that look legitimate
+    # Be less aggressive if we're close to the expected count
     filtered_companies = []
     exclude_terms = {'company reviews', 'reviews', 'company', 'companies', 'employer', 
                      'employers'}  # Generic navigation terms
@@ -177,20 +178,28 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
     navigation_companies = {'target', 'walmart', 'macy', 'home depot', 'ibm', 
                            'microsoft', 'amazon', 'best buy reviews'}  # These appear in nav, not ranking
     
+    # If we're close to expected count, be more lenient with filtering
+    close_to_target = len(unique_companies) >= (expected_count - 2)
+    
     for company in unique_companies:
         company_lower = company.lower()
-        # Skip if it's a generic term
+        # Skip if it's a generic term (always filter these)
         if company_lower in exclude_terms:
             continue
-        # Skip if it's a navigation company (unless it's actually in the ranking)
+        # Skip if it's a navigation company (unless we're close to target)
         if company_lower in navigation_companies:
-            # Only skip if we have more than expected companies (meaning we can afford to filter)
-            if len(unique_companies) > expected_count:
+            # Only skip if we have significantly more than expected companies
+            # If we're close to target, keep it (might be in the ranking)
+            if len(unique_companies) > expected_count + 5:  # More lenient threshold
                 continue
-        # Skip if it's too short or too long
-        if not (3 <= len(company) <= 80):
-            continue
-        # Must contain letters
+        # Skip if it's too short or too long (but be lenient if close to target)
+        if not close_to_target:  # Only apply strict length filter if we have plenty
+            if not (3 <= len(company) <= 80):
+                continue
+        else:  # If close to target, only filter obviously wrong lengths
+            if len(company) < 2 or len(company) > 100:
+                continue
+        # Must contain letters (always check this)
         if not any(c.isalpha() for c in company):
             continue
         filtered_companies.append(company)
@@ -286,6 +295,9 @@ def scrape_from_wayback_machine(year: int) -> List[str]:
         else:
             snapshot_dates = []
     
+    best_companies = []
+    best_count = 0
+    
     for date in snapshot_dates:
         try:
             print(f"Trying Wayback Machine archive (snapshot from {date[:8]})...")
@@ -295,10 +307,22 @@ def scrape_from_wayback_machine(year: int) -> List[str]:
                 companies = parse_glassdoor_page(response.text, year, snapshot_url)
                 if companies:
                     print(f"Found {len(companies)} companies from snapshot {date[:8]}")
-                    return companies
+                    # If we got the expected count, return immediately
+                    expected_count = 100 if 2018 <= year <= 2025 else 50
+                    if len(companies) >= expected_count:
+                        return companies
+                    # Otherwise, keep track of the best result
+                    if len(companies) > best_count:
+                        best_count = len(companies)
+                        best_companies = companies
         except Exception as e:
             print(f"Wayback Machine snapshot {date[:8]} failed: {e}")
             continue
+    
+    # If we found companies (even if not the full count), return them
+    if best_companies:
+        print(f"Returning best result: {len(best_companies)} companies")
+        return best_companies
     
     print("All Wayback Machine attempts failed")
     return []
