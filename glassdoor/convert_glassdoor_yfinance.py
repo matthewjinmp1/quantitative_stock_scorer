@@ -16,9 +16,9 @@ import yfinance as yf
 # Get project root directory (2 levels up from this script)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
-GLASSDOOR_DIR = os.path.join(DATA_DIR, 'glassdoor')
-COMPANIES_DIR = os.path.join(GLASSDOOR_DIR, 'companies')
-TICKERS_DIR = os.path.join(GLASSDOOR_DIR, 'tickers')
+GLASSDOOR_DIR = os.path.join(PROJECT_ROOT, 'glassdoor')
+COMPANIES_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'companies')
+TICKERS_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'tickers_yfinance')
 
 
 def normalize_company_name_for_search(name: str) -> str:

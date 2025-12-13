@@ -1,5 +1,5 @@
 """
-Convert Glassdoor company names to tickers using NYSE/NASDAQ data files.
+Convert Glassdoor company names to tickers using QuickFS (NYSE/NASDAQ) data files.
 Only includes companies that have price data for the specific year.
 """
 import json
@@ -13,9 +13,9 @@ from datetime import datetime
 # Get project root directory (2 levels up from this script)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
-GLASSDOOR_DIR = os.path.join(DATA_DIR, 'glassdoor')
-COMPANIES_DIR = os.path.join(GLASSDOOR_DIR, 'companies')
-TICKERS_FROM_DATA_DIR = os.path.join(GLASSDOOR_DIR, 'tickers_from_data')
+GLASSDOOR_DIR = os.path.join(PROJECT_ROOT, 'glassdoor')
+COMPANIES_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'companies')
+TICKERS_QUICKFS_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'tickers_quickfs')
 
 
 def normalize_company_name_for_search(name: str) -> str:
@@ -310,11 +310,11 @@ def convert_glassdoor_year_from_data(year: int, stock_dict: Dict[str, Dict] = No
         Dict with matched and unmatched companies
     """
     # Ensure output directory exists
-    os.makedirs(TICKERS_FROM_DATA_DIR, exist_ok=True)
+    os.makedirs(TICKERS_QUICKFS_DIR, exist_ok=True)
     
     # Load cached results if available
     cached_results = None
-    cache_file = os.path.join(TICKERS_FROM_DATA_DIR, f'glassdoor_{year}_tickers.json')
+    cache_file = os.path.join(TICKERS_QUICKFS_DIR, f'glassdoor_{year}_tickers.json')
     if use_cache and os.path.exists(cache_file):
         try:
             with open(cache_file, 'r', encoding='utf-8') as f:
@@ -442,8 +442,8 @@ def convert_glassdoor_year_from_data(year: int, stock_dict: Dict[str, Dict] = No
     }
     
     # Save results
-    os.makedirs(TICKERS_FROM_DATA_DIR, exist_ok=True)
-    output_file = os.path.join(TICKERS_FROM_DATA_DIR, f'glassdoor_{year}_tickers.json')
+    os.makedirs(TICKERS_QUICKFS_DIR, exist_ok=True)
+    output_file = os.path.join(TICKERS_QUICKFS_DIR, f'glassdoor_{year}_tickers.json')
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
     
@@ -462,7 +462,7 @@ def main():
     """Main function to run the converter."""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Convert Glassdoor company names to tickers using data files')
+    parser = argparse.ArgumentParser(description='Convert Glassdoor company names to tickers using QuickFS data files')
     parser.add_argument('--year', type=int, help='Year to convert (2009-2025)')
     parser.add_argument('--all', action='store_true', help='Process all years')
     parser.add_argument('--workers', type=int, default=10, help='Number of worker threads (default: 10)')

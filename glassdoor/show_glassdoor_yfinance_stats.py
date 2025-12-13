@@ -1,5 +1,5 @@
 """
-Show statistics about Glassdoor company name to ticker matching using data files for each year.
+Show statistics about Glassdoor company name to ticker matching for each year.
 """
 import json
 import os
@@ -9,12 +9,12 @@ from datetime import datetime
 # Get project root directory (2 levels up from this script)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 GLASSDOOR_DIR = os.path.join(PROJECT_ROOT, 'glassdoor')
-TICKERS_FROM_DATA_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'tickers_from_data')
+TICKERS_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'tickers_yfinance')
 
 
 def load_ticker_mapping(year: int) -> Optional[Dict]:
     """Load ticker mapping results from JSON file if it exists."""
-    ticker_file = os.path.join(TICKERS_FROM_DATA_DIR, f'glassdoor_{year}_tickers.json')
+    ticker_file = os.path.join(TICKERS_DIR, f'glassdoor_{year}_tickers.json')
     
     if not os.path.exists(ticker_file):
         return None
@@ -30,11 +30,8 @@ def load_ticker_mapping(year: int) -> Optional[Dict]:
 def get_all_years() -> List[int]:
     """Get all years that have ticker mapping files."""
     years = []
-    current_year = datetime.now().year
-    max_year = current_year + 1
-    
-    for year in range(2009, max_year + 1):
-        ticker_file = os.path.join(TICKERS_FROM_DATA_DIR, f'glassdoor_{year}_tickers.json')
+    for year in range(2009, 2026):
+        ticker_file = os.path.join(TICKERS_DIR, f'glassdoor_{year}_tickers.json')
         if os.path.exists(ticker_file):
             years.append(year)
     return sorted(years)
@@ -60,7 +57,7 @@ def get_statistics_for_year(year: int) -> Optional[Dict]:
 def show_statistics_table(years: List[int], detailed: bool = False):
     """Display statistics in a formatted table."""
     print("\n" + "=" * 80)
-    print("Glassdoor Company Name to Ticker Matching Statistics (From Data Files)")
+    print("Glassdoor Company Name to Ticker Matching Statistics")
     print("=" * 80)
     print()
     
@@ -144,7 +141,7 @@ def show_year_details(year: int):
     unmatched = data.get('unmatched', [])
     
     print(f"\n{'=' * 80}")
-    print(f"Year {year} Details (From Data Files)")
+    print(f"Year {year} Details")
     print(f"{'=' * 80}")
     print(f"\nTotal companies: {stats.get('total', 0)}")
     print(f"Matched: {stats.get('matched', 0)} ({stats.get('match_rate', 0):.1f}%)")
@@ -155,8 +152,8 @@ def show_year_details(year: int):
         for i, match in enumerate(matched, 1):
             ticker = match.get('ticker', 'N/A')
             company_name = match.get('glassdoor_name', 'N/A')
-            info = match.get('info', 'N/A')
-            print(f"  {i:3}. {company_name:<40} -> {ticker:<8} ({info})")
+            ipo_date = match.get('ipo_date', 'N/A')
+            print(f"  {i:3}. {company_name:<40} -> {ticker:<8} (IPO: {ipo_date})")
     
     if unmatched:
         print(f"\nUnmatched Companies ({len(unmatched)}):")
@@ -164,52 +161,12 @@ def show_year_details(year: int):
             print(f"  {i:3}. {company}")
 
 
-def compare_with_yfinance():
-    """Compare match rates between data files and yfinance methods."""
-    print("\n" + "=" * 80)
-    print("Comparison: Data Files vs YFinance")
-    print("=" * 80)
-    
-    # Load yfinance stats
-    yfinance_tickers_dir = os.path.join(GLASSDOOR_DIR, 'data', 'tickers')
-    years = get_all_years()
-    
-    if not years:
-        print("No data files found for comparison.")
-        return
-    
-    print(f"\n{'Year':<8} {'Data Files':<20} {'YFinance':<20} {'Difference':<15}")
-    print("-" * 80)
-    
-    for year in years:
-        # Data files stats
-        data_stats = get_statistics_for_year(year)
-        data_rate = data_stats['match_rate'] if data_stats else 0.0
-        
-        # YFinance stats
-        yfinance_file = os.path.join(yfinance_tickers_dir, f'glassdoor_{year}_tickers.json')
-        yfinance_rate = 0.0
-        if os.path.exists(yfinance_file):
-            try:
-                with open(yfinance_file, 'r', encoding='utf-8') as f:
-                    yfinance_data = json.load(f)
-                    yfinance_stats = yfinance_data.get('stats', {})
-                    yfinance_rate = yfinance_stats.get('match_rate', 0.0)
-            except:
-                pass
-        
-        diff = data_rate - yfinance_rate
-        diff_str = f"{diff:+.1f}%" if diff != 0 else "0.0%"
-        
-        print(f"{year:<8} {data_rate:>6.1f}%{'':<12} {yfinance_rate:>6.1f}%{'':<12} {diff_str:>10}")
-
-
 def main():
     """Main function to display statistics."""
     import argparse
     
     parser = argparse.ArgumentParser(
-        description='Show Glassdoor company name to ticker matching statistics (from data files)'
+        description='Show Glassdoor company name to ticker matching statistics'
     )
     parser.add_argument(
         '--year', '-y',
@@ -226,11 +183,6 @@ def main():
         action='store_true',
         help='Show statistics for all available years (default)'
     )
-    parser.add_argument(
-        '--compare', '-c',
-        action='store_true',
-        help='Compare match rates with yfinance method'
-    )
     
     args = parser.parse_args()
     
@@ -238,13 +190,8 @@ def main():
     available_years = get_all_years()
     
     if not available_years:
-        print("No ticker mapping files found in glassdoor/data/tickers_from_data/")
-        print("Run convert_glassdoor_from_data.py first to generate mappings.")
-        return
-    
-    # If comparison requested
-    if args.compare:
-        compare_with_yfinance()
+        print("No ticker mapping files found in glassdoor/data/tickers_yfinance/")
+        print("Run convert_glassdoor_yfinance.py first to generate mappings.")
         return
     
     # If specific year requested, show details
