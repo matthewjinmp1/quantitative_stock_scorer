@@ -6,9 +6,10 @@ import os
 from typing import Dict, List, Optional
 from datetime import datetime
 
-# Get project root directory (2 levels up from this script)
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-GLASSDOOR_DIR = os.path.join(PROJECT_ROOT, 'glassdoor')
+# Get project root directory (1 level up from this script, since script is in glassdoor/)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+GLASSDOOR_DIR = SCRIPT_DIR  # Script is already in glassdoor directory
 TICKERS_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'tickers_yfinance')
 
 
