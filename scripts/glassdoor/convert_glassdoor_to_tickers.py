@@ -17,6 +17,7 @@ import yfinance as yf
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 GLASSDOOR_DIR = os.path.join(DATA_DIR, 'glassdoor')
+TICKERS_DIR = os.path.join(GLASSDOOR_DIR, 'tickers')
 
 
 def normalize_company_name_for_search(name: str) -> str:
@@ -886,7 +887,7 @@ def convert_glassdoor_year_to_tickers(year: int, max_workers: int = 10, use_cach
 
 def load_existing_ticker_mapping(year: int) -> Optional[Dict]:
     """Load existing ticker mapping results from JSON file if it exists."""
-    output_file = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_tickers.json')
+    output_file = os.path.join(TICKERS_DIR, f'glassdoor_{year}_tickers.json')
     
     if not os.path.exists(output_file):
         return None
@@ -901,7 +902,9 @@ def load_existing_ticker_mapping(year: int) -> Optional[Dict]:
 
 def save_ticker_mapping(results: Dict, year: int):
     """Save ticker mapping results to JSON file."""
-    output_file = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_tickers.json')
+    # Ensure tickers directory exists
+    os.makedirs(TICKERS_DIR, exist_ok=True)
+    output_file = os.path.join(TICKERS_DIR, f'glassdoor_{year}_tickers.json')
     
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)

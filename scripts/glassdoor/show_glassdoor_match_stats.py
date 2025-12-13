@@ -10,11 +10,12 @@ from datetime import datetime
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 GLASSDOOR_DIR = os.path.join(DATA_DIR, 'glassdoor')
+TICKERS_DIR = os.path.join(GLASSDOOR_DIR, 'tickers')
 
 
 def load_ticker_mapping(year: int) -> Optional[Dict]:
     """Load ticker mapping results from JSON file if it exists."""
-    ticker_file = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_tickers.json')
+    ticker_file = os.path.join(TICKERS_DIR, f'glassdoor_{year}_tickers.json')
     
     if not os.path.exists(ticker_file):
         return None
@@ -31,7 +32,7 @@ def get_all_years() -> List[int]:
     """Get all years that have ticker mapping files."""
     years = []
     for year in range(2009, 2026):
-        ticker_file = os.path.join(GLASSDOOR_DIR, f'glassdoor_{year}_tickers.json')
+        ticker_file = os.path.join(TICKERS_DIR, f'glassdoor_{year}_tickers.json')
         if os.path.exists(ticker_file):
             years.append(year)
     return sorted(years)
