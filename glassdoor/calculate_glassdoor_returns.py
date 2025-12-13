@@ -369,20 +369,30 @@ def calculate_portfolio_returns(year: int, stock_dict: Dict[str, Dict]) -> Dict:
                 # This handles stocks that start later in the year
                 active_prices[ticker] = last_known_prices[ticker]
         
-        # Check for truly disappeared stocks (had data before but now stopped)
-        # A stock is truly gone if it had prices at some point but now has no more data
+        # Check for truly disappeared stocks (had data before but now stopped trading)
+        # A stock is truly gone if it stopped trading well before the data collection ended
+        # (not just because it's missing the most recent quarter)
         still_active = set()
         disappeared_tickers = set()
         
+        # Find the most recent data date across all stocks (data collection end date)
+        all_last_dates = [price_history[t][-1][0] for t in price_history if price_history[t]]
+        latest_data_date = max(all_last_dates) if all_last_dates else date
+        
         for ticker in active_tickers:
             if ticker in price_history and len(price_history[ticker]) > 0:
-                # Check if the last available price is before this date (stock ended)
                 last_price_date = price_history[ticker][-1][0]
-                if last_price_date < date:
+                
+                # Only mark as disappeared if data stopped >6 months before the latest data
+                # This accounts for data that just hasn't been updated yet vs truly delisted stocks
+                months_behind = (latest_data_date.year - last_price_date.year) * 12 + \
+                               (latest_data_date.month - last_price_date.month)
+                
+                if last_price_date < date and months_behind > 6:
                     # Stock has ended - mark as disappeared
                     disappeared_tickers.add(ticker)
                 else:
-                    # Stock still active
+                    # Stock still active (or just missing recent data)
                     still_active.add(ticker)
             elif ticker in active_prices:
                 # Stock still active (using initial price)
