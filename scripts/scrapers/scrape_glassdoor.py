@@ -69,6 +69,14 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
     Returns:
         List of company names
     """
+    # Determine expected number of companies based on year
+    # Years 2018-2025 have 100 companies, earlier years have 50
+    if 2018 <= year <= 2025:
+        expected_count = 100
+        min_threshold = 80  # Minimum to consider a good list
+    else:
+        expected_count = 50
+        min_threshold = 40  # Minimum to consider a good list
     soup = BeautifulSoup(html_content, 'html.parser')
     company_names = []
     
@@ -144,7 +152,7 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
                     section_companies.append(company_name)
         
         # If we got a good list from the section, use it
-        if len(section_companies) >= 40:
+        if len(section_companies) >= min_threshold:
             company_names = section_companies
         else:
             company_names = review_link_companies
@@ -176,8 +184,8 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
             continue
         # Skip if it's a navigation company (unless it's actually in the ranking)
         if company_lower in navigation_companies:
-            # Only skip if we have 50+ companies (meaning we can afford to filter)
-            if len(unique_companies) > 50:
+            # Only skip if we have more than expected companies (meaning we can afford to filter)
+            if len(unique_companies) > expected_count:
                 continue
         # Skip if it's too short or too long
         if not (3 <= len(company) <= 80):
@@ -187,8 +195,8 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
             continue
         filtered_companies.append(company)
     
-    # If we have more than 50, try to identify the top 50 by looking for ranking context
-    if len(filtered_companies) > 50:
+    # If we have more than expected, try to identify the correct list by looking for ranking context
+    if len(filtered_companies) > expected_count:
         # Try to find companies that appear in the ranking section specifically
         ranking_companies = []
         for div in soup.find_all(['div', 'section', 'article']):
@@ -196,7 +204,7 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
             if 'best places to work' in text.lower() and year_str in text:
                 # Extract companies from this section
                 section_links = div.find_all('a', href=re.compile(r'/Reviews/.*-Reviews'))
-                if len(section_links) >= 40:  # Should have many company links
+                if len(section_links) >= min_threshold:  # Should have many company links
                     for link in section_links:
                         href = link.get('href', '')
                         match = re.search(r'/Reviews/([^/?-]+(?:-[^/?-]+)*?)(?:-Reviews|/|$)', href)
@@ -207,9 +215,13 @@ def parse_glassdoor_page(html_content: str, year: int, source_url: str = "") -> 
                                 
                                 if company_name and company_name not in ranking_companies:
                                     ranking_companies.append(company_name)
-                    if len(ranking_companies) >= 50:
-                        return ranking_companies[:50]
+                    # If we found a good list from the ranking section, return it (up to expected count)
+                    if len(ranking_companies) >= min_threshold:
+                        return ranking_companies[:expected_count]
     
+    # Return all filtered companies (up to expected count if we have more)
+    if len(filtered_companies) > expected_count:
+        return filtered_companies[:expected_count]
     return filtered_companies
 
 
@@ -240,9 +252,11 @@ def scrape_from_wayback_machine(year: int) -> List[str]:
     # Lists are typically published in December of the previous year or early in the year
     snapshot_dates = []
     
-    # For older years (2009-2015), try Wayback Machine snapshots
+    # Generate snapshot dates based on year
+    current_year = datetime.now().year
+    
     if year <= 2015:
-        # Try dates from the year after (when list would be archived)
+        # For older years, try dates from the year after (when list would be archived)
         next_year = year + 1
         snapshot_dates = [
             f'{next_year}0115000000',  # January 15
@@ -251,15 +265,26 @@ def scrape_from_wayback_machine(year: int) -> List[str]:
             f'{year}1201000000',  # December of the year
             f'{next_year}0601000000',  # June
         ]
+    elif year <= 2020:
+        # For 2016-2020, try dates from the year after and the year itself
+        next_year = year + 1
+        snapshot_dates = [
+            f'{next_year}0115000000',  # January 15 of next year
+            f'{next_year}0201000000',  # February 1 of next year
+            f'{next_year}0301000000',  # March 1 of next year
+            f'{year}1201000000',  # December of the year
+            f'{year}0101000000',  # January 1 of the year
+        ]
     else:
-        # For recent years, try current year dates
-        current_year = datetime.now().year
+        # For very recent years (2021+), try current year dates
         if year <= current_year:
             snapshot_dates = [
                 f'{year}0115000000',  # January 15
                 f'{year}0201000000',  # February 1
                 f'{year}0301000000',  # March 1
             ]
+        else:
+            snapshot_dates = []
     
     for date in snapshot_dates:
         try:
@@ -301,8 +326,8 @@ def scrape_glassdoor(year: int) -> List[str]:
     if year > current_year:
         print(f"Warning: {year} is in the future. The list may not be available yet.")
     
-    # For older years (2009-2015), try Wayback Machine first
-    if year <= 2015:
+    # For older years (2009-2020), try Wayback Machine first (more reliable, less likely to be blocked)
+    if year <= 2020:
         companies = scrape_from_wayback_machine(year)
         if companies:
             print(f"Successfully scraped {len(companies)} companies from Wayback Machine")
@@ -407,9 +432,9 @@ def scrape_glassdoor(year: int) -> List[str]:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching URL {attempt_url}: {e}")
             if attempt_url == urls_to_try[-1]:  # Last URL attempt
-                # If direct URL fails and it's an old year, we already tried Wayback Machine
-                if year > 2015:
-                    # For recent years, try Wayback Machine as fallback
+                # If direct URL fails and we haven't tried Wayback Machine yet, try it as fallback
+                if year > 2020:
+                    # For recent years (2021+), try Wayback Machine as fallback
                     print("Trying Wayback Machine as fallback...")
                     companies = scrape_from_wayback_machine(year)
                     if companies:
