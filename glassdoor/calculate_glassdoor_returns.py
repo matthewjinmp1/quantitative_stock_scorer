@@ -12,6 +12,7 @@ from datetime import datetime
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.ticker import FuncFormatter
 
 # Get paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -58,6 +59,13 @@ def parse_date_to_datetime(date_str: str) -> Optional[datetime]:
     except (ValueError, TypeError):
         pass
     
+    # Try YYYY-MM format (quarterly data like "2003-03", "2003-06", etc.)
+    match = re.match(r'^(\d{4})-(\d{2})$', str(date_str))
+    if match:
+        year = int(match.group(1))
+        month = int(match.group(2))
+        return datetime(year, month, 1)
+    
     # Try FY2009.FQ1 format - convert to first day of quarter
     match = re.match(r'FY(\d{4})\.FQ(\d)', str(date_str))
     if match:
@@ -66,8 +74,8 @@ def parse_date_to_datetime(date_str: str) -> Optional[datetime]:
         month = (quarter - 1) * 3 + 1
         return datetime(year, month, 1)
     
-    # Try YYYY format
-    match = re.match(r'(\d{4})', str(date_str))
+    # Try YYYY format (only as last resort)
+    match = re.match(r'^(\d{4})$', str(date_str))
     if match:
         return datetime(int(match.group(1)), 1, 1)
     
@@ -271,28 +279,73 @@ def calculate_portfolio_returns(year: int, stock_dict: Dict[str, Dict]) -> Dict:
     print(f"  Initial stocks: {len(initial_prices)}")
     
     # Collect all price points over time
-    all_dates = set()
     price_history = {}  # ticker -> list of (date, price) tuples
+    all_available_dates = set()
     
     for ticker in initial_prices.keys():
         prices = get_all_prices_over_time(stock_dict[ticker], start_date)
         price_history[ticker] = prices
         for date, _ in prices:
-            all_dates.add(date)
+            all_available_dates.add(date)
     
-    all_dates = sorted(all_dates)
+    # Debug: Check data granularity
+    total_price_points = sum(len(prices) for prices in price_history.values())
+    print(f"  Total quarterly price points collected: {total_price_points}")
+    
+    if not all_available_dates:
+        print(f"  Error: No price data found")
+        return None
+    
+    # Use the first actual data date as the effective start, not Jan 1
+    # This ensures we start from when we actually have price data
+    first_data_date = min(all_available_dates)
+    end_date = max(all_available_dates)
+    
+    print(f"  Data range: {first_data_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+    
+    # Generate quarterly dates starting from the first actual data date
+    quarterly_dates = []
+    current_quarter = first_data_date
+    
+    # Generate quarterly dates (Q1, Q2, Q3, Q4 for each year)
+    while current_quarter <= end_date:
+        quarterly_dates.append(current_quarter)
+        # Move to next quarter (3 months later)
+        if current_quarter.month <= 3:
+            next_month = 4
+            next_year = current_quarter.year
+        elif current_quarter.month <= 6:
+            next_month = 7
+            next_year = current_quarter.year
+        elif current_quarter.month <= 9:
+            next_month = 10
+            next_year = current_quarter.year
+        else:
+            next_month = 1
+            next_year = current_quarter.year + 1
+        
+        current_quarter = datetime(next_year, next_month, 1)
+    
+    # Also include all actual data dates to capture any non-standard quarters
+    all_dates = sorted(set(quarterly_dates + list(all_available_dates)))
     
     # Calculate portfolio value over time
     portfolio_values = []
     active_tickers = set(initial_prices.keys())
     current_shares = initial_shares.copy()
     
-    # Add initial portfolio value at start date
-    portfolio_values.append((start_date, total_initial_value))
+    # Add initial portfolio value at the first data date (not Jan 1)
+    portfolio_values.append((first_data_date, total_initial_value))
+    
+    # Track last known prices for each stock (start with initial prices)
+    last_known_prices = initial_prices.copy()
     
     for date in all_dates:
-        # Check which stocks are still active (have price data at or before this date)
-        still_active = set()
+        # Skip if this is the first_data_date (we already added initial value)
+        if date == first_data_date:
+            continue
+            
+        # Get current prices for all active stocks
         active_prices = {}  # ticker -> price at this date
         
         for ticker in active_tickers:
@@ -308,62 +361,80 @@ def calculate_portfolio_returns(year: int, stock_dict: Dict[str, Dict]) -> Dict:
                     break
             
             if current_price is not None:
-                still_active.add(ticker)
+                # Found actual price data
                 active_prices[ticker] = current_price
+                last_known_prices[ticker] = current_price
+            elif ticker in last_known_prices:
+                # No price yet for this date, use last known price (could be initial price)
+                # This handles stocks that start later in the year
+                active_prices[ticker] = last_known_prices[ticker]
         
-        # If some stocks disappeared, rebalance
-        disappeared_tickers = active_tickers - still_active
+        # Check for truly disappeared stocks (had data before but now stopped)
+        # A stock is truly gone if it had prices at some point but now has no more data
+        still_active = set()
+        disappeared_tickers = set()
+        
+        for ticker in active_tickers:
+            if ticker in price_history and len(price_history[ticker]) > 0:
+                # Check if the last available price is before this date (stock ended)
+                last_price_date = price_history[ticker][-1][0]
+                if last_price_date < date:
+                    # Stock has ended - mark as disappeared
+                    disappeared_tickers.add(ticker)
+                else:
+                    # Stock still active
+                    still_active.add(ticker)
+            elif ticker in active_prices:
+                # Stock still active (using initial price)
+                still_active.add(ticker)
+        
+        # If some stocks truly disappeared (stopped trading), rebalance
         if disappeared_tickers:
-            # Calculate value of disappeared stocks using their last known price
             disappeared_value = 0.0
             for ticker in disappeared_tickers:
-                # Get last known price for disappeared stock
-                last_price = None
-                for price_date, price in reversed(price_history.get(ticker, [])):
-                    if price_date <= date:
-                        last_price = price
-                        break
-                
-                if last_price is not None and ticker in current_shares:
-                    disappeared_value += current_shares[ticker] * last_price
-                    # Remove shares for disappeared stock
+                if ticker in current_shares and ticker in last_known_prices:
+                    disappeared_value += current_shares[ticker] * last_known_prices[ticker]
                     del current_shares[ticker]
+                    if ticker in active_prices:
+                        del active_prices[ticker]
             
             # Rebalance disappeared value proportionally to remaining stocks
             if disappeared_value > 0 and len(still_active) > 0:
-                # Calculate total value of active stocks
                 total_active_value = sum(
-                    current_shares[t] * active_prices[t]
+                    current_shares[t] * active_prices.get(t, last_known_prices.get(t, 0))
                     for t in still_active
                     if t in current_shares
                 )
                 
                 if total_active_value > 0:
-                    # Distribute disappeared value proportionally
                     for ticker in still_active:
                         if ticker in current_shares:
-                            current_value = current_shares[ticker] * active_prices[ticker]
-                            proportion = current_value / total_active_value
-                            additional_value = disappeared_value * proportion
-                            additional_shares = additional_value / active_prices[ticker]
-                            current_shares[ticker] += additional_shares
+                            price = active_prices.get(ticker, last_known_prices.get(ticker, 0))
+                            if price > 0:
+                                current_value = current_shares[ticker] * price
+                                proportion = current_value / total_active_value
+                                additional_value = disappeared_value * proportion
+                                additional_shares = additional_value / price
+                                current_shares[ticker] += additional_shares
         
         # Update active tickers
         active_tickers = still_active
         
         # Calculate current portfolio value
         portfolio_value = sum(
-            current_shares[t] * active_prices[t]
+            current_shares.get(t, 0) * active_prices.get(t, last_known_prices.get(t, 0))
             for t in active_tickers
-            if t in current_shares and t in active_prices
         )
         
+        # Add portfolio value
         if portfolio_value > 0:
             portfolio_values.append((date, portfolio_value))
     
     if not portfolio_values:
         print(f"  Error: No portfolio values calculated")
         return None
+    
+    print(f"  Portfolio values calculated for {len(portfolio_values)} time periods")
     
     # Calculate returns
     final_value = portfolio_values[-1][1]
@@ -415,21 +486,58 @@ def create_returns_chart(results: Dict, output_dir: str):
     returns_pct = [(v / initial_value - 1) * 100 for v in values]
     
     # Create chart
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(14, 7))
     
-    ax.plot(dates, returns_pct, linewidth=2, color='#2E86AB')
+    # Plot with quarterly markers - show markers more frequently for better granularity
+    marker_frequency = max(1, len(dates)//30)  # Show more markers
+    ax.plot(dates, returns_pct, linewidth=2, color='#2E86AB', marker='o', markersize=2.5, markevery=marker_frequency, alpha=0.9)
     ax.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
     ax.fill_between(dates, 0, returns_pct, alpha=0.3, color='#2E86AB')
     
     ax.set_xlabel('Date', fontsize=12)
     ax.set_ylabel('Total Return (%)', fontsize=12)
-    ax.set_title(f'Glassdoor Best Places to Work {year} - Buy & Hold Returns', fontsize=14, fontweight='bold')
-    ax.grid(True, alpha=0.3)
+    ax.set_title(f'Glassdoor Best Places to Work {year} - Buy & Hold Returns (Quarterly Data)', fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
+    ax.grid(True, alpha=0.1, which='minor')
     
-    # Format x-axis dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-    ax.xaxis.set_major_locator(mdates.YearLocator())
-    plt.xticks(rotation=45)
+    # Format x-axis dates with quarterly granularity
+    # Always show quarterly information in labels
+    date_range = (dates[-1] - dates[0]).days
+    years_span = date_range / 365.25
+    
+    # Custom formatter to always show quarters
+    def format_quarterly(x, pos=None):
+        dt = mdates.num2date(x)
+        quarter = (dt.month - 1) // 3 + 1
+        # Always show quarter information
+        return f'{dt.year} Q{quarter}'
+    
+    # Set quarterly minor ticks always for visual granularity
+    ax.xaxis.set_minor_locator(mdates.MonthLocator(interval=3))
+    
+    # Determine major tick interval based on range
+    if years_span <= 3:
+        # Short range: show every quarter
+        major_interval = 3
+    elif years_span <= 8:
+        # Medium range: show every 2 quarters (6 months)
+        major_interval = 6
+    else:
+        # Long range: show every 4 quarters (yearly) but label with quarters
+        major_interval = 12
+    
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=major_interval))
+    ax.xaxis.set_major_formatter(FuncFormatter(format_quarterly))
+    plt.xticks(rotation=45, ha='right')
+    
+    # Make markers more visible for quarterly data points
+    # Update the existing plot line to show quarterly markers more clearly
+    for line in ax.lines:
+        if line.get_label() == '' or 'returns' in line.get_label().lower():
+            line.set_marker('o')
+            line.set_markersize(2.5)
+            line.set_markevery(max(1, len(dates)//40))
+            line.set_alpha(0.9)
     
     # Add statistics text
     stats_text = f"Initial: ${results['initial_value']:,.0f} | "
