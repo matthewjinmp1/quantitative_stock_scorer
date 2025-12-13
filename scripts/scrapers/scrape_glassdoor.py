@@ -290,9 +290,16 @@ def scrape_glassdoor(year: int) -> List[str]:
     Returns:
         List of company names
     """
-    # Validate year
-    if year < 2009 or year > 2025:
-        raise ValueError(f"Year must be between 2009 and 2025, got {year}")
+    # Validate year - allow up to current year + 1 (in case list is published early)
+    current_year = datetime.now().year
+    max_year = current_year + 1
+    
+    if year < 2009 or year > max_year:
+        raise ValueError(f"Year must be between 2009 and {max_year}, got {year}")
+    
+    # Warn if trying to scrape a future year
+    if year > current_year:
+        print(f"Warning: {year} is in the future. The list may not be available yet.")
     
     # For older years (2009-2015), try Wayback Machine first
     if year <= 2015:
@@ -304,41 +311,112 @@ def scrape_glassdoor(year: int) -> List[str]:
     # Try direct URL (works better for recent years)
     url = f'https://www.glassdoor.com/Award/Best-Places-to-Work-{year}-LST_KQ0,24.htm'
     
+    # Updated headers with more recent browser version and referer
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
         'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
         'Cache-Control': 'max-age=0',
+        'Referer': 'https://www.glassdoor.com/',
+        'DNT': '1',
     }
     
     session = requests.Session()
     session.headers.update(headers)
     
+    # For current year (2025), try more sophisticated approach to bypass bot detection
+    current_year = datetime.now().year
+    is_current_year = year >= current_year
+    
+    if is_current_year:
+        print("Detected current year - using enhanced bot bypass strategy...")
+        # Try accessing through the awards landing page first
+        try:
+            print("Accessing Glassdoor Awards page...")
+            awards_url = 'https://www.glassdoor.com/Award/index.htm'
+            session.get(awards_url, timeout=30)
+            time.sleep(2)
+            
+            # Try accessing through a navigation path
+            print("Navigating through awards section...")
+            session.get('https://www.glassdoor.com/Award/', timeout=30)
+            time.sleep(1)
+        except:
+            pass
+    
+    # Try accessing the homepage first to establish a session (helps bypass some bot detection)
     try:
-        print(f"Trying direct URL: {url}")
-        time.sleep(2)  # Be polite, add a delay
-        response = session.get(url, timeout=30)
-        response.raise_for_status()
-        companies = parse_glassdoor_page(response.text, year, url)
-        if companies:
-            print(f"Successfully scraped {len(companies)} companies from direct URL")
-            return companies
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching direct URL: {e}")
-        # If direct URL fails and it's an old year, we already tried Wayback Machine
-        if year > 2015:
-            # For recent years, try Wayback Machine as fallback
-            companies = scrape_from_wayback_machine(year)
-            if companies:
-                return companies
-    except Exception as e:
-        print(f"Error parsing direct URL: {e}")
+        print("Establishing session with Glassdoor...")
+        homepage_response = session.get('https://www.glassdoor.com/', timeout=30)
+        # Save cookies from homepage
+        time.sleep(2 if is_current_year else 1)  # Longer delay for current year
+    except:
+        pass  # Continue even if this fails
+    
+    # Try multiple URL patterns for current year
+    urls_to_try = [url]
+    if is_current_year:
+        # Try alternative URL patterns
+        urls_to_try.extend([
+            f'https://www.glassdoor.com/Award/Best-Places-to-Work-{year}.htm',
+            f'https://www.glassdoor.com/about/best-places-to-work-{year}/',
+        ])
+    
+    for attempt_url in urls_to_try:
+        try:
+            print(f"Trying URL: {attempt_url}")
+            time.sleep(2 if is_current_year else 1)  # Longer delay for current year
+            
+            # For current year, try with different referers
+            if is_current_year:
+                referers = [
+                    'https://www.glassdoor.com/Award/',
+                    'https://www.google.com/search?q=glassdoor+best+places+to+work+2025',
+                    'https://www.glassdoor.com/',
+                ]
+            else:
+                referers = ['https://www.glassdoor.com/']
+            
+            for referer in referers:
+                headers['Referer'] = referer
+                session.headers.update(headers)
+                
+                response = session.get(attempt_url, timeout=30, allow_redirects=True)
+                
+                if response.status_code == 200:
+                    companies = parse_glassdoor_page(response.text, year, attempt_url)
+                    if companies:
+                        print(f"Successfully scraped {len(companies)} companies from direct URL")
+                        return companies
+                elif response.status_code == 403:
+                    print(f"Received 403 Forbidden with referer: {referer}")
+                    if referer != referers[-1]:  # Try next referer
+                        continue
+                    else:
+                        break  # All referers failed
+                else:
+                    response.raise_for_status()
+                    
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching URL {attempt_url}: {e}")
+            if attempt_url == urls_to_try[-1]:  # Last URL attempt
+                # If direct URL fails and it's an old year, we already tried Wayback Machine
+                if year > 2015:
+                    # For recent years, try Wayback Machine as fallback
+                    print("Trying Wayback Machine as fallback...")
+                    companies = scrape_from_wayback_machine(year)
+                    if companies:
+                        return companies
+        except Exception as e:
+            print(f"Error parsing URL {attempt_url}: {e}")
+            continue
     
     return []
 
@@ -384,48 +462,67 @@ def save_companies_json(companies: List[str], year: int, filename: str = None) -
 
 def main():
     """Main function to run the scraper."""
+    # Calculate valid year range
+    current_year = datetime.now().year
+    max_year = current_year + 1  # Allow current year + 1 in case list is published early
+    
     # Always prompt user for year input after program loads
     while True:
         try:
-            year_input = input("Enter the year to scrape (2009-2025) or 'all' for all years: ").strip().lower()
+            year_input = input(f"Enter the year to scrape (2009-{max_year}) or 'all' for all years: ").strip().lower()
             
             # Check if user wants all years
             if year_input == 'all':
-                years = list(range(2009, 2026))  # 2009 to 2025 inclusive
+                years = list(range(2009, max_year + 1))  # 2009 to max_year inclusive
                 break
             else:
                 year = int(year_input)
-                if 2009 <= year <= 2025:
+                if 2009 <= year <= max_year:
                     years = [year]
                     break
                 else:
-                    print(f"Error: Year must be between 2009 and 2025. Please try again.")
+                    print(f"Error: Year must be between 2009 and {max_year}. Please try again.")
         except ValueError:
-            print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and 2025, or 'all'.")
+            print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and {max_year}, or 'all'.")
         except KeyboardInterrupt:
             print("\n\nScraper cancelled by user.")
             return
     
-    # Process each year
+        # Process each year
     for year in years:
         print(f"\n{'='*60}")
         print(f"Starting Glassdoor Best Places to Work {year} scraper...")
         print(f"{'='*60}")
         
-        companies = scrape_glassdoor(year)
+        # Check if year is in the future
+        current_year = datetime.now().year
+        if year > current_year:
+            print(f"\nWarning: {year} is in the future. The list may not be published yet.")
+            print("Attempting to scrape anyway...")
         
-        if companies:
-            print(f"\nFound {len(companies)} companies:")
-            for i, company in enumerate(companies[:10], 1):  # Show first 10
-                print(f"  {i}. {company}")
-            if len(companies) > 10:
-                print(f"  ... and {len(companies) - 10} more")
+        try:
+            companies = scrape_glassdoor(year)
             
-            # Save to JSON format
-            save_companies_json(companies, year)
-        else:
-            print(f"\nNo companies found for {year}. The page structure may have changed.")
-            print("You may need to inspect the page manually and update the selectors.")
+            if companies:
+                print(f"\nFound {len(companies)} companies:")
+                for i, company in enumerate(companies[:10], 1):  # Show first 10
+                    print(f"  {i}. {company}")
+                if len(companies) > 10:
+                    print(f"  ... and {len(companies) - 10} more")
+                
+                # Save to JSON format
+                save_companies_json(companies, year)
+            else:
+                print(f"\nNo companies found for {year}.")
+                if year > current_year:
+                    print(f"This is expected - the {year} list has not been published yet.")
+                else:
+                    print("The page structure may have changed.")
+                    print("You may need to inspect the page manually and update the selectors.")
+        except ValueError as e:
+            print(f"\nError: {e}")
+        except Exception as e:
+            print(f"\nUnexpected error for {year}: {e}")
         
         # Add a small delay between years to be polite
         if len(years) > 1 and year != years[-1]:
