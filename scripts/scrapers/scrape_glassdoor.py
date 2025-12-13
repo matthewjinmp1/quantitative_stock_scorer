@@ -326,123 +326,12 @@ def scrape_glassdoor(year: int) -> List[str]:
     if year > current_year:
         print(f"Warning: {year} is in the future. The list may not be available yet.")
     
-    # For older years (2009-2022), try Wayback Machine first (more reliable, less likely to be blocked)
-    # Years 2021-2022 are now archived and less likely to have bot protection
-    if year <= 2022:
-        companies = scrape_from_wayback_machine(year)
-        if companies:
-            print(f"Successfully scraped {len(companies)} companies from Wayback Machine")
-            return companies
-    
-    # Try direct URL (works better for recent years)
-    url = f'https://www.glassdoor.com/Award/Best-Places-to-Work-{year}-LST_KQ0,24.htm'
-    
-    # Updated headers with more recent browser version and referer
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br, zstd',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-        'Referer': 'https://www.glassdoor.com/',
-        'DNT': '1',
-    }
-    
-    session = requests.Session()
-    session.headers.update(headers)
-    
-    # For current year (2025), try more sophisticated approach to bypass bot detection
-    current_year = datetime.now().year
-    is_current_year = year >= current_year
-    
-    if is_current_year:
-        print("Detected current year - using enhanced bot bypass strategy...")
-        # Try accessing through the awards landing page first
-        try:
-            print("Accessing Glassdoor Awards page...")
-            awards_url = 'https://www.glassdoor.com/Award/index.htm'
-            session.get(awards_url, timeout=30)
-            time.sleep(2)
-            
-            # Try accessing through a navigation path
-            print("Navigating through awards section...")
-            session.get('https://www.glassdoor.com/Award/', timeout=30)
-            time.sleep(1)
-        except:
-            pass
-    
-    # Try accessing the homepage first to establish a session (helps bypass some bot detection)
-    try:
-        print("Establishing session with Glassdoor...")
-        homepage_response = session.get('https://www.glassdoor.com/', timeout=30)
-        # Save cookies from homepage
-        time.sleep(2 if is_current_year else 1)  # Longer delay for current year
-    except:
-        pass  # Continue even if this fails
-    
-    # Try multiple URL patterns for current year
-    urls_to_try = [url]
-    if is_current_year:
-        # Try alternative URL patterns
-        urls_to_try.extend([
-            f'https://www.glassdoor.com/Award/Best-Places-to-Work-{year}.htm',
-            f'https://www.glassdoor.com/about/best-places-to-work-{year}/',
-        ])
-    
-    for attempt_url in urls_to_try:
-        try:
-            print(f"Trying URL: {attempt_url}")
-            time.sleep(2 if is_current_year else 1)  # Longer delay for current year
-            
-            # For current year, try with different referers
-            if is_current_year:
-                referers = [
-                    'https://www.glassdoor.com/Award/',
-                    'https://www.google.com/search?q=glassdoor+best+places+to+work+2025',
-                    'https://www.glassdoor.com/',
-                ]
-            else:
-                referers = ['https://www.glassdoor.com/']
-            
-            for referer in referers:
-                headers['Referer'] = referer
-                session.headers.update(headers)
-                
-                response = session.get(attempt_url, timeout=30, allow_redirects=True)
-                
-                if response.status_code == 200:
-                    companies = parse_glassdoor_page(response.text, year, attempt_url)
-                    if companies:
-                        print(f"Successfully scraped {len(companies)} companies from direct URL")
-                        return companies
-                elif response.status_code == 403:
-                    print(f"Received 403 Forbidden with referer: {referer}")
-                    if referer != referers[-1]:  # Try next referer
-                        continue
-                    else:
-                        break  # All referers failed
-                else:
-                    response.raise_for_status()
-                    
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching URL {attempt_url}: {e}")
-            if attempt_url == urls_to_try[-1]:  # Last URL attempt
-                # If direct URL fails and we haven't tried Wayback Machine yet, try it as fallback
-                if year > 2022:
-                    # For very recent years (2023+), try Wayback Machine as fallback
-                    print("Trying Wayback Machine as fallback...")
-                    companies = scrape_from_wayback_machine(year)
-                    if companies:
-                        return companies
-        except Exception as e:
-            print(f"Error parsing URL {attempt_url}: {e}")
-            continue
+    # Use Wayback Machine for all years (more reliable, less likely to be blocked)
+    print("Using Wayback Machine to access archived page...")
+    companies = scrape_from_wayback_machine(year)
+    if companies:
+        print(f"Successfully scraped {len(companies)} companies from Wayback Machine")
+        return companies
     
     return []
 
