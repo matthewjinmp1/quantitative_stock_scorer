@@ -410,8 +410,7 @@ def main():
         if len(companies) > 10:
             print(f"  ... and {len(companies) - 10} more")
         
-        # Save to both text and JSON formats
-        save_companies(companies, year)
+        # Save to JSON format
         save_companies_json(companies, year)
     else:
         print("\nNo companies found. The page structure may have changed.")
