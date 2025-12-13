@@ -23,7 +23,9 @@ def normalize_company_name_for_search(name: str) -> str:
     name = name.strip()
     # Remove common suffixes
     suffixes = [' Inc', ' Inc.', ' Incorporated', ' Corp', ' Corp.', ' Corporation', 
-                ' LLC', ' L.L.C.', ' Ltd', ' Ltd.', ' Limited', ' Company', ' Co', ' Co.']
+                ' LLC', ' L.L.C.', ' Ltd', ' Ltd.', ' Limited', ' Company', ' Co', ' Co.',
+                ' Technologies', ' Technology', ' Tech', ' Services', ' Service',
+                ' Group', ' Holdings', ' Systems', ' System']
     for suffix in suffixes:
         if name.endswith(suffix):
             name = name[:-len(suffix)].strip()
@@ -187,6 +189,112 @@ def try_ticker_from_name(company_name: str, data_mapping: Dict[str, str] = None)
         'Walt Disney Company': 'DIS',
         'Disney': 'DIS',
         'Yahoo': 'AABA',  # Now part of Verizon
+        # Missing companies from 2023 list
+        'Marvell Technology': 'MRVL',
+        'Marvell': 'MRVL',
+        'FedEx Services': 'FDX',
+        'FedEx': 'FDX',
+        'Fedex': 'FDX',
+        'Amd': 'AMD',
+        'AMD': 'AMD',
+        'Red Hat': 'RHT',  # Acquired by IBM but was public in 2023
+        'Asana': 'ASAN',
+        'Con Edison': 'ED',
+        'Consolidated Edison': 'ED',
+        'Regeneron': 'REGN',
+        'Regeneron Pharmaceuticals': 'REGN',
+        'Merck': 'MRK',
+        'Merck & Co': 'MRK',
+        'Booz Allen Hamilton': 'BAH',
+        'Atlassian': 'TEAM',
+        'Hewlett Packard Enterprise': 'HPE',
+        'Hewlett Packard Enterprise Hpe': 'HPE',
+        'HPE': 'HPE',
+        'Spotify': 'SPOT',
+        'Athenahealth': 'ATHN',  # Acquired but was public
+        'Athena Health': 'ATHN',
+        'Rbc': 'RY',  # Royal Bank of Canada
+        'Royal Bank Of Canada': 'RY',
+        'Schneider Electric': 'SBGSY',  # ADR
+        'HP Inc': 'HPQ',
+        'HP': 'HPQ',
+        'Live Nation Entertainment': 'LYV',
+        'Live Nation': 'LYV',
+        'Toast Inc': 'TOST',
+        'Toast': 'TOST',
+        'Crowdstrike': 'CRWD',
+        'CrowdStrike': 'CRWD',
+        'Qualtrics': 'XM',  # Acquired by SAP but was public
+        'Box': 'BOX',
+        'Servicenow': 'NOW',
+        'ServiceNow': 'NOW',
+        'Mongodb': 'MDB',
+        'MongoDB': 'MDB',
+        'Fortinet': 'FTNT',
+        'Garmin': 'GRMN',
+        'Mastercard': 'MA',
+        'Procore Technologies': 'PCOR',
+        'Procore': 'PCOR',
+        'Cummins': 'CMI',
+        'Dell Technologies': 'DELL',
+        'Dell': 'DELL',
+        'Illumina': 'ILMN',
+        'Workday': 'WDAY',
+        'Blackrock': 'BLK',
+        'BlackRock': 'BLK',
+        'Agilent Technologies': 'A',
+        'Agilent': 'A',
+        'Intel Corporation': 'INTC',
+        'Intel': 'INTC',
+        'Epam Systems': 'EPAM',
+        'EPAM': 'EPAM',
+        'United Rentals': 'URI',
+        'Twilio': 'TWLO',
+        'Hilti North America': None,  # Private subsidiary
+        'Hilti': None,  # Private
+        'Cielo': None,  # Brazilian company, check if ADR exists
+        '2020 Companies': None,  # Private
+        'Black & Veatch': None,  # Private
+        'Burns & Mcdonnell': None,  # Private
+        'Cengage Group': None,  # Private
+        'Armanino': None,  # Private accounting firm
+        'Blue Cross & Blue Shield Of North Carolina': None,  # Non-profit
+        'Mathworks': None,  # Private
+        'MathWorks': None,  # Private
+        'Fidelity Investments': None,  # Private
+        'Gainsight': None,  # Private
+        'Medical Solutions': None,  # Private
+        'Berkshire Hathaway Homeservices': None,  # Private subsidiary
+        'Exp Realty': None,  # Private
+        'The Lego Group': None,  # Private
+        'Lego': None,  # Private
+        'Onedigital': None,  # Private
+        'OneDigital': None,  # Private
+        'Turner Construction': None,  # Private
+        'Rsm': None,  # Private (RSM US)
+        'RSM': None,  # Private
+        'Zeigler Auto Group': None,  # Private
+        'Curriculum Associates': None,  # Private
+        'Houston Methodist': None,  # Non-profit
+        'Coldwell Banker': None,  # Private (Realogy)
+        'Mathnasium': None,  # Private
+        'Crew Carwash': None,  # Private
+        'Veterans United Home Loans': None,  # Private
+        'Cardinal Group Companies': None,  # Private
+        'Avanade': None,  # Private (Accenture-Microsoft JV)
+        'Md Anderson Cancer Center': None,  # Non-profit
+        'Tampa General Hospital': None,  # Non-profit
+        'Johns Hopkins University Applied Physics Laboratory': None,  # Non-profit
+        # Additional common companies
+        'Genentech': 'DNA',  # Acquired by Roche but was public
+        'Whole Foods Market': 'WFM',  # Acquired by Amazon but was public
+        'Continental Airlines': 'CAL',  # Merged with United
+        'Citrix': 'CTXS',  # Acquired by Cloud Software Group but was public
+        'National Instruments': 'NATI',  # Acquired by Emerson but was public
+        'Novell': None,  # Acquired
+        'Blizzard Entertainment': 'ATVI',  # Now part of Microsoft but was public
+        'Ellie Mae': 'ELLI',  # Acquired by Intercontinental Exchange but was public
+        'Ultimate Software': 'ULTI',  # Now UKG after merger but was public
         'Rei': None,  # Private
         'Trader Joe\'s': None,  # Private
         'Trader Joe S': None,  # Private
@@ -305,6 +413,27 @@ def try_ticker_from_name(company_name: str, data_mapping: Dict[str, str] = None)
         if key.lower() == company_name.lower():
             return value
     
+    # Try partial matching (if company name contains key or vice versa)
+    company_lower = company_name.lower()
+    for key, value in known_mappings.items():
+        key_lower = key.lower()
+        # Check if one contains the other (for variations like "HP Inc" vs "HP")
+        if key_lower in company_lower or company_lower in key_lower:
+            # Make sure it's a reasonable match (not just a single letter)
+            if len(key_lower) >= 3 and len(company_lower) >= 3:
+                return value
+    
+    # Try matching after removing common words and normalizing
+    normalized_company = normalize_company_name_for_search(company_name).lower()
+    for key, value in known_mappings.items():
+        normalized_key = normalize_company_name_for_search(key).lower()
+        if normalized_key == normalized_company:
+            return value
+        # Also try partial match on normalized
+        if normalized_key in normalized_company or normalized_company in normalized_key:
+            if len(normalized_key) >= 3 and len(normalized_company) >= 3:
+                return value
+    
     return None
 
 
@@ -333,7 +462,7 @@ def check_company_public_at_year(ticker: str, year: int) -> Tuple[bool, Optional
     """
     # Handle historical ticker changes
     historical_tickers = {
-        'META': ('FB', 2012),  # Facebook was FB until 2022, then changed to META
+        'META': ('FB', 2022),  # Facebook was FB until 2022, then changed to META
     }
     
     # Check if we need to use historical ticker
@@ -344,9 +473,8 @@ def check_company_public_at_year(ticker: str, year: int) -> Tuple[bool, Optional
     
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info
         
-        # Try to get historical data first (more reliable for old years)
+        # Try to get historical data first (more reliable for old years and delisted companies)
         try:
             # Get data up to the year we're checking
             end_date = f"{year}-12-31"
@@ -355,16 +483,38 @@ def check_company_public_at_year(ticker: str, year: int) -> Tuple[bool, Optional
             if hist is not None and len(hist) > 0:
                 # Company was trading in this year, so it was public
                 # Get first available date for IPO info
-                full_hist = stock.history(period="max")
-                if full_hist is not None and len(full_hist) > 0:
-                    first_date = full_hist.index[0]
-                    ipo_year = first_date.year
-                    if ipo_year <= year:
-                        return True, f"First trade: {first_date.strftime('%Y-%m-%d')}"
-        except:
+                try:
+                    full_hist = stock.history(period="max")
+                    if full_hist is not None and len(full_hist) > 0:
+                        first_date = full_hist.index[0]
+                        ipo_year = first_date.year
+                        if ipo_year <= year:
+                            return True, f"First trade: {first_date.strftime('%Y-%m-%d')}"
+                except:
+                    # If we can't get full history, but we have data for the year, assume it was public
+                    return True, f"Trading data found for {year}"
+        except Exception as e:
+            # Continue to try other methods
             pass
         
+        # Try to get info (may fail for delisted companies)
+        try:
+            info = stock.info
+        except:
+            info = None
+        
         if not info:
+            # If no info but we have historical data, try one more time with max period
+            try:
+                hist = stock.history(period="max")
+                if hist is not None and len(hist) > 0:
+                    # Check if any data exists before or during the year
+                    relevant_data = hist[hist.index.year <= year]
+                    if len(relevant_data) > 0:
+                        first_date = hist.index[0]
+                        return True, f"First trade: {first_date.strftime('%Y-%m-%d')} (delisted)"
+            except:
+                pass
             return False, "No info available"
         
         # Get IPO date from info
@@ -438,6 +588,23 @@ def find_ticker_for_company(company_name: str, year: int, data_mapping: Dict[str
             ticker = try_ticker_from_name(variation, data_mapping)
             if ticker:
                 break
+    
+    # If still no match, try removing common words and searching again
+    if ticker is None:
+        # Remove common prefixes/suffixes and try again
+        words_to_remove = ['The', 'A', 'An', 'Inc', 'Corp', 'LLC', 'Ltd', 'Limited', 
+                          'Company', 'Co', 'Technologies', 'Technology', 'Tech', 
+                          'Services', 'Service', 'Group', 'Holdings', 'Systems', 'System']
+        cleaned_name = company_name
+        for word in words_to_remove:
+            # Remove word if it's at the end
+            if cleaned_name.endswith(' ' + word) or cleaned_name.endswith(' ' + word + '.'):
+                cleaned_name = cleaned_name[:-len(word)-1].strip()
+            # Remove word if it's at the beginning
+            if cleaned_name.startswith(word + ' '):
+                cleaned_name = cleaned_name[len(word)+1:].strip()
+        if cleaned_name != company_name:
+            ticker = try_ticker_from_name(cleaned_name, data_mapping)
     
     if ticker is None:
         return None
