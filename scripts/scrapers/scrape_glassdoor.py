@@ -387,34 +387,55 @@ def main():
     # Always prompt user for year input after program loads
     while True:
         try:
-            year_input = input("Enter the year to scrape (2009-2025): ").strip()
-            year = int(year_input)
-            if 2009 <= year <= 2025:
+            year_input = input("Enter the year to scrape (2009-2025) or 'all' for all years: ").strip().lower()
+            
+            # Check if user wants all years
+            if year_input == 'all':
+                years = list(range(2009, 2026))  # 2009 to 2025 inclusive
                 break
             else:
-                print(f"Error: Year must be between 2009 and 2025. Please try again.")
+                year = int(year_input)
+                if 2009 <= year <= 2025:
+                    years = [year]
+                    break
+                else:
+                    print(f"Error: Year must be between 2009 and 2025. Please try again.")
         except ValueError:
-            print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and 2025.")
+            print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and 2025, or 'all'.")
         except KeyboardInterrupt:
             print("\n\nScraper cancelled by user.")
             return
     
-    print(f"Starting Glassdoor Best Places to Work {year} scraper...")
-    
-    companies = scrape_glassdoor(year)
-    
-    if companies:
-        print(f"\nFound {len(companies)} companies:")
-        for i, company in enumerate(companies[:10], 1):  # Show first 10
-            print(f"  {i}. {company}")
-        if len(companies) > 10:
-            print(f"  ... and {len(companies) - 10} more")
+    # Process each year
+    for year in years:
+        print(f"\n{'='*60}")
+        print(f"Starting Glassdoor Best Places to Work {year} scraper...")
+        print(f"{'='*60}")
         
-        # Save to JSON format
-        save_companies_json(companies, year)
-    else:
-        print("\nNo companies found. The page structure may have changed.")
-        print("You may need to inspect the page manually and update the selectors.")
+        companies = scrape_glassdoor(year)
+        
+        if companies:
+            print(f"\nFound {len(companies)} companies:")
+            for i, company in enumerate(companies[:10], 1):  # Show first 10
+                print(f"  {i}. {company}")
+            if len(companies) > 10:
+                print(f"  ... and {len(companies) - 10} more")
+            
+            # Save to JSON format
+            save_companies_json(companies, year)
+        else:
+            print(f"\nNo companies found for {year}. The page structure may have changed.")
+            print("You may need to inspect the page manually and update the selectors.")
+        
+        # Add a small delay between years to be polite
+        if len(years) > 1 and year != years[-1]:
+            print("\nWaiting 2 seconds before next year...")
+            time.sleep(2)
+    
+    if len(years) > 1:
+        print(f"\n{'='*60}")
+        print(f"Completed scraping {len(years)} years!")
+        print(f"{'='*60}")
 
 
 if __name__ == '__main__':
