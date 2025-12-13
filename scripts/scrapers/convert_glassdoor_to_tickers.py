@@ -7,6 +7,8 @@ import os
 import time
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 import yfinance as yf
 
 # Get project root directory (2 levels up from this script)
@@ -472,9 +474,33 @@ def find_ticker_for_company(company_name: str, year: int, data_mapping: Dict[str
     return None
 
 
-def convert_glassdoor_year_to_tickers(year: int) -> Dict:
+def process_single_company(company_name: str, year: int, data_mapping: Dict[str, str], 
+                          index: int, total: int) -> Tuple[Optional[Dict], Optional[str], int]:
     """
-    Convert Glassdoor company names to tickers for a specific year.
+    Process a single company to find its ticker.
+    
+    Returns:
+        (result_dict_or_None, company_name, index)
+    """
+    try:
+        result = find_ticker_for_company(company_name, year, data_mapping)
+        
+        if result:
+            return result, company_name, index
+        else:
+            return None, company_name, index
+    except Exception as e:
+        print(f"  ✗ Error processing {company_name}: {e}")
+        return None, company_name, index
+
+
+def convert_glassdoor_year_to_tickers(year: int, max_workers: int = 10) -> Dict:
+    """
+    Convert Glassdoor company names to tickers for a specific year using multithreading.
+    
+    Args:
+        year: Year to process
+        max_workers: Maximum number of worker threads (default: 10)
     
     Returns:
         Dict with 'year', 'companies', 'matched', 'unmatched', 'stats'
@@ -494,36 +520,57 @@ def convert_glassdoor_year_to_tickers(year: int) -> Dict:
     with open(glassdoor_file, 'r', encoding='utf-8') as f:
         glassdoor_companies = json.load(f)
     
-    print(f"\nProcessing {len(glassdoor_companies)} companies for year {year}...")
+    print(f"\nProcessing {len(glassdoor_companies)} companies for year {year} using {max_workers} threads...")
     
     matched = []
     unmatched = []
+    results_lock = threading.Lock()
+    completed_count = 0
+    total_count = len(glassdoor_companies)
     
-    for i, company_name in enumerate(glassdoor_companies, 1):
-        print(f"[{i}/{len(glassdoor_companies)}] Processing: {company_name}")
+    # Use ThreadPoolExecutor to process companies in parallel
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        future_to_company = {
+            executor.submit(process_single_company, company_name, year, data_mapping, i, total_count): company_name
+            for i, company_name in enumerate(glassdoor_companies, 1)
+        }
         
-        result = find_ticker_for_company(company_name, year, data_mapping)
-        
-        if result:
-            matched.append(result)
-            print(f"  ✓ Matched: {company_name} -> {result['ticker']} (IPO: {result['ipo_date']})")
-        else:
-            unmatched.append(company_name)
-            print(f"  ✗ No match or not public: {company_name}")
-        
-        # Be polite to yfinance API
-        time.sleep(0.5)
+        # Process completed tasks as they finish
+        for future in as_completed(future_to_company):
+            company_name = future_to_company[future]
+            try:
+                result, processed_name, index = future.result()
+                
+                with results_lock:
+                    completed_count += 1
+                    if result:
+                        matched.append(result)
+                        print(f"[{completed_count}/{total_count}] ✓ {processed_name} -> {result['ticker']} (IPO: {result['ipo_date']})")
+                    else:
+                        unmatched.append(processed_name)
+                        print(f"[{completed_count}/{total_count}] ✗ {processed_name} (No match or not public)")
+            except Exception as e:
+                with results_lock:
+                    completed_count += 1
+                    unmatched.append(company_name)
+                    print(f"[{completed_count}/{total_count}] ✗ {company_name} (Error: {e})")
+    
+    # Sort matched and unmatched to maintain original order
+    matched_dict = {m['glassdoor_name']: m for m in matched}
+    matched_sorted = [matched_dict[name] for name in glassdoor_companies if name in matched_dict]
+    unmatched_sorted = [name for name in glassdoor_companies if name not in matched_dict]
     
     return {
         'year': year,
         'companies': glassdoor_companies,
-        'matched': matched,
-        'unmatched': unmatched,
+        'matched': matched_sorted,
+        'unmatched': unmatched_sorted,
         'stats': {
             'total': len(glassdoor_companies),
-            'matched': len(matched),
-            'unmatched': len(unmatched),
-            'match_rate': len(matched) / len(glassdoor_companies) * 100 if glassdoor_companies else 0
+            'matched': len(matched_sorted),
+            'unmatched': len(unmatched_sorted),
+            'match_rate': len(matched_sorted) / len(glassdoor_companies) * 100 if glassdoor_companies else 0
         }
     }
 
@@ -540,7 +587,7 @@ def save_ticker_mapping(results: Dict, year: int):
 
 def main():
     """Main function to convert Glassdoor companies to tickers."""
-    print("Glassdoor Company Name to Ticker Converter")
+    print("Glassdoor Company Name to Ticker Converter (Multithreaded)")
     print("=" * 60)
     
     # Get year input
@@ -564,13 +611,33 @@ def main():
             print("\n\nConverter cancelled by user.")
             return
     
+    # Get number of threads
+    while True:
+        try:
+            threads_input = input("Enter number of threads (default: 10, recommended: 5-20): ").strip()
+            if not threads_input:
+                max_workers = 10
+                break
+            max_workers = int(threads_input)
+            if 1 <= max_workers <= 50:
+                break
+            else:
+                print("Error: Number of threads must be between 1 and 50. Please try again.")
+        except ValueError:
+            print("Error: Please enter a valid number.")
+        except KeyboardInterrupt:
+            print("\n\nConverter cancelled by user.")
+            return
+    
     # Process each year
     for year in years:
         print(f"\n{'='*60}")
         print(f"Processing year {year}")
         print(f"{'='*60}")
         
-        results = convert_glassdoor_year_to_tickers(year)
+        start_time = time.time()
+        results = convert_glassdoor_year_to_tickers(year, max_workers=max_workers)
+        elapsed_time = time.time() - start_time
         
         if results:
             # Print summary
@@ -580,6 +647,7 @@ def main():
             print(f"  Matched to tickers: {results['stats']['matched']}")
             print(f"  Unmatched/Private: {results['stats']['unmatched']}")
             print(f"  Match rate: {results['stats']['match_rate']:.1f}%")
+            print(f"  Processing time: {elapsed_time:.2f} seconds")
             
             # Save results
             save_ticker_mapping(results, year)
