@@ -342,59 +342,6 @@ def create_benchmark_chart(results: Dict, output_dir: str):
     print(f"\nBenchmark chart saved: {output_file}")
 
 
-def create_comparison_chart(benchmark_results: Dict, output_dir: str):
-    """Create a chart comparing benchmark to Glassdoor returns."""
-    # Load Glassdoor summary if it exists
-    glassdoor_summary_file = os.path.join(GLASSDOOR_DATA_DIR, 'returns', 'jsons', 'glassdoor_returns_summary.json')
-    
-    if not os.path.exists(glassdoor_summary_file):
-        print("Glassdoor summary not found, skipping comparison chart")
-        return
-    
-    with open(glassdoor_summary_file, 'r', encoding='utf-8') as f:
-        glassdoor_summary = json.load(f)
-    
-    # Create comparison bar chart
-    fig, ax = plt.subplots(figsize=(12, 7))
-    
-    # Data
-    categories = ['Benchmark\n(Top 500)', 'Glassdoor\n(Avg)']
-    annualized_returns = [
-        benchmark_results['annualized_return_pct'],
-        glassdoor_summary['avg_annualized_return_pct']
-    ]
-    
-    colors = ['#1a5f7a', '#2ecc71']
-    bars = ax.bar(categories, annualized_returns, color=colors, edgecolor='black', linewidth=1, width=0.5)
-    
-    # Add value labels
-    for bar, val in zip(bars, annualized_returns):
-        height = bar.get_height()
-        ax.annotate(f'{val:.1f}%',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 5), textcoords="offset points",
-                    ha='center', va='bottom', fontsize=14, fontweight='bold')
-    
-    ax.set_ylabel('Annualized Return (%)', fontsize=12)
-    ax.set_title('Benchmark vs Glassdoor Best Places to Work\nAnnualized Returns Comparison', 
-                 fontsize=14, fontweight='bold')
-    ax.axhline(y=10, color='red', linestyle='--', linewidth=1.5, alpha=0.7, label='10% reference')
-    ax.grid(True, alpha=0.3, axis='y')
-    ax.legend(loc='upper right')
-    
-    # Set y-axis limit
-    ax.set_ylim(0, max(annualized_returns) * 1.2)
-    
-    plt.tight_layout()
-    
-    # Save
-    output_file = os.path.join(output_dir, 'benchmark_vs_glassdoor.png')
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"Comparison chart saved: {output_file}")
-
-
 def main():
     """Main function."""
     # Fixed start year - 2003 has better data coverage
@@ -431,9 +378,8 @@ def main():
     # Create output directory
     os.makedirs(BENCHMARK_DIR, exist_ok=True)
     
-    # Create charts
+    # Create chart
     create_benchmark_chart(results, BENCHMARK_DIR)
-    create_comparison_chart(results, BENCHMARK_DIR)
     
     # Save JSON results
     json_file = os.path.join(BENCHMARK_DIR, 'benchmark_top500_returns.json')
