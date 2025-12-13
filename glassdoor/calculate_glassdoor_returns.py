@@ -614,15 +614,15 @@ def create_returns_chart(results: Dict, output_dir: str, benchmark_data: Optiona
     ax.fill_between(dates, 0, returns_pct, alpha=0.2, color='#2E86AB')
     
     # Add benchmark comparison if available
-    benchmark_label = None
+    benchmark_returns = []
+    bench_returns = []
     if benchmark_data:
         benchmark_returns = get_benchmark_returns_for_period(benchmark_data, dates[0], dates[-1])
         if benchmark_returns:
             bench_dates = [d for d, _ in benchmark_returns]
             bench_returns = [r for _, r in benchmark_returns]
             ax.plot(bench_dates, bench_returns, linewidth=2, color='#e74c3c', 
-                    linestyle='--', alpha=0.8, label='Benchmark (Top 500)')
-            benchmark_label = f"Benchmark: {bench_returns[-1]:.1f}%" if bench_returns else None
+                    linestyle='--', alpha=0.8, label='Benchmark')
     
     ax.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
     
@@ -631,7 +631,6 @@ def create_returns_chart(results: Dict, output_dir: str, benchmark_data: Optiona
     ax.set_title(f'Glassdoor Best Places to Work {year} - Buy & Hold Returns vs Benchmark', fontsize=14, fontweight='bold')
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
     ax.grid(True, alpha=0.1, which='minor')
-    ax.legend(loc='upper left', fontsize=10)
     
     # Format x-axis dates with quarterly granularity
     date_range = (dates[-1] - dates[0]).days
@@ -658,17 +657,41 @@ def create_returns_chart(results: Dict, output_dir: str, benchmark_data: Optiona
     ax.xaxis.set_major_formatter(FuncFormatter(format_quarterly))
     plt.xticks(rotation=45, ha='right')
     
-    # Add statistics text
-    stats_text = f"Glassdoor: {results['total_return_pct']:.1f}%"
-    if results.get('annualized_return_pct'):
-        stats_text += f" ({results['annualized_return_pct']:.1f}% ann.)"
-    if benchmark_label:
-        stats_text += f"\n{benchmark_label}"
-    stats_text += f"\nStocks: {results['num_stocks']} → {results['final_num_stocks']}"
+    # Build stats text box with all info (no separate legend)
+    glassdoor_final = results['total_return_pct']
+    glassdoor_ann = results.get('annualized_return_pct', 0)
+    
+    stats_lines = [
+        f"Glassdoor {year}:",
+        f"  Total: {glassdoor_final:,.0f}%  |  Ann: {glassdoor_ann:.1f}%",
+        f"  Stocks: {results['num_stocks']} → {results['final_num_stocks']}"
+    ]
+    
+    if benchmark_returns:
+        bench_final = bench_returns[-1]
+        # Calculate benchmark annualized
+        bench_years = (dates[-1] - dates[0]).days / 365.25
+        if bench_years > 0:
+            bench_ann = ((1 + bench_final/100) ** (1/bench_years) - 1) * 100
+        else:
+            bench_ann = 0
+        stats_lines.append("")
+        stats_lines.append("Benchmark (Top 500):")
+        stats_lines.append(f"  Total: {bench_final:,.0f}%  |  Ann: {bench_ann:.1f}%")
+        
+        # Add outperformance
+        beat = glassdoor_ann - bench_ann
+        stats_lines.append("")
+        stats_lines.append(f"Outperformance: {beat:+.1f}%/yr")
+    
+    stats_text = "\n".join(stats_lines)
     
     ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
-            fontsize=10, verticalalignment='top',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.7))
+            fontsize=9, verticalalignment='top', family='monospace',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='gray'))
+    
+    # Simple legend for line identification
+    ax.legend(loc='lower right', fontsize=9, framealpha=0.9)
     
     plt.tight_layout()
     
