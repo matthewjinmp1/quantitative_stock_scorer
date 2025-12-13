@@ -42,9 +42,11 @@ quantitative_stock_scorer/
 │   ├── metrics.json
 │   ├── scores.json
 │   ├── ebit_ppe_portfolio_results.json
-│   ├── glassdoor_2009_companies.json
-│   ├── glassdoor_2009_companies.txt
-│   └── available_metrics.txt
+│   ├── available_metrics.txt
+│   └── glassdoor/           # Glassdoor Best Places to Work data
+│       ├── glassdoor_2009_companies.json
+│       ├── glassdoor_2009_companies.txt
+│       └── ... (other years)
 ├── tests/                   # Test files
 │   ├── test_correlations.py
 │   ├── test_get_metrics.py
