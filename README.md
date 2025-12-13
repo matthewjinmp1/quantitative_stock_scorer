@@ -23,7 +23,8 @@ quantitative_stock_scorer/
 │   │   ├── backtester.py
 │   │   └── rebalancing_backtester.py
 │   ├── scrapers/            # Web scraping scripts
-│   │   └── scrape_glassdoor_2009.py
+│   │   ├── scrape_glassdoor.py      # Scrape Glassdoor Best Places to Work (any year 2009-2025)
+│   │   └── scrape_glassdoor_2009.py # Legacy scraper for 2009 only
 │   └── utils/               # Utility and debug scripts
 │       ├── check_credits.py
 │       ├── check_ticker_match.py
@@ -91,6 +92,15 @@ python scripts/analysis/correlations.py
 ```bash
 python scripts/backtesting/backtester.py
 python scripts/backtesting/rebalancing_backtester.py
+```
+
+### Web Scraping
+
+```bash
+# Scrape Glassdoor Best Places to Work list for a specific year (2009-2025)
+python scripts/scrapers/scrape_glassdoor.py 2009
+python scripts/scrapers/scrape_glassdoor.py 2015
+python scripts/scrapers/scrape_glassdoor.py 2020
 ```
 
 ### Running Tests
