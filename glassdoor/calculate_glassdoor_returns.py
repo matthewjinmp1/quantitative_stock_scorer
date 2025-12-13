@@ -464,10 +464,10 @@ def calculate_portfolio_returns(year: int, stock_dict: Dict[str, Dict]) -> Dict:
             continue
         
         # Get company name from matched data
-        company_name = None
+        company_name = ticker  # default to ticker
         for m in matched:
             if m['ticker'] == ticker:
-                company_name = m.get('company', ticker)
+                company_name = m.get('glassdoor_name', ticker)
                 break
         
         initial_price = initial_prices[ticker]
