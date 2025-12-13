@@ -7,7 +7,6 @@ import json
 import time
 import re
 import os
-import argparse
 from typing import List, Optional
 from datetime import datetime
 
@@ -385,22 +384,20 @@ def save_companies_json(companies: List[str], year: int, filename: str = None) -
 
 def main():
     """Main function to run the scraper."""
-    parser = argparse.ArgumentParser(
-        description='Scrape Glassdoor Best Places to Work list for a given year (2009-2025)'
-    )
-    parser.add_argument(
-        'year',
-        type=int,
-        help='Year of the list to scrape (2009-2025)'
-    )
-    
-    args = parser.parse_args()
-    year = args.year
-    
-    # Validate year
-    if year < 2009 or year > 2025:
-        print(f"Error: Year must be between 2009 and 2025, got {year}")
-        return
+    # Always prompt user for year input after program loads
+    while True:
+        try:
+            year_input = input("Enter the year to scrape (2009-2025): ").strip()
+            year = int(year_input)
+            if 2009 <= year <= 2025:
+                break
+            else:
+                print(f"Error: Year must be between 2009 and 2025. Please try again.")
+        except ValueError:
+            print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and 2025.")
+        except KeyboardInterrupt:
+            print("\n\nScraper cancelled by user.")
+            return
     
     print(f"Starting Glassdoor Best Places to Work {year} scraper...")
     
