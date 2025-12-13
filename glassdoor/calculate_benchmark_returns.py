@@ -397,12 +397,8 @@ def create_comparison_chart(benchmark_results: Dict, output_dir: str):
 
 def main():
     """Main function."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Calculate benchmark returns using top 500 stocks by revenue')
-    parser.add_argument('--start-year', type=int, default=2002, help='Start year (default: 2002)')
-    
-    args = parser.parse_args()
+    # Fixed start year - 2003 has better data coverage
+    START_YEAR = 2003
     
     # Load stock data
     print("Loading stock data from NYSE and NASDAQ files...")
@@ -414,7 +410,7 @@ def main():
         return
     
     # Calculate benchmark returns
-    results = calculate_benchmark_returns(stock_dict, args.start_year)
+    results = calculate_benchmark_returns(stock_dict, START_YEAR)
     
     if not results:
         print("Error: Could not calculate benchmark returns")
