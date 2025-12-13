@@ -826,6 +826,154 @@ def create_summary_chart(all_results: List[Dict], output_dir: str):
     print(f"Summary JSON saved: {summary_json_file}")
 
 
+def create_benchmark_beat_chart(all_results: List[Dict], benchmark_data: Optional[Dict], output_dir: str):
+    """Create a chart showing annualized outperformance vs benchmark for each year."""
+    if not all_results or not benchmark_data:
+        print("Cannot create benchmark beat chart: missing data")
+        return
+    
+    # Sort by year
+    all_results = sorted(all_results, key=lambda x: x['year'])
+    
+    # Calculate benchmark annualized return for each Glassdoor period
+    beat_data = []
+    
+    for result in all_results:
+        year = result['year']
+        glassdoor_ann = result.get('annualized_return_pct', 0)
+        
+        # Get the period dates from the result
+        portfolio_values = result.get('portfolio_values', [])
+        if len(portfolio_values) < 2:
+            continue
+        
+        start_date = datetime.fromisoformat(portfolio_values[0][0])
+        end_date = datetime.fromisoformat(portfolio_values[-1][0])
+        
+        # Calculate benchmark return for the same period
+        benchmark_returns = get_benchmark_returns_for_period(benchmark_data, start_date, end_date)
+        
+        if benchmark_returns:
+            # Get total return from benchmark for this period
+            bench_total_return_pct = benchmark_returns[-1][1]  # Already in percent
+            
+            # Calculate annualized from total return
+            years_elapsed = (end_date - start_date).days / 365.25
+            if years_elapsed > 0:
+                # Convert percentage back to multiplier, then annualize
+                bench_multiplier = 1 + (bench_total_return_pct / 100)
+                bench_ann = (bench_multiplier ** (1 / years_elapsed) - 1) * 100
+            else:
+                bench_ann = 0
+            
+            beat = glassdoor_ann - bench_ann
+            beat_data.append({
+                'year': year,
+                'glassdoor_ann': glassdoor_ann,
+                'benchmark_ann': bench_ann,
+                'beat': beat
+            })
+    
+    if not beat_data:
+        print("No benchmark beat data calculated")
+        return
+    
+    # Create chart
+    fig, ax = plt.subplots(figsize=(14, 8))
+    
+    years = [d['year'] for d in beat_data]
+    year_labels = [str(y)[2:] for y in years]
+    beats = [d['beat'] for d in beat_data]
+    glassdoor_anns = [d['glassdoor_ann'] for d in beat_data]
+    benchmark_anns = [d['benchmark_ann'] for d in beat_data]
+    
+    x = np.arange(len(years))
+    
+    # Color bars based on positive/negative beat
+    colors = ['#2ecc71' if b >= 0 else '#e74c3c' for b in beats]
+    
+    bars = ax.bar(x, beats, color=colors, edgecolor='black', linewidth=0.5, width=0.7)
+    
+    # Add zero line
+    ax.axhline(y=0, color='black', linestyle='-', linewidth=1.5)
+    
+    # Add value labels
+    for bar, val, gd, bm in zip(bars, beats, glassdoor_anns, benchmark_anns):
+        height = bar.get_height()
+        # Position label above or below bar depending on sign
+        if height >= 0:
+            va = 'bottom'
+            y_offset = 0.3
+        else:
+            va = 'top'
+            y_offset = -0.3
+        
+        ax.annotate(f'{val:+.1f}%',
+                    xy=(bar.get_x() + bar.get_width() / 2, height + y_offset),
+                    ha='center', va=va, fontsize=9, fontweight='bold')
+        
+        # Add smaller annotation showing actual values
+        ax.annotate(f'({gd:.1f} vs {bm:.1f})',
+                    xy=(bar.get_x() + bar.get_width() / 2, 0),
+                    xytext=(0, -18), textcoords="offset points",
+                    ha='center', va='top', fontsize=7, color='gray')
+    
+    ax.set_xlabel('Year', fontsize=12)
+    ax.set_ylabel('Annualized Outperformance (%)', fontsize=12)
+    ax.set_title('Glassdoor Best Places to Work vs Benchmark\nAnnualized Return Difference by Year', 
+                 fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"'{y}" for y in year_labels], fontsize=10)
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    # Add padding
+    max_abs = max(abs(min(beats)), abs(max(beats)))
+    ax.set_ylim(-max_abs * 1.3, max_abs * 1.3)
+    
+    # Add summary stats
+    avg_beat = np.mean(beats)
+    years_outperformed = sum(1 for b in beats if b > 0)
+    
+    stats_text = f"Average Beat: {avg_beat:+.1f}% per year\n"
+    stats_text += f"Years Outperformed: {years_outperformed}/{len(beats)} ({years_outperformed/len(beats)*100:.0f}%)"
+    
+    ax.text(0.98, 0.98, stats_text, transform=ax.transAxes,
+            fontsize=11, verticalalignment='top', horizontalalignment='right',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    
+    # Add legend
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor='#2ecc71', edgecolor='black', label='Outperformed'),
+        Patch(facecolor='#e74c3c', edgecolor='black', label='Underperformed')
+    ]
+    ax.legend(handles=legend_elements, loc='upper left', fontsize=10)
+    
+    plt.tight_layout()
+    
+    # Save chart
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, 'glassdoor_benchmark_beat.png')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"\nBenchmark beat chart saved: {output_file}")
+    
+    # Also save beat data to JSON
+    beat_json = {
+        'average_beat_pct': avg_beat,
+        'years_outperformed': years_outperformed,
+        'total_years': len(beats),
+        'outperformance_rate_pct': years_outperformed / len(beats) * 100,
+        'by_year': beat_data
+    }
+    
+    beat_json_file = os.path.join(RETURNS_JSONS_DIR, 'glassdoor_benchmark_beat.json')
+    with open(beat_json_file, 'w', encoding='utf-8') as f:
+        json.dump(beat_json, f, indent=2, ensure_ascii=False)
+    print(f"Benchmark beat JSON saved: {beat_json_file}")
+
+
 def main():
     """Main function."""
     current_year = datetime.now().year
@@ -878,6 +1026,10 @@ def main():
     if len(all_results) > 1:
         # Create summary chart
         create_summary_chart(all_results, RETURNS_CHARTS_DIR)
+        
+        # Create benchmark beat chart
+        if benchmark_data:
+            create_benchmark_beat_chart(all_results, benchmark_data, RETURNS_CHARTS_DIR)
         
         print(f"\n{'='*60}")
         print(f"Completed processing {len(all_results)} years")
