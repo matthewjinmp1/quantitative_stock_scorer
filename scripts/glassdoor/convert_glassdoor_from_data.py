@@ -292,13 +292,17 @@ def process_single_company(company_name: str, year: int, data_mapping: Dict[str,
         return (None, None, company_name)
 
 
-def convert_glassdoor_year_from_data(year: int, max_workers: int = 10, use_cache: bool = True) -> Dict:
+def convert_glassdoor_year_from_data(year: int, stock_dict: Dict[str, Dict] = None, 
+                                     data_mapping: Dict[str, str] = None,
+                                     max_workers: int = 10, use_cache: bool = True) -> Dict:
     """
     Convert Glassdoor company names to tickers for a specific year using data files.
     Only includes companies that have price data for that year.
     
     Args:
         year: Year of the Glassdoor list
+        stock_dict: Pre-loaded stock data dict (ticker -> stock_data). If None, will load.
+        data_mapping: Pre-built company name mapping. If None, will build from stock_dict.
         max_workers: Number of threads for processing
         use_cache: Whether to use cached results
         
@@ -334,18 +338,20 @@ def convert_glassdoor_year_from_data(year: int, max_workers: int = 10, use_cache
     
     print(f"\nLoaded {len(glassdoor_companies)} companies from Glassdoor {year} list")
     
-    # Load stock data
-    print("\nLoading stock data from NYSE and NASDAQ files...")
-    stock_dict = load_stock_data_by_ticker()
+    # Load stock data if not provided
+    if stock_dict is None:
+        print("\nLoading stock data from NYSE and NASDAQ files...")
+        stock_dict = load_stock_data_by_ticker()
+        
+        if not stock_dict:
+            print("Error: No stock data loaded. Please check that nyse_data.jsonl and nasdaq_data.jsonl exist.")
+            return cached_results or {"matched": [], "unmatched": [], "stats": {"total": len(glassdoor_companies), "matched": 0, "unmatched": len(glassdoor_companies), "match_rate": 0.0}}
     
-    if not stock_dict:
-        print("Error: No stock data loaded. Please check that nyse_data.jsonl and nasdaq_data.jsonl exist.")
-        return cached_results or {"matched": [], "unmatched": [], "stats": {"total": len(glassdoor_companies), "matched": 0, "unmatched": len(glassdoor_companies), "match_rate": 0.0}}
-    
-    # Build company name mapping
-    print("Building company name to ticker mapping...")
-    data_mapping = build_company_name_mapping_from_data(stock_dict)
-    print(f"Built mapping for {len(data_mapping)} company name variations")
+    # Build company name mapping if not provided
+    if data_mapping is None:
+        print("Building company name to ticker mapping...")
+        data_mapping = build_company_name_mapping_from_data(stock_dict)
+        print(f"Built mapping for {len(data_mapping)} company name variations")
     
     # Determine which companies to process
     companies_to_process = []
@@ -476,6 +482,7 @@ def main():
             print(f"Error: Year must be between 2009 and {max_year}")
             return
     else:
+        years = None  # Will be set in interactive mode
         # Interactive mode
         print("Glassdoor Company Name to Ticker Converter (Using Data Files)")
         print("=" * 60)
@@ -506,10 +513,34 @@ def main():
                 print("\n\nConverter cancelled by user. Exiting...")
                 return
     
+    # Load stock data once for all years (if processing multiple years)
+    if len(years) > 1:
+        print("\n" + "="*60)
+        print("Loading stock data from NYSE and NASDAQ files (one-time load)...")
+        print("="*60)
+        stock_dict = load_stock_data_by_ticker()
+        
+        if not stock_dict:
+            print("Error: No stock data loaded. Please check that nyse_data.jsonl and nasdaq_data.jsonl exist.")
+            return
+        
+        # Build company name mapping once for all years
+        print("\nBuilding company name to ticker mapping (one-time build)...")
+        data_mapping = build_company_name_mapping_from_data(stock_dict)
+        print(f"Built mapping for {len(data_mapping)} company name variations")
+        print("\n" + "="*60)
+        print("Data loaded. Processing years...")
+        print("="*60)
+    else:
+        # Single year - will load inside function
+        stock_dict = None
+        data_mapping = None
+    
     # Process each year
     for year in years:
         try:
-            convert_glassdoor_year_from_data(year, max_workers=args.workers, use_cache=not args.no_cache)
+            convert_glassdoor_year_from_data(year, stock_dict=stock_dict, data_mapping=data_mapping,
+                                           max_workers=args.workers, use_cache=not args.no_cache)
             if len(years) > 1 and year != years[-1]:
                 print("\nWaiting 2 seconds before next year...")
                 import time
