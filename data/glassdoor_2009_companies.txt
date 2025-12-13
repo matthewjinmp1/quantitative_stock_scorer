@@ -3,6 +3,7 @@ Bain & Company
 Netflix
 Adobe
 Northwestern Mutual
+Whole Foods Market
 Google
 SAP
 Continental Airlines
@@ -11,11 +12,15 @@ Intuit
 McKinsey & Company
 FactSet
 Boston Consulting Group
+Procter & Gamble
 Caterpillar
 Genentech
 CareerBuilder
 Apple
+Juniper Networks
+Marriott International
 NIKE
+EY
 MITRE
 Chevron
 Goldman Sachs
@@ -24,13 +29,16 @@ Citrix
 Schlumberger
 Booz Allen Hamilton
 National Instruments
+Novell
 PwC
+American Express
 Cisco Systems
 USAA
 EMC
 Capital One
 Qualcomm
 MetLife
+Lockheed Martin
 Texas Instruments
 US Army
 Deloitte

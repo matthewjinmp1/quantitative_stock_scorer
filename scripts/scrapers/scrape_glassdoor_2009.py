@@ -66,7 +66,7 @@ def scrape_from_wayback_machine() -> List[str]:
 
 def parse_glassdoor_page(html_content: str, source_url: str = "") -> List[str]:
     """
-    Parse company names from Glassdoor HTML content.
+    Parse company names from Glassdoor HTML content by extracting from link structure.
     
     Args:
         html_content: HTML content to parse
@@ -78,142 +78,183 @@ def parse_glassdoor_page(html_content: str, source_url: str = "") -> List[str]:
     soup = BeautifulSoup(html_content, 'html.parser')
     company_names = []
     
-    # Extensive list of patterns to exclude (navigation, UI elements, job titles, etc.)
-    exclude_patterns = [
-        'employer resources', 'additional resources', 'how the top', 'why didn\'t',
-        'jobs', 'job', 'salary', 'salaries', 'benefits', 'glassdoor', 'best places',
-        'award', 'click', 'view', 'more', 'less', 'sign in', 'register', 'menu',
-        'search', 'explore', 'company culture', 'tips', 'tools', 'near you',
-        'by city', 'top job', 'highest paying', 'pay raises', 'types of companies',
-        'according to', 'hiring now', 'work-life balance', 'paid time off',
-        'clerical', 'administrative', 'assistant', 'human resources', 'project manager',
-        'receptionist', 'customer service', 'representative', 'attorney', 'graphic designer',
-        'executive', 'office', 'medical', 'mar', 'apr', 'may', 'jun', 'jul', 'aug',
-        'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'chicago', 'new york', 'dallas',
-        'houston', 'los angeles', 'atlanta', 'america', 'snapchat', 'facebook',
-        'reviews', 'overview', 'interview', 'interviews',
-        # Wayback Machine specific
-        'about this capture', 'collected by', 'organization', 'internet archive',
-        'the goal is to', 'collection', 'gdelt', 'the gdelt project', 'timestamps',
-        'account settings', 'notifications', 'for employers', 'get free employer account',
-        'employer branding', 'recruiting blog', 'contact sales', 'keyword', 'location',
-        'choose a list', 'highest rated ceos', 'career opportunities', 'company trends',
-        'lists', 'trends', 'trends by industry', 'trends by location', 'want to recruit',
-        'find out how', 'trends faq', 'free employer account', 'press center',
-        'choose a location', 'united states', 'choose a year', 'shares', 'share on',
-        'follow', 'star', 'highest rated ceos:'
-    ]
+    def normalize_company_name(url_part: str) -> str:
+        """Normalize company name from URL format to proper format."""
+        # Convert URL format to readable name (e.g., "General-Mills" -> "General Mills")
+        company_name = url_part.replace('-', ' ')
+        # Title case each word
+        words = company_name.split()
+        company_name = ' '.join(word.capitalize() for word in words)
+        # Fix special cases like "And" -> "&"
+        company_name = company_name.replace(' And ', ' & ')
+        # Fix known company name formats
+        name_fixes = {
+            'At & T': 'AT&T',
+            'Usaa': 'USAA',
+            'Emc': 'EMC',
+            'Pwc': 'PwC',
+            'Ti': 'TI',
+            'Sap': 'SAP',
+            'Netapp': 'NetApp',
+            'Careerbuilder': 'CareerBuilder',
+            'Mckinsey': 'McKinsey',
+            'Factset': 'FactSet',
+            'Mitre': 'MITRE',
+            'Nike': 'NIKE',
+            'Metlife': 'MetLife',
+            'Us Army': 'US Army',
+            'Fedex': 'FedEx',
+            'Ey': 'EY',
+            'Juniper Networks': 'Juniper Networks',  # Keep as is
+        }
+        for old, new in name_fixes.items():
+            if old in company_name:
+                company_name = company_name.replace(old, new)
+        return company_name
     
-    # Method 1: Look for numbered lists or ranking patterns
-    ranking_patterns = []
+    # Method 1: Extract company names from Review links (most reliable)
+    # Company names are in URLs like /Reviews/CompanyName-Reviews
+    review_link_companies = []
+    seen_hrefs = set()  # Track seen hrefs to avoid duplicates
     
-    # First, try to find the main content area (often in a div with id/class containing "content", "main", "list", "ranking")
-    main_content = None
-    for selector in ['#content', '#main', '.content', '.main', '[class*="list"]', '[class*="ranking"]', '[id*="list"]']:
-        main_content = soup.select_one(selector)
-        if main_content:
-            break
-    
-    # If we found main content, search within it; otherwise search the whole page
-    search_area = main_content if main_content else soup
-    
-    # Look for ordered lists (numbered lists)
-    for ol in search_area.find_all('ol'):
-        for li in ol.find_all('li', recursive=False):
-            text = li.get_text(strip=True)
-            # Remove leading numbers and punctuation
-            text = text.lstrip('0123456789.()[]- ').strip()
-            # Split by newlines and take the first line (company name, not quote)
-            text = text.split('\n')[0].split('.')[0].strip()
-            if text and 3 <= len(text) <= 80:
-                ranking_patterns.append(text)
-    
-    # Method 2: Look for text patterns like "1. Company Name" or "#1 Company Name"
-    # Search for text nodes that start with numbers followed by company names
-    text_content = search_area.get_text()
-    # Look for patterns like "1. Company", "#1 Company", "1) Company"
-    number_company_pattern = re.findall(r'(?:^|\n)\s*(?:\d+\.|#\d+|\(\d+\))\s+([A-Z][A-Za-z0-9\s&.,-]{2,50})', text_content)
-    ranking_patterns.extend(number_company_pattern)
-    
-    # Method 3: Look for table rows that might contain rankings
-    tables = soup.find_all('table')
-    for table in tables:
-        rows = table.find_all('tr')
-        for row in rows:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) >= 2:
-                # Skip header rows
-                cell_text = ' '.join([cell.get_text(strip=True).lower() for cell in cells[:3]])
-                if any(header in cell_text for header in ['rank', 'company', 'name', 'rating', 'header']):
-                    continue
-                # Get text from second or third cell (usually company name)
-                for cell in cells[1:3]:
-                    text = cell.get_text(strip=True)
-                    text = text.lstrip('0123456789.()[]- ').strip()
-                    # Take first line only
-                    text = text.split('\n')[0].split('|')[0].strip()
-                    if text and 3 <= len(text) <= 80:
-                        ranking_patterns.append(text)
-    
-    # Method 3: Look for headings (h1, h2, h3) that might be company names
-    # Company names in rankings are often in headings
-    heading_companies = []
-    for heading in search_area.find_all(['h1', 'h2', 'h3', 'h4']):
-        text = heading.get_text(strip=True)
-        # Remove common prefixes like "Rank #", "#1", etc.
-        text = text.lstrip('0123456789.#()[]- ').strip()
-        # Take only the first line (company name, not subtitle)
-        text = text.split('\n')[0].split('|')[0].strip()
-        if text and 3 <= len(text) <= 80:
-            heading_companies.append(text)
-    
-    # Method 4: Look for links that might be company profiles
-    company_links = []
-    for link in search_area.find_all('a', href=True):
+    for link in soup.find_all('a', href=True):
         href = link.get('href', '')
-        text = link.get_text(strip=True)
-        # Check if link looks like a company profile link
-        if ('/Overview' in href or '/Reviews' in href or '/company' in href.lower() or 
-            '/Employer' in href) and text:
-            # Take only the first line
-            text = text.split('\n')[0].strip()
-            if 3 <= len(text) <= 80:
-                company_links.append(text)
+        # Look for patterns like /Reviews/CompanyName-Reviews
+        # Also handle variations like /Reviews/CompanyName or /Reviews/Company-Name-Reviews-E123
+        # Pattern: /Reviews/CompanyName-Reviews or /Reviews/Company-Name-Reviews-E123
+        match = re.search(r'/Reviews/([^/?-]+(?:-[^/?-]+)*?)(?:-Reviews(?:-E\d+)?|/|$)', href)
+        if match:
+            company_name = match.group(1)
+            # Skip if it's a generic term
+            if company_name.lower() in ['company', 'companies', 'reviews', 'employer', 'employers', 'employee']:
+                continue
+            
+            # Normalize the href to avoid duplicates (remove trailing numbers/IDs)
+            normalized_href = re.sub(r'-E\d+', '', href)
+            normalized_href = re.sub(r'-Reviews.*', '-Reviews', normalized_href)
+            if normalized_href in seen_hrefs:
+                continue
+            seen_hrefs.add(normalized_href)
+            
+            # Normalize company name
+            company_name = normalize_company_name(company_name)
+            
+            if company_name and len(company_name) >= 3:
+                review_link_companies.append(company_name)
     
-    # Method 5: Extract all text from main content and look for company-like patterns
-    # Get all text nodes and look for capitalized words/phrases that look like company names
-    if main_content:
-        # Get all text, split by lines
-        all_text_lines = main_content.get_text(separator='\n').split('\n')
-        for line in all_text_lines:
-            line = line.strip()
-            # Look for lines that are proper nouns (start with capital, reasonable length)
-            if line and 3 <= len(line) <= 60:
-                # Must start with capital letter
-                if line[0].isupper():
-                    # Skip if it's clearly not a company (contains common UI words)
-                    if not any(skip in line.lower() for skip in ['click', 'view', 'more', 'less', 'sign', 'login', 'register']):
-                        # Skip if it's a date or number
-                        if not re.match(r'^\d+', line):
-                            ranking_patterns.append(line)
+    # Method 2: Try to find the ranking section and extract companies in order
+    # Look for a section that contains "Best Places to Work 2009" or ranking numbers
+    ranking_section = None
+    best_section = None
+    best_count = 0
     
-    # Method 6: Look for structured data (JSON-LD)
-    json_scripts = soup.find_all('script', type='application/ld+json')
-    for script in json_scripts:
-        try:
-            data = json.loads(script.string)
-            if isinstance(data, dict):
-                if 'itemListElement' in data:
-                    for item in data.get('itemListElement', []):
-                        if isinstance(item, dict):
-                            name = item.get('name') or (item.get('item', {}) if isinstance(item.get('item'), dict) else {}).get('name')
-                            if name and 3 <= len(name) <= 80:
-                                company_names.append(name)
-        except (json.JSONDecodeError, AttributeError, TypeError):
+    for div in soup.find_all(['div', 'section', 'article']):
+        text = div.get_text()
+        # Check if this section contains ranking-related content
+        if 'best places to work' in text.lower() and '2009' in text:
+            # Count how many review links are in this section
+            review_links_in_section = div.find_all('a', href=re.compile(r'/Reviews/.*-Reviews'))
+            if len(review_links_in_section) > best_count:
+                best_count = len(review_links_in_section)
+                best_section = div
+    
+    ranking_section = best_section
+    
+    # If we found a ranking section, extract companies from it in order
+    if ranking_section:
+        section_companies = []
+        section_seen = set()
+        for link in ranking_section.find_all('a', href=True):
+            href = link.get('href', '')
+            match = re.search(r'/Reviews/([^/?-]+(?:-[^/?-]+)*?)(?:-Reviews(?:-E\d+)?|/|$)', href)
+            if match:
+                company_name = match.group(1)
+                if company_name.lower() in ['company', 'companies', 'reviews', 'employer', 'employers', 'employee']:
+                    continue
+                
+                normalized_href = re.sub(r'-E\d+', '', href)
+                normalized_href = re.sub(r'-Reviews.*', '-Reviews', normalized_href)
+                if normalized_href in section_seen:
+                    continue
+                section_seen.add(normalized_href)
+                
+                company_name = normalize_company_name(company_name)
+                
+                if company_name and company_name not in section_companies:
+                    section_companies.append(company_name)
+        
+        # If we got a good list from the section, use it
+        if len(section_companies) >= 40:
+            company_names = section_companies
+        else:
+            company_names = review_link_companies
+    else:
+        company_names = review_link_companies
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_companies = []
+    for company in company_names:
+        company_lower = company.lower().strip()
+        if company_lower and company_lower not in seen:
+            seen.add(company_lower)
+            unique_companies.append(company)
+    
+    # Filter to only include companies that look legitimate
+    # (not navigation elements, not generic terms)
+    filtered_companies = []
+    exclude_terms = {'company reviews', 'reviews', 'company', 'companies', 'employer', 
+                     'employers'}  # Generic navigation terms
+    
+    # Also exclude companies that appear in navigation/footer (not in the ranking)
+    # These are typically large retailers that appear in "trending" sections
+    navigation_companies = {'target', 'walmart', 'macy', 'home depot', 'ibm', 
+                           'microsoft', 'amazon', 'best buy reviews'}  # These appear in nav, not ranking
+    
+    for company in unique_companies:
+        company_lower = company.lower()
+        # Skip if it's a generic term
+        if company_lower in exclude_terms:
             continue
+        # Skip if it's a navigation company (unless it's actually in the ranking)
+        if company_lower in navigation_companies:
+            # Only skip if we have 50+ companies (meaning we can afford to filter)
+            if len(unique_companies) > 50:
+                continue
+        # Skip if it's too short or too long
+        if not (3 <= len(company) <= 80):
+            continue
+        # Must contain letters
+        if not any(c.isalpha() for c in company):
+            continue
+        filtered_companies.append(company)
     
-    # Combine all potential company names
-    all_candidates = ranking_patterns + heading_companies + company_links + company_names
+    # If we have exactly 50, return them
+    # If we have more than 50, try to identify the top 50 by looking for ranking context
+    if len(filtered_companies) > 50:
+        # Try to find companies that appear in the ranking section specifically
+        # Look for a section containing "Best Places to Work 2009"
+        ranking_companies = []
+        for div in soup.find_all(['div', 'section', 'article']):
+            text = div.get_text()
+            if 'best places to work' in text.lower() and '2009' in text:
+                # Extract companies from this section
+                section_links = div.find_all('a', href=re.compile(r'/Reviews/.*-Reviews'))
+                if len(section_links) >= 40:  # Should have many company links
+                    for link in section_links:
+                        href = link.get('href', '')
+                        match = re.search(r'/Reviews/([^/?-]+(?:-[^/?-]+)*?)(?:-Reviews|/|$)', href)
+                        if match:
+                            company_name = match.group(1)
+                            if company_name.lower() not in exclude_terms:
+                                company_name = normalize_company_name(company_name)
+                                
+                                if company_name and company_name not in ranking_companies:
+                                    ranking_companies.append(company_name)
+                    if len(ranking_companies) >= 50:
+                        return ranking_companies[:50]
+    
+    return filtered_companies
     
     # Filter candidates aggressively
     filtered_companies = []
