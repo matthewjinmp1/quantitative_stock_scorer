@@ -265,8 +265,8 @@ def scrape_from_wayback_machine(year: int) -> List[str]:
             f'{year}1201000000',  # December of the year
             f'{next_year}0601000000',  # June
         ]
-    elif year <= 2020:
-        # For 2016-2020, try dates from the year after and the year itself
+    elif year <= 2022:
+        # For 2016-2022, try dates from the year after and the year itself
         next_year = year + 1
         snapshot_dates = [
             f'{next_year}0115000000',  # January 15 of next year
@@ -276,7 +276,7 @@ def scrape_from_wayback_machine(year: int) -> List[str]:
             f'{year}0101000000',  # January 1 of the year
         ]
     else:
-        # For very recent years (2021+), try current year dates
+        # For very recent years (2023+), try current year dates
         if year <= current_year:
             snapshot_dates = [
                 f'{year}0115000000',  # January 15
@@ -326,8 +326,9 @@ def scrape_glassdoor(year: int) -> List[str]:
     if year > current_year:
         print(f"Warning: {year} is in the future. The list may not be available yet.")
     
-    # For older years (2009-2020), try Wayback Machine first (more reliable, less likely to be blocked)
-    if year <= 2020:
+    # For older years (2009-2022), try Wayback Machine first (more reliable, less likely to be blocked)
+    # Years 2021-2022 are now archived and less likely to have bot protection
+    if year <= 2022:
         companies = scrape_from_wayback_machine(year)
         if companies:
             print(f"Successfully scraped {len(companies)} companies from Wayback Machine")
@@ -433,8 +434,8 @@ def scrape_glassdoor(year: int) -> List[str]:
             print(f"Error fetching URL {attempt_url}: {e}")
             if attempt_url == urls_to_try[-1]:  # Last URL attempt
                 # If direct URL fails and we haven't tried Wayback Machine yet, try it as fallback
-                if year > 2020:
-                    # For recent years (2021+), try Wayback Machine as fallback
+                if year > 2022:
+                    # For very recent years (2023+), try Wayback Machine as fallback
                     print("Trying Wayback Machine as fallback...")
                     companies = scrape_from_wayback_machine(year)
                     if companies:
@@ -491,73 +492,89 @@ def main():
     current_year = datetime.now().year
     max_year = current_year + 1  # Allow current year + 1 in case list is published early
     
-    # Always prompt user for year input after program loads
+    print("Glassdoor Best Places to Work Scraper")
+    print("=" * 60)
+    print(f"Enter a year (2009-{max_year}), 'all' for all years, or 'quit'/'exit' to stop")
+    print("=" * 60)
+    
+    # Main loop - keep running until user quits
     while True:
         try:
-            year_input = input(f"Enter the year to scrape (2009-{max_year}) or 'all' for all years: ").strip().lower()
+            year_input = input(f"\nEnter the year to scrape (2009-{max_year}) or 'all' for all years (or 'quit'/'exit' to stop): ").strip().lower()
+            
+            # Check if user wants to quit
+            if year_input in ['quit', 'exit', 'q']:
+                print("\nExiting scraper. Goodbye!")
+                break
             
             # Check if user wants all years
             if year_input == 'all':
                 years = list(range(2009, max_year + 1))  # 2009 to max_year inclusive
-                break
             else:
-                year = int(year_input)
-                if 2009 <= year <= max_year:
-                    years = [year]
-                    break
-                else:
-                    print(f"Error: Year must be between 2009 and {max_year}. Please try again.")
-        except ValueError:
-            print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and {max_year}, or 'all'.")
-        except KeyboardInterrupt:
-            print("\n\nScraper cancelled by user.")
-            return
-    
-        # Process each year
-    for year in years:
-        print(f"\n{'='*60}")
-        print(f"Starting Glassdoor Best Places to Work {year} scraper...")
-        print(f"{'='*60}")
-        
-        # Check if year is in the future
-        current_year = datetime.now().year
-        if year > current_year:
-            print(f"\nWarning: {year} is in the future. The list may not be published yet.")
-            print("Attempting to scrape anyway...")
-        
-        try:
-            companies = scrape_glassdoor(year)
+                try:
+                    year = int(year_input)
+                    if 2009 <= year <= max_year:
+                        years = [year]
+                    else:
+                        print(f"Error: Year must be between 2009 and {max_year}. Please try again.")
+                        continue
+                except ValueError:
+                    print(f"Error: '{year_input}' is not a valid year. Please enter a number between 2009 and {max_year}, 'all', or 'quit'.")
+                    continue
             
-            if companies:
-                print(f"\nFound {len(companies)} companies:")
-                for i, company in enumerate(companies[:10], 1):  # Show first 10
-                    print(f"  {i}. {company}")
-                if len(companies) > 10:
-                    print(f"  ... and {len(companies) - 10} more")
+            # Process each year
+            for year in years:
+                print(f"\n{'='*60}")
+                print(f"Starting Glassdoor Best Places to Work {year} scraper...")
+                print(f"{'='*60}")
                 
-                # Save to JSON format
-                save_companies_json(companies, year)
-            else:
-                print(f"\nNo companies found for {year}.")
+                # Check if year is in the future
                 if year > current_year:
-                    print(f"This is expected - the {year} list has not been published yet.")
-                else:
-                    print("The page structure may have changed.")
-                    print("You may need to inspect the page manually and update the selectors.")
-        except ValueError as e:
-            print(f"\nError: {e}")
+                    print(f"\nWarning: {year} is in the future. The list may not be published yet.")
+                    print("Attempting to scrape anyway...")
+                
+                try:
+                    companies = scrape_glassdoor(year)
+                    
+                    if companies:
+                        print(f"\nFound {len(companies)} companies:")
+                        for i, company in enumerate(companies[:10], 1):  # Show first 10
+                            print(f"  {i}. {company}")
+                        if len(companies) > 10:
+                            print(f"  ... and {len(companies) - 10} more")
+                        
+                        # Save to JSON format
+                        save_companies_json(companies, year)
+                    else:
+                        print(f"\nNo companies found for {year}.")
+                        if year > current_year:
+                            print(f"This is expected - the {year} list has not been published yet.")
+                        else:
+                            print("The page structure may have changed.")
+                            print("You may need to inspect the page manually and update the selectors.")
+                except ValueError as e:
+                    print(f"\nError: {e}")
+                except Exception as e:
+                    print(f"\nUnexpected error for {year}: {e}")
+                
+                # Add a small delay between years to be polite
+                if len(years) > 1 and year != years[-1]:
+                    print("\nWaiting 2 seconds before next year...")
+                    time.sleep(2)
+            
+            if len(years) > 1:
+                print(f"\n{'='*60}")
+                print(f"Completed scraping {len(years)} years!")
+                print(f"{'='*60}")
+            
+            # After completing, the loop will continue and prompt for next input
+            
+        except KeyboardInterrupt:
+            print("\n\nScraper cancelled by user. Exiting...")
+            break
         except Exception as e:
-            print(f"\nUnexpected error for {year}: {e}")
-        
-        # Add a small delay between years to be polite
-        if len(years) > 1 and year != years[-1]:
-            print("\nWaiting 2 seconds before next year...")
-            time.sleep(2)
-    
-    if len(years) > 1:
-        print(f"\n{'='*60}")
-        print(f"Completed scraping {len(years)} years!")
-        print(f"{'='*60}")
+            print(f"\nUnexpected error: {e}")
+            print("Continuing...")
 
 
 if __name__ == '__main__':
