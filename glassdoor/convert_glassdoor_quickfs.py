@@ -10,10 +10,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from datetime import datetime
 
-# Get project root directory (2 levels up from this script)
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+# Get project root directory (1 level up from this script, since script is in glassdoor/)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
-GLASSDOOR_DIR = os.path.join(PROJECT_ROOT, 'glassdoor')
+GLASSDOOR_DIR = SCRIPT_DIR  # Script is already in glassdoor directory
 COMPANIES_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'companies')
 TICKERS_QUICKFS_DIR = os.path.join(GLASSDOOR_DIR, 'data', 'tickers_quickfs')
 
@@ -488,11 +489,11 @@ def convert_glassdoor_year_from_data(year: int, stock_dict: Dict[str, Dict] = No
                             "info": info,
                             "year": year
                         })
-                        status = "✓"
+                        status = "[OK]"
                         print(f"[{completed_count}/{total_count}] {status} {company_name} -> {ticker} ({info})")
                     else:
                         unmatched.append(company_name)
-                        status = "✗"
+                        status = "[NO]"
                         print(f"[{completed_count}/{total_count}] {status} {company_name} (No match or no data for {year})")
     
     # Merge with cached results
