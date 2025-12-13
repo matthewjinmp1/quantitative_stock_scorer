@@ -69,13 +69,19 @@ def show_year_stats(year: int, stocks: List[Dict]):
     
     # Top 5 performers
     print(f"\n  Top 5 Performers:")
+    print(f"    {'Rank':<5} {'Ticker':<8} {'Company':<28} {'Ann. Ret':<12} {'Total Ret':<12}")
+    print(f"    {'-'*5} {'-'*8} {'-'*28} {'-'*12} {'-'*12}")
     for i, stock in enumerate(stocks[:5]):
-        print(f"    {i+1}. {stock['ticker']:>6} ({stock['company'][:25]:<25}) {stock['annualized_return_pct']:>7.1f}%/yr  ({stock['total_return_pct']:>7.0f}% total)")
+        company = stock['company'][:27] if stock['company'] else 'N/A'
+        print(f"    {i+1:<5} {stock['ticker']:<8} {company:<28} {stock['annualized_return_pct']:>8.1f}%   {stock['total_return_pct']:>8.0f}%")
     
     # Bottom 5 performers
     print(f"\n  Bottom 5 Performers:")
+    print(f"    {'Rank':<5} {'Ticker':<8} {'Company':<28} {'Ann. Ret':<12} {'Total Ret':<12}")
+    print(f"    {'-'*5} {'-'*8} {'-'*28} {'-'*12} {'-'*12}")
     for i, stock in enumerate(stocks[-5:][::-1]):
-        print(f"    {len(stocks)-i}. {stock['ticker']:>6} ({stock['company'][:25]:<25}) {stock['annualized_return_pct']:>7.1f}%/yr  ({stock['total_return_pct']:>7.0f}% total)")
+        company = stock['company'][:27] if stock['company'] else 'N/A'
+        print(f"    {len(stocks)-i:<5} {stock['ticker']:<8} {company:<28} {stock['annualized_return_pct']:>8.1f}%   {stock['total_return_pct']:>8.0f}%")
 
 
 def show_aggregate_stats(all_returns: Dict[int, List[Dict]]):
